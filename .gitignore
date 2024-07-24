@@ -1,7 +1,11 @@
+# VS code
+.vscode/
+
 # Prerequisites
 *.d
 
 # Compiled Object files
+bin/
 *.slo
 *.lo
 *.o
