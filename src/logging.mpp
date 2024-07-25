@@ -1,0 +1,60 @@
+module;
+
+#include <string_view>
+#include <print>
+#include <array>
+#include <algorithm>
+
+export module logging;
+
+using namespace std::string_view_literals;
+
+namespace wjgra {
+    export enum LoggingLevel {
+        LOGGING_LEVEL_NONE = 0,
+        LOGGING_LEVEL_ERROR,
+        LOGGING_LEVEL_WARNING,
+        LOGGING_LEVEL_INFO,
+        LOGGING_LEVEL_DEBUG
+    };
+    
+    constexpr std::array loggingLabels= {
+        "N/A"sv,
+        "ERROR"sv,
+        "WARNING"sv,
+        "INFO"sv,
+        "DEBUG"sv
+    };
+
+    export LoggingLevel loggingLevel = LOGGING_LEVEL_NONE;
+    constexpr auto len_longestLoggingLabel = std::ranges::max_element(loggingLabels, {}, [](auto s){ return s.length(); })->length();
+
+    template <class... Args>
+    void writeToLog(LoggingLevel level, std::format_string<Args...> fmt, Args&&... args) {
+        if (loggingLevel >= level) {
+            std::print("[ {:^{}} ]: ", loggingLabels[level], len_longestLoggingLabel);
+            std::println(fmt, std::forward<Args>(args)...);
+        }
+    }
+
+    export template <class... Args>
+    void logError(std::format_string<Args...> fmt, Args&&... args) {
+        writeToLog(LOGGING_LEVEL_ERROR, fmt, std::forward<Args>(args)...);
+    }
+
+    export template <class... Args>
+    void logWarning(std::format_string<Args...> fmt, Args&&... args) {
+        writeToLog(LOGGING_LEVEL_WARNING, fmt, std::forward<Args>(args)...);
+    }
+
+    export template <class... Args>
+    void logInfo(std::format_string<Args...> fmt, Args&&... args) {
+        writeToLog(LOGGING_LEVEL_INFO, fmt, std::forward<Args>(args)...);
+    }
+
+    export template <class... Args>
+    void logDebug(std::format_string<Args...> fmt, Args&&... args) {
+        writeToLog(LOGGING_LEVEL_DEBUG, fmt, std::forward<Args>(args)...);
+    }
+}
+
