@@ -33,7 +33,7 @@ namespace arq {
     in_addr stringToSockaddrIn(std::string_view str) {
         in_addr out;
         if (inet_aton(str.data(), &out) == 0) {
-            throw std::invalid_argument("invalid IPv4 address format");
+            throw std::invalid_argument("invalid IPv4 address provided");
         }
         return out;
     }
