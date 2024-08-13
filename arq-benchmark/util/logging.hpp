@@ -36,8 +36,11 @@ namespace util {
         template <class... Args>
         static void logMessage(const LoggingLevel level, std::format_string<Args...> message, Args&&... args) {
             if (loggingLevel >= level) {
-                std::print("[ {:^{}} ]: ", labels[level], len_longestLabel);
-                std::println(message, std::forward<Args>(args)...);
+                // Print label at fixed width, followed by formatted message
+                std::println("[{:^{}}]: {}",
+                            labels[level],
+                            len_longestLabel,
+                            std::format(message, std::forward<Args>(args)...));
             }
         }
 
@@ -61,8 +64,11 @@ namespace util {
             "INFO",
             "DEBUG"
         });
+        // Length of the longest label used to print log labels with a fixed with, ensuring that messages align
         static constexpr auto len_longestLabel = std::ranges::max(labels | std::views::transform([](auto&& str){ return str.size(); }));
     };
+
+    // Log functions for specific logging levels:
 
     template <class... Args>
     void logError(std::format_string<Args...> message, Args&&... args) {
