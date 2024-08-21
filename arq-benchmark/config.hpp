@@ -12,7 +12,7 @@
 namespace arq {
 
     struct config_common {
-        sockaddr_in serverAddr;
+        sockaddr_in serverAddr; // replace with strings? then use inet_pton()
         sockaddr_in clientAddr;
     };
 
