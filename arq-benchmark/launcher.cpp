@@ -166,38 +166,32 @@ static auto generateConfiguration(int argc, char** argv) {
 }
 
 void startServer(arq::config_Launcher& config) {
-    util::logDebug("attempting to start server (addr: {:08x}, port: {})",
+    using namespace util;
+    // Temp - need to redo config
+    /* util::logDebug("attempting to start server (addr: {:08x}, port: {})",
              config.common.serverAddr.sin_addr.s_addr,
-             ntohs(config.common.serverAddr.sin_port));
+             ntohs(config.common.serverAddr.sin_port)); */
 
-    auto sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock == -1) {
-        throw std::runtime_error("failed to create socket"); // currently not caught - add a wrapper function to catch the exceptions
-    }
+    Socket sock{"127.0.0.1", "1001", SocketType::TCP};
+
     util::logDebug("successfully created socket");
 
-    if (bind(sock, reinterpret_cast<sockaddr*>(&config.common.clientAddr), sizeof(config.common.clientAddr)) == -1) {
+    if (!sock.bind()) {
         util::logError("failed to bind socket ({})", strerror(errno));
-        throw std::runtime_error("failed to bind socket");
+        throw std::runtime_error("failed to bind socket"); // currently not caught - add a wrapper function to catch the exceptions
     }
     util::logDebug("successfully bound socket");
 
-    if (listen(sock, 50 /* number of connection requests - listen backlog */) == -1) {
+    if (!sock.listen(50 /* number of connection requests - listen backlog */)) {
         throw std::runtime_error("failed to listen");
     }
     util::logDebug("successfully starting listening to socket");
-
-    socklen_t sizeof_serverAddr = sizeof(config.common.serverAddr);
-    auto accepted = accept(sock, reinterpret_cast<sockaddr*>(&config.common.serverAddr), &sizeof_serverAddr);
-    if (accepted == -1) {
+    
+    if (!sock.accept()) {
         throw std::runtime_error("failed to accept");
     }
-
     util::logInfo("server connected");
 
-    if (close(sock) == -1) {
-        throw std::runtime_error("failed to close");
-    }
     util::logInfo("server thread shutting down");
 }
 

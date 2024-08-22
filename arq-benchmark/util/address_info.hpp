@@ -1,9 +1,11 @@
 #ifndef _UTIL_ADDRESS_INFO_HPP_
 #define _UTIL_ADDRESS_INFO_HPP_
 
+#include <memory>
 #include <netdb.h>
 #include <string_view>
 
+#include "util/logging.hpp"
 #include "util/network_common.hpp"
 
 namespace util {
@@ -12,28 +14,10 @@ namespace util {
 class AddressInfo {
 public:
     AddressInfo(std::string_view address, std::string_view port, SocketType type) {
-        // Obtain address information using hint struct
-        addrinfo hints{
-            .ai_family{AF_UNSPEC},
-            .ai_socktype{type == SocketType::TCP ? SOCK_STREAM : SOCK_DGRAM},
-            .ai_protocol = 0 // add explicit TCP/UDP value
-        };
-        
-        if (getaddrinfo(address.data(), port.data(), &hints, &info) != 0) {
-            throw std::runtime_error("failed to get address info");
-        }
+        info = getAddressInfo(address, port, type);
         util::logDebug("successfully obtained address info");
 
-        currentInfo = info;
-    }
-
-    AddressInfo(const AddressInfo& other) = delete;
-    AddressInfo& operator=(const AddressInfo& other) = delete;
-    AddressInfo(const AddressInfo&& other) = delete;
-    AddressInfo& operator=(const AddressInfo&& other) = delete;
-
-    ~AddressInfo() noexcept {
-        freeaddrinfo(info);
+        currentInfo = info.get();
     }
 
     auto getCurrentAddrInfo() const noexcept {
@@ -44,7 +28,31 @@ public:
         return currentInfo = currentInfo->ai_next;
     }
 private:
-    addrinfo *info; // Linked list of information structs
+    struct AddrInfoDeleter {
+        void operator()(addrinfo *p) const { 
+            freeaddrinfo(p);
+        }
+    };
+
+    using AddrInfoPtr = std::unique_ptr<addrinfo, AddrInfoDeleter>;
+
+    AddrInfoPtr getAddressInfo(std::string_view address, std::string_view port, SocketType type) {
+
+        // Obtain address information using hint struct
+        addrinfo hints{
+            .ai_family{AF_UNSPEC},
+            .ai_socktype{type == SocketType::TCP ? SOCK_STREAM : SOCK_DGRAM},
+            .ai_protocol = 0 // add explicit TCP/UDP value
+        };
+
+        addrinfo *out;
+        if (auto ret = getaddrinfo(address.data(), port.data(), &hints, &out)) {
+            throw std::runtime_error(std::format("failed to get address info ({})", gai_strerror(ret)));
+        }
+        return AddrInfoPtr{out};
+    }
+
+    AddrInfoPtr info; // Linked list of information structs
     addrinfo *currentInfo; // Current position in the list
 };
 

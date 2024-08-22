@@ -15,7 +15,7 @@ using namespace util;
 constexpr auto SOCKET_ERROR{-1};
 
 // Creates a socket from the given address info
-static auto createSocket(addrinfo *addrInfo) noexcept {
+static auto createSocket(addrinfo *info) noexcept {
     return ::socket(info->ai_family, info->ai_socktype, info->ai_protocol);
 }
 
@@ -23,11 +23,12 @@ static auto createSocket(addrinfo *addrInfo) noexcept {
 // Returns true if a socket is successfully created.
 bool Socket::attemptToCreateSocket() {
     auto info{addressInfo.getCurrentAddrInfo()};
-    while ((info = addressInfo.getNextAddrInfo()) != nullptr){
+    do {
         if ((socketID = createSocket(info)) != SOCKET_ERROR) {
             return true;
         }
     }
+    while ((info = addressInfo.getNextAddrInfo()) != nullptr);
     return false;
 }
 
@@ -56,13 +57,13 @@ bool Socket::bind() {
     do {
         // Allow address reuse
         const int yes{1};
-        if (::setsockopt(socketID, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes) == SOCKET_ERROR)) {
+        if (::setsockopt(socketID, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == SOCKET_ERROR) {
             throw std::runtime_error("failed to set socket options");
         }
 
         // Attempt to bind current socket
         const auto *info{addressInfo.getCurrentAddrInfo()};
-        if (::bind(socketID, info->ai_addr, info->ai_addrlen) == SOCKET_ERROR) {
+        if (::bind(socketID, info->ai_addr, info->ai_addrlen) != SOCKET_ERROR) {
             return true;
         }
 
@@ -85,7 +86,7 @@ bool Socket::connect() {
 bool Socket::accept() {
     sockaddr_storage theirAddr;
     socklen_t theirAddrLen = sizeof(theirAddr);
-    auto newSocketID = ::accept(socketID, static_cast<sockaddr*>(&theirAddr), &theirAddrLen);
+    auto newSocketID = ::accept(socketID, reinterpret_cast<sockaddr*>(&theirAddr), &theirAddrLen);
     if (newSocketID == SOCKET_ERROR) {
         return false;
     }
