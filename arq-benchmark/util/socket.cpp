@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
+#include "util/logging.hpp"
 #include "util/network_common.hpp"
 
 using namespace util;
@@ -82,8 +83,16 @@ bool Socket::connect() {
 }
 
 bool Socket::accept() {
-    throw std::logic_error("Socket::accept not implemented");
-    return false;
+    sockaddr_storage theirAddr;
+    socklen_t theirAddrLen = sizeof(theirAddr);
+    auto newSocketID = ::accept(socketID, static_cast<sockaddr*>(&theirAddr), &theirAddrLen);
+    if (newSocketID == SOCKET_ERROR) {
+        return false;
+    }
+    else {
+        // logInfo("Accepted connection from {}", );
+        closeSocket();
+        socketID = newSocketID;
+        return true;
+    }
 }
-
-
