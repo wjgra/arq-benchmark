@@ -7,15 +7,16 @@
 #include "util/network_common.hpp"
 
 namespace util {
-    
+
+// Owning wrapper for the heap-allocated addrinfo returned by getaddrinfo().
 class AddressInfo {
 public:
     AddressInfo(std::string_view address, std::string_view port, SocketType type) {
         // Obtain address information using hint struct
-        addrinfo hints = {
-            .ai_family = AF_UNSPEC,
-            .ai_socktype = type == SocketType::TCP ? SOCK_STREAM : SOCK_DGRAM,
-            .ai_protocol = 0
+        addrinfo hints{
+            .ai_family{AF_UNSPEC},
+            .ai_socktype{type == SocketType::TCP ? SOCK_STREAM : SOCK_DGRAM},
+            .ai_protocol = 0 // add explicit TCP/UDP value
         };
         
         if (getaddrinfo(address.data(), port.data(), &hints, &info) != 0) {
@@ -26,15 +27,20 @@ public:
         currentInfo = info;
     }
 
-    ~AddressInfo() {
+    AddressInfo(const AddressInfo& other) = delete;
+    AddressInfo& operator=(const AddressInfo& other) = delete;
+    AddressInfo(const AddressInfo&& other) = delete;
+    AddressInfo& operator=(const AddressInfo&& other) = delete;
+
+    ~AddressInfo() noexcept {
         freeaddrinfo(info);
     }
 
-    addrinfo *getCurrentAddrInfo() const {
+    auto getCurrentAddrInfo() const noexcept {
         return currentInfo;
     }
 
-    addrinfo *getNextAddrInfo() {
+    auto getNextAddrInfo() {
         return currentInfo = currentInfo->ai_next;
     }
 private:
@@ -44,4 +50,4 @@ private:
 
 }
 
-#endif;
+#endif

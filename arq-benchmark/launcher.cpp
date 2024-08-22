@@ -13,6 +13,7 @@
 #include <netinet/in.h>
 
 #include "util/logging.hpp"
+#include "util/socket.hpp"
 
 #include "config.hpp"
 
