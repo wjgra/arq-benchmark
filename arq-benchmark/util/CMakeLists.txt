@@ -1,5 +1,6 @@
-add_library(socket socket.cpp)
-
 include_directories(${CMAKE_SOURCE_DIR}/arq-benchmark)
 
-target_link_libraries(launcher socket)
+# Add source files to util library
+add_library(lib_util socket.cpp
+                     address_info.cpp)
+target_link_libraries(launcher lib_util)
