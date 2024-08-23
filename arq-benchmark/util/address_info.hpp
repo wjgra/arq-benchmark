@@ -5,7 +5,6 @@
 #include <netdb.h>
 #include <string_view>
 
-#include "util/logging.hpp"
 #include "util/network_common.hpp"
 
 namespace util {
@@ -13,6 +12,7 @@ namespace util {
 // Owning wrapper for the heap-allocated addrinfo returned by getaddrinfo().
 class AddressInfo {
 public:
+    AddressInfo() = default;
     AddressInfo(std::string_view address, std::string_view port, SocketType type);
 
     auto getCurrentAddrInfo() const noexcept {
@@ -25,7 +25,7 @@ public:
 private:
     struct AddrInfoDeleter {
         void operator()(addrinfo *p) const { 
-            freeaddrinfo(p);
+            if (p != nullptr) freeaddrinfo(p);
         }
     };
 

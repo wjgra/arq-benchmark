@@ -196,26 +196,22 @@ void startServer(arq::config_Launcher& config) {
 }
 
 void startClient(arq::config_Launcher& config) {
-    util::logDebug("attempting to start client (addr: {:08x}, port: {})",
+/*     util::logDebug("attempting to start client (addr: {:08x}, port: {})",
             config.common.clientAddr.sin_addr.s_addr,
-            ntohs(config.common.clientAddr.sin_port));
-    
-    auto sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock == -1) {
-        throw std::runtime_error("failed to create socket"); // currently not caught - add a wrapper function to catch the exceptions
-    }
-    util::logDebug("successfully created socket");
+            ntohs(config.common.clientAddr.sin_port)); */
+    using namespace util;
+
+    Socket socket{"127.0.0.1", "1001", SocketType::TCP};
+
+    logDebug("successfully created socket");
 
     usleep(1000);
-    if (connect(sock, reinterpret_cast<sockaddr*>(&config.common.serverAddr), sizeof(config.common.serverAddr)) == -1) {
+    if (!socket.connect()) {
         throw std::runtime_error("failed to connect to socket");
     }
+    
     util::logDebug("successfully connected to socket");
 
-
-    if (close(sock) == -1) {
-        throw std::runtime_error("failed to close");
-    }
     util::logInfo("client thread shutting down");
 }
 

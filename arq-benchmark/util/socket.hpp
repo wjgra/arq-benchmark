@@ -23,10 +23,10 @@ public:
     bool connect();
     bool accept();
 private:
-    bool attemptToCreateSocket();
+    bool createNextSocket();
     void closeSocket() noexcept;
-    AddressInfo addressInfo;
-    SocketID socketID;
+    AddressInfo addressInfo_;
+    SocketID socketID_;
 };
 
 }

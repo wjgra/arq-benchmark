@@ -21,28 +21,28 @@ static auto createSocket(addrinfo *info) noexcept {
 
 // Iterates over stored address info, creating the first socket possible.
 // Returns true if a socket is successfully created.
-bool Socket::attemptToCreateSocket() {
-    auto info{addressInfo.getCurrentAddrInfo()};
+bool Socket::createNextSocket() {
+    auto info{addressInfo_.getCurrentAddrInfo()};
     do {
-        if ((socketID = createSocket(info)) != SOCKET_ERROR) {
+        if ((socketID_ = createSocket(info)) != SOCKET_ERROR) {
             return true;
         }
     }
-    while ((info = addressInfo.getNextAddrInfo()) != nullptr);
+    while ((info = addressInfo_.getNextAddrInfo()) != nullptr);
     return false;
 }
 
 Socket::Socket(std::string_view address, std::string_view port, SocketType type) :
-    addressInfo(address, port, type)
+    addressInfo_{address, port, type}
 {
-    if (attemptToCreateSocket() == false) {
+    if (createNextSocket() == false) {
         throw std::runtime_error("failed to create socket");
     }
 }
 
 // Close current socket
 void Socket::closeSocket() noexcept {
-    if (::close(socketID) == SOCKET_ERROR) {
+    if (::close(socketID_) == SOCKET_ERROR) {
         logWarning("failed to close socket");
     }
 }
@@ -57,43 +57,53 @@ bool Socket::bind() {
     do {
         // Allow address reuse
         const int yes{1};
-        if (::setsockopt(socketID, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == SOCKET_ERROR) {
+        if (::setsockopt(socketID_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == SOCKET_ERROR) {
             throw std::runtime_error("failed to set socket options");
         }
 
         // Attempt to bind current socket
-        const auto *info{addressInfo.getCurrentAddrInfo()};
-        if (::bind(socketID, info->ai_addr, info->ai_addrlen) != SOCKET_ERROR) {
+        const auto *info{addressInfo_.getCurrentAddrInfo()};
+        if (::bind(socketID_, info->ai_addr, info->ai_addrlen) != SOCKET_ERROR) {
             return true;
         }
 
         // Clean up socket file descriptor
         closeSocket();
     }
-    while (attemptToCreateSocket() == true); // Move on to next socket, if available
+    while (createNextSocket() == true); // Move on to next socket in address info
     return false;
 }
 
 bool Socket::listen(int backlog) noexcept {
-    return ::listen(socketID, backlog) != SOCKET_ERROR;
+    return ::listen(socketID_, backlog) != SOCKET_ERROR;
 }
 
 bool Socket::connect() {
-    throw std::logic_error("Socket::connect not implemented");
+    do {
+        // Attempt to connect to current socket
+        const auto *info{addressInfo_.getCurrentAddrInfo()};
+        if (::connect(socketID_, info->ai_addr, info->ai_addrlen) != SOCKET_ERROR) {
+            return true;
+        }
+
+        // Clean up socket file descriptor
+        closeSocket();
+    }
+    while (createNextSocket() == true); // Move on to next socket in address info
     return false;
 }
 
 bool Socket::accept() {
-    sockaddr_storage theirAddr;
+    sockaddr_storage theirAddr; // validate against client address
     socklen_t theirAddrLen = sizeof(theirAddr);
-    auto newSocketID = ::accept(socketID, reinterpret_cast<sockaddr*>(&theirAddr), &theirAddrLen);
+    auto newSocketID = ::accept(socketID_, reinterpret_cast<sockaddr*>(&theirAddr), &theirAddrLen);
     if (newSocketID == SOCKET_ERROR) {
         return false;
     }
     else {
         // logInfo("Accepted connection from {}", );
         closeSocket();
-        socketID = newSocketID;
+        socketID_ = newSocketID;
         return true;
     }
 }

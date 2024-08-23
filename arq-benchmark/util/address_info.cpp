@@ -1,12 +1,23 @@
-#include "address_info.hpp"
+#include "util/address_info.hpp"
+
+#include "util/logging.hpp"
 
 using namespace util;
 
-AddressInfo::AddressInfo(std::string_view address, std::string_view port, SocketType type) {
-    info_ = getAddressInfo(address, port, type);
-    logDebug("successfully obtained address info");
+struct AddrInfoException : public std::runtime_error {
+    AddrInfoException(const std::string what) : std::runtime_error(what) {};
+};
 
-    currentInfo_ = info_.get();
+AddressInfo::AddressInfo(std::string_view address, std::string_view port, SocketType type) {
+    try {
+        info_ = getAddressInfo(address, port, type);
+        logDebug("successfully obtained address info");
+        currentInfo_ = info_.get();
+    }
+    catch (const AddrInfoException& e) {
+        logWarning("{}", e.what());
+    }
+ 
 }
 
 auto AddressInfo::getAddressInfo(std::string_view address, std::string_view port, SocketType type) -> AddrInfoPtr {
@@ -19,7 +30,7 @@ auto AddressInfo::getAddressInfo(std::string_view address, std::string_view port
 
     addrinfo *out;
     if (auto ret = getaddrinfo(address.data(), port.data(), &hints, &out)) {
-        throw std::runtime_error(std::format("failed to get address info ({})", gai_strerror(ret)));
+        throw AddrInfoException(std::format("failed to get address info ({})", gai_strerror(ret)));
     }
     return AddrInfoPtr{out};
 }
