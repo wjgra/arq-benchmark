@@ -41,13 +41,13 @@ Socket::Socket(std::string_view address, std::string_view port, SocketType type)
 }
 
 // Close current socket
-void Socket::closeSocket() {
+void Socket::closeSocket() noexcept {
     if (::close(socketID) == SOCKET_ERROR) {
-        throw std::runtime_error("failed to close socket");
+        logWarning("failed to close socket");
     }
 }
 
-Socket::~Socket(){
+Socket::~Socket() noexcept{
     closeSocket();
 }
 
@@ -74,7 +74,7 @@ bool Socket::bind() {
     return false;
 }
 
-bool Socket::listen(int backlog) {
+bool Socket::listen(int backlog) noexcept {
     return ::listen(socketID, backlog) != SOCKET_ERROR;
 }
 

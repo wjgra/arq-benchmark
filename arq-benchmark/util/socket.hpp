@@ -16,15 +16,15 @@ public:
     Socket operator=(const Socket&) = delete;
     Socket(const Socket&&) = delete;
     Socket operator=(const Socket&&) = delete;
-    ~Socket();
+    ~Socket() noexcept;
 public:
     bool bind();
-    bool listen(int backlog);
+    bool listen(int backlog) noexcept;
     bool connect();
     bool accept();
 private:
     bool attemptToCreateSocket();
-    void closeSocket();
+    void closeSocket() noexcept;
     AddressInfo addressInfo;
     SocketID socketID;
 };

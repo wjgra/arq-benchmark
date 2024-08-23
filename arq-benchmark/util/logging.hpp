@@ -19,23 +19,23 @@ enum LoggingLevel {
 };
 
 struct Logger {
-    static auto getLoggingLevel() {
+    static auto getLoggingLevel() noexcept {
         return loggingLevel;
     }
 
     static void setLoggingLevel(const LoggingLevel newLevel) {
-        if (!(newLevel >= 0 && newLevel < labels.size())) {
+        if (newLevel < 0 || newLevel >= labels.size()) {
             throw std::invalid_argument("logging level out of range");
         }
         loggingLevel = newLevel;
     }
 
-    static auto loggingLevelStr(const LoggingLevel level = loggingLevel) {
+    static auto loggingLevelStr(const LoggingLevel level = loggingLevel) noexcept {
         return labels[level];
     }
 
     template <class... Args>
-    static void logMessage(const LoggingLevel level, std::format_string<Args...> message, Args&&... args) {
+    static void logMessage(const LoggingLevel level, std::format_string<Args...> message, Args&&... args) noexcept {
         if (loggingLevel >= level) {
             // Print label at fixed width, followed by formatted message
             std::println("[{:^{}}]: {}",
@@ -72,22 +72,22 @@ private:
 // Log functions for specific logging levels:
 
 template <class... Args>
-void logError(std::format_string<Args...> message, Args&&... args) {
+void logError(std::format_string<Args...> message, Args&&... args) noexcept {
     Logger::logMessage(LOGGING_LEVEL_ERROR, message, std::forward<Args>(args)...);
 }
 
 template <class... Args>
-void logWarning(std::format_string<Args...> message, Args&&... args) {
+void logWarning(std::format_string<Args...> message, Args&&... args) noexcept {
     Logger::logMessage(LOGGING_LEVEL_WARNING, message, std::forward<Args>(args)...);
 }
 
 template <class... Args>
-void logInfo(std::format_string<Args...> message, Args&&... args) {
+void logInfo(std::format_string<Args...> message, Args&&... args) noexcept {
     Logger::logMessage(LOGGING_LEVEL_INFO, message, std::forward<Args>(args)...);
 }
 
 template <class... Args>
-void logDebug(std::format_string<Args...> message, Args&&... args) {
+void logDebug(std::format_string<Args...> message, Args&&... args) noexcept {
     Logger::logMessage(LOGGING_LEVEL_DEBUG, message, std::forward<Args>(args)...);
 }
 

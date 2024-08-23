@@ -12,22 +12,6 @@ namespace util {
 
 // Owning wrapper for the heap-allocated addrinfo returned by getaddrinfo().
 class AddressInfo {
-public:
-    AddressInfo(std::string_view address, std::string_view port, SocketType type) {
-        info = getAddressInfo(address, port, type);
-        util::logDebug("successfully obtained address info");
-
-        currentInfo = info.get();
-    }
-
-    auto getCurrentAddrInfo() const noexcept {
-        return currentInfo;
-    }
-
-    auto getNextAddrInfo() {
-        return currentInfo = currentInfo->ai_next;
-    }
-private:
     struct AddrInfoDeleter {
         void operator()(addrinfo *p) const { 
             freeaddrinfo(p);
@@ -35,7 +19,22 @@ private:
     };
 
     using AddrInfoPtr = std::unique_ptr<addrinfo, AddrInfoDeleter>;
+public:
+    AddressInfo(std::string_view address, std::string_view port, SocketType type) {
+        info_ = getAddressInfo(address, port, type);
+        util::logDebug("successfully obtained address info");
 
+        currentInfo_ = info_.get();
+    }
+
+    auto getCurrentAddrInfo() const noexcept {
+        return currentInfo_;
+    }
+
+    auto getNextAddrInfo() noexcept {
+        return currentInfo_ = currentInfo_->ai_next;
+    }
+private:
     AddrInfoPtr getAddressInfo(std::string_view address, std::string_view port, SocketType type) {
 
         // Obtain address information using hint struct
@@ -52,8 +51,8 @@ private:
         return AddrInfoPtr{out};
     }
 
-    AddrInfoPtr info; // Linked list of information structs
-    addrinfo *currentInfo; // Current position in the list
+    AddrInfoPtr info_; // Linked list of information structs
+    addrinfo *currentInfo_; // Current position in the list
 };
 
 }
