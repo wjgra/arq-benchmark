@@ -17,20 +17,27 @@
 
 #include "config.hpp"
 
+using LogLev_t = std::underlying_type_t<util::LoggingLevel>;
+
 struct ProgramOption {
     std::string name;
-    std::variant<std::monostate, uint16_t, std::string> defaultValue; // This matches the type of the (optional) argument
+    std::variant<std::monostate, // Options with no arg
+                 int,     // Logging level option
+                 std::string>    // String options
+    defaultValue;
     std::string helpText;
 };
+
+using namespace std::string_literals; // change once compiling succeeds
 
 // Possible program options
 auto programOptions = std::to_array<ProgramOption>({
     {"help",            std::monostate{},           "display help message"},
     {"logging",         util::LOGGING_LEVEL_INFO,   util::Logger::helpText()},
-    {"server-addr",     std::string{"127.0.0.1"},   "server IPv4 address"},
-    {"server-port",     uint16_t{1000},             "server port"},
-    {"client-addr",     std::string{"127.0.0.1"},   "client IPv4 address"},
-    {"client-port",     uint16_t{1000},             "client port"},
+    {"server-addr",     std::string{"127.0.0.1"},               "server IPv4 address"},
+    {"server-port",     std::string{"1001"},                    "server port"},
+    {"client-addr",     std::string{"127.0.0.1"},               "client IPv4 address"},
+    {"client-port",     std::string{"1001"},                    "client port"},
     {"launch-server",   std::monostate{},           "start server thread"},
     {"launch-client",   std::monostate{},           "start client thread"}
 });
@@ -42,18 +49,21 @@ static auto generateOptionsDescription() {
     // Add each possible option to the description object
     for (const auto& option: programOptions) {
         util::logDebug("parsing option: {}", option.name.c_str());
-        // Add options with no arguments (indicated by monostate defaultValue)
+        
+        // Add options with no arguments
         if (std::holds_alternative<std::monostate>(option.defaultValue)) {
             description.add_options()(option.name.c_str(), option.helpText.c_str());
         }
-        // Add options with uint16_t type arguments
-        else if (std::holds_alternative<uint16_t>(option.defaultValue)) {
+
+        // Add options with LogLev_t type arguments
+        else if (std::holds_alternative<LogLev_t>(option.defaultValue)) {
             description.add_options()(
                 option.name.c_str(),
-                po::value<uint16_t>()->default_value(std::get<uint16_t>(option.defaultValue)),
+                po::value<LogLev_t>()->default_value(std::get<LogLev_t>(option.defaultValue)),
                 option.helpText.c_str());
         }
-        // Add options with string type arguments
+
+        // Add options with string  arguments
         else if (std::holds_alternative<std::string>(option.defaultValue)) {
             description.add_options()(
                 option.name.c_str(),
@@ -92,7 +102,7 @@ static auto parseOptions(int argc,
         // Logging
         assert(programOptions[idx++].name == "logging");
         if (vm.contains("logging")) {
-            const auto newLevel{static_cast<util::LoggingLevel>(vm["logging"].as<uint16_t>())};
+            const auto newLevel{static_cast<util::LoggingLevel>(vm["logging"].as<LogLev_t>())};
             util::Logger::setLoggingLevel(newLevel);
         }
         util::logInfo("logging level set to {}", util::Logger::loggingLevelStr());
@@ -100,8 +110,7 @@ static auto parseOptions(int argc,
         // Server address
         assert(programOptions[idx++].name == "server-addr");
         if (vm.contains("server-addr")) {
-            config.common.serverAddr.sin_addr = arq::stringToSockaddrIn(vm["server-addr"].as<std::string>());
-            config.common.serverAddr.sin_family = AF_INET;
+            config.common.serverNames.hostName = vm["server-addr"].as<std::string>();
         }
         else {
             throw std::invalid_argument("server-addr not provided");
@@ -110,7 +119,7 @@ static auto parseOptions(int argc,
         // Server port
         assert(programOptions[idx++].name == "server-port");
         if (vm.contains("server-port")) {
-            config.common.serverAddr.sin_port = htons(vm["server-port"].as<uint16_t>());
+            config.common.serverNames.serviceName = vm["server-port"].as<std::string>();
         }
         else {
             throw std::invalid_argument("server-port not provided");
@@ -119,8 +128,7 @@ static auto parseOptions(int argc,
         // Client address
         assert(programOptions[idx++].name == "client-addr");
         if (vm.contains("client-addr")) {
-            config.common.clientAddr.sin_addr = arq::stringToSockaddrIn(vm["client-addr"].as<std::string>());
-            config.common.clientAddr.sin_family = AF_INET;
+            config.common.clientNames.hostName = vm["client-addr"].as<std::string>();
         }
         else {
             throw std::invalid_argument("client-addr not provided");
@@ -129,7 +137,7 @@ static auto parseOptions(int argc,
         // Client port
         assert(programOptions[idx++].name == "client-port");
         if (vm.contains("client-port")) {
-            config.common.clientAddr.sin_port = htons(vm["client-port"].as<uint16_t>());
+            config.common.clientNames.serviceName = vm["client-port"].as<std::string>();
         }
         else {
             throw std::invalid_argument("client-port not provided");
@@ -167,41 +175,44 @@ static auto generateConfiguration(int argc, char** argv) {
 
 void startServer(arq::config_Launcher& config) {
     using namespace util;
-    // Temp - need to redo config
-    /* util::logDebug("attempting to start server (addr: {:08x}, port: {})",
-             config.common.serverAddr.sin_addr.s_addr,
-             ntohs(config.common.serverAddr.sin_port)); */
+    logDebug("attempting to start server (host: {}, service: {})",
+             config.common.serverNames.hostName,
+             config.common.serverNames.serviceName);
 
-    Socket sock{"127.0.0.1", "1001", SocketType::TCP};
+    Socket sock{config.common.serverNames.hostName,
+                config.common.serverNames.serviceName,
+                SocketType::TCP};
 
-    util::logDebug("successfully created socket");
+    logDebug("successfully created socket");
 
     if (!sock.bind()) {
-        util::logError("failed to bind socket ({})", strerror(errno));
+        logError("failed to bind socket ({})", strerror(errno));
         throw std::runtime_error("failed to bind socket"); // currently not caught - add a wrapper function to catch the exceptions
     }
-    util::logDebug("successfully bound socket");
+    logDebug("successfully bound socket");
 
     if (!sock.listen(50 /* number of connection requests - listen backlog */)) {
         throw std::runtime_error("failed to listen");
     }
-    util::logDebug("successfully starting listening to socket");
+    logDebug("successfully starting listening to socket");
     
     if (!sock.accept()) {
         throw std::runtime_error("failed to accept");
     }
-    util::logInfo("server connected");
+    logInfo("server connected");
 
-    util::logInfo("server thread shutting down");
+    logInfo("server thread shutting down");
 }
 
 void startClient(arq::config_Launcher& config) {
-/*     util::logDebug("attempting to start client (addr: {:08x}, port: {})",
-            config.common.clientAddr.sin_addr.s_addr,
-            ntohs(config.common.clientAddr.sin_port)); */
     using namespace util;
+    logDebug("attempting to start client (host: {}, service: {})",
+            config.common.clientNames.hostName,
+            config.common.clientNames.serviceName);
 
-    Socket socket{"127.0.0.1", "1001", SocketType::TCP};
+    Socket socket{config.common.clientNames.hostName,
+                  config.common.clientNames.serviceName,
+                  SocketType::TCP};
 
     logDebug("successfully created socket");
 
@@ -210,9 +221,9 @@ void startClient(arq::config_Launcher& config) {
         throw std::runtime_error("failed to connect to socket");
     }
     
-    util::logDebug("successfully connected to socket");
+    logDebug("successfully connected to socket");
 
-    util::logInfo("client thread shutting down");
+    logInfo("client thread shutting down");
 }
 
 int main(int argc, char** argv) {
