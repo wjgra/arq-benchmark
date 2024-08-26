@@ -17,15 +17,14 @@ AddressInfo::AddressInfo(std::string_view address, std::string_view port, Socket
     catch (const AddrInfoException& e) {
         logWarning("{}", e.what());
     }
- 
 }
 
 auto AddressInfo::getAddressInfo(std::string_view address, std::string_view port, SocketType type) -> AddrInfoPtr {
     // Obtain address information using hint struct
     addrinfo hints{
         .ai_family{AF_UNSPEC},
-        .ai_socktype{type == SocketType::TCP ? SOCK_STREAM : SOCK_DGRAM},
-        .ai_protocol = 0 // add explicit TCP/UDP value
+        .ai_socktype{socketType2SockType(type)},
+        .ai_protocol{socketType2PreferredProtocol(type)}
     };
 
     addrinfo *out;
