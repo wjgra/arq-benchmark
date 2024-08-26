@@ -1,31 +1,47 @@
 #ifndef _UTIL_SOCKET_HPP_
 #define _UTIL_SOCKET_HPP_
 
+#include <optional>
 #include <string_view>
 
 #include "util/address_info.hpp"
 
 namespace util {
 
-// Owning wrapper for a valid socket file descriptor.
+struct SocketException : public std::runtime_error {
+    explicit SocketException(const std::string what) : std::runtime_error(what) {};
+};
+
+// Owning wrapper for a socket file descriptor.
 class Socket {
+public:
     using SocketID = int;
-public:
-    Socket(std::string_view address, std::string_view port, SocketType type);
+    explicit Socket() noexcept;
+    explicit Socket(SocketType type);
+    explicit Socket(SocketID id) noexcept;
+    // Constructs a socket for the given address info and attempts to bind it at the
+    // corresponding address/port.
+    explicit Socket(const addrinfo& ai);
+
     Socket(const Socket&) = delete;
-    Socket operator=(const Socket&) = delete;
-    Socket(const Socket&&) = delete;
-    Socket operator=(const Socket&&) = delete;
+    Socket& operator=(const Socket&) = delete;
+    Socket(Socket&&) = default;
+    Socket& operator=(Socket&&) = default;
     ~Socket() noexcept;
-public:
-    bool bind();
+
+    bool bind(const addrinfo& ai);
     bool listen(int backlog) noexcept;
-    bool connect();
-    bool accept();
+    bool connect(const addrinfo& ai);
+    Socket accept(std::optional<std::string_view> host = std::nullopt, 
+                  std::optional<std::string_view> service = std::nullopt);
+
+    // Not implemented
+    bool send();
+    bool recv();
+    bool sendTo();
+    bool recvFrom();
+
 private:
-    bool createNextSocket();
-    void closeSocket() noexcept;
-    AddressInfo addressInfo_;
     SocketID socketID_;
 };
 

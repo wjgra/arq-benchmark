@@ -1,6 +1,7 @@
 #ifndef _UTIL_ADDRESS_INFO_HPP_
 #define _UTIL_ADDRESS_INFO_HPP_
 
+#include <iterator>
 #include <memory>
 #include <netdb.h>
 #include <string_view>
@@ -9,31 +10,62 @@
 
 namespace util {
 
-// Owning wrapper for the heap-allocated addrinfo returned by getaddrinfo().
+struct AddrInfoException : public std::runtime_error {
+    explicit AddrInfoException(const std::string what) : std::runtime_error(what) {};
+};
+
+// Owning wrapper for the heap-allocated addrinfo linked list returned by getaddrinfo().
 class AddressInfo {
 public:
-    AddressInfo() = default;
-    AddressInfo(std::string_view address, std::string_view port, SocketType type);
-
-    auto getCurrentAddrInfo() const noexcept {
-        return currentInfo_;
+    explicit AddressInfo(std::string_view host, std::string_view service, SocketType type);
+    auto begin() const noexcept{
+        return ConstIterator{info_.get()};
     }
 
-    auto getNextAddrInfo() noexcept {
-        return currentInfo_ = currentInfo_->ai_next;
+    auto end() const noexcept {
+        return ConstIterator{nullptr};
     }
+
 private:
     struct AddrInfoDeleter {
-        void operator()(addrinfo *p) const { 
+        void operator()(addrinfo *p) const noexcept { 
             if (p != nullptr) freeaddrinfo(p);
         }
     };
 
     using AddrInfoPtr = std::unique_ptr<addrinfo, AddrInfoDeleter>;
-    AddrInfoPtr getAddressInfo(std::string_view address, std::string_view port, SocketType type);
+    AddrInfoPtr getAddressInfo(std::string_view host, std::string_view service, SocketType type);
 
     AddrInfoPtr info_; // Linked list of information structs
-    addrinfo *currentInfo_; // Current position in the list
+
+    struct ConstIterator {
+        using value_type = const addrinfo;
+        using difference_type = std::ptrdiff_t;
+
+        explicit ConstIterator(value_type* ptr) noexcept : current_{ptr}{};
+
+        value_type operator*() const {
+            return *current_;
+        }
+
+        ConstIterator& operator++(){
+            current_ = current_->ai_next;
+            return *this;
+        }
+
+        ConstIterator operator++(int){ // post
+            auto temp{*this};
+            this->operator++();
+            return temp;
+        }
+
+        bool operator==(const ConstIterator& other) const {
+            return this->current_ == other.current_;
+        }
+
+        value_type* current_;
+    };
+    static_assert(std::input_iterator<ConstIterator>);
 };
 
 }

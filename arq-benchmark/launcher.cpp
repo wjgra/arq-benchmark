@@ -1,21 +1,15 @@
 #include <array>
-
+#include <boost/program_options.hpp>
+#include <iostream>
+#include <netinet/in.h>
+#include <stdexcept>
+#include <string>
+#include <thread>
 #include <variant>
 
-#include <iostream>
-#include <stdexcept>
-#include <thread>
-
-#include <string>
-
-#include <boost/program_options.hpp>
-
-#include <netinet/in.h>
-
-#include "util/logging.hpp"
-#include "util/socket.hpp"
-
 #include "config.hpp"
+#include "util/endpoint.hpp"
+#include "util/logging.hpp"
 
 using LogLev_t = std::underlying_type_t<util::LoggingLevel>;
 
@@ -37,7 +31,7 @@ auto programOptions = std::to_array<ProgramOption>({
     {"server-addr",     std::string{"127.0.0.1"},               "server IPv4 address"},
     {"server-port",     std::string{"1001"},                    "server port"},
     {"client-addr",     std::string{"127.0.0.1"},               "client IPv4 address"},
-    {"client-port",     std::string{"1001"},                    "client port"},
+    {"client-port",     std::string{"1002"},                    "client port"},
     {"launch-server",   std::monostate{},           "start server thread"},
     {"launch-client",   std::monostate{},           "start client thread"}
 });
@@ -178,27 +172,22 @@ void startServer(arq::config_Launcher& config) {
     logDebug("attempting to start server (host: {}, service: {})",
              config.common.serverNames.hostName,
              config.common.serverNames.serviceName);
-
-    Socket sock{config.common.serverNames.hostName,
-                config.common.serverNames.serviceName,
-                SocketType::TCP};
-
-    logDebug("successfully created socket");
-
-    if (!sock.bind()) {
-        logError("failed to bind socket ({})", strerror(errno));
-        throw std::runtime_error("failed to bind socket"); // currently not caught - add a wrapper function to catch the exceptions
-    }
-    logDebug("successfully bound socket");
-
-    if (!sock.listen(50 /* number of connection requests - listen backlog */)) {
-        throw std::runtime_error("failed to listen");
-    }
-    logDebug("successfully starting listening to socket");
     
-    if (!sock.accept()) {
-        throw std::runtime_error("failed to accept");
+    util::Endpoint endpoint{config.common.serverNames.hostName,
+                            config.common.serverNames.serviceName,
+                            SocketType::TCP};
+    
+    logDebug("successfully created server endpoint");
+
+    if (!endpoint.listen(50)) {
+        throw std::runtime_error("failed to listen on server endpoint");
     }
+    logDebug("listening on server endpoint...");
+
+    if (!endpoint.accept(config.common.clientNames.hostName, config.common.clientNames.serviceName)) {
+        throw std::runtime_error("failed to accept connection at server endpoint");
+    }
+
     logInfo("server connected");
 
     logInfo("server thread shutting down");
@@ -210,15 +199,15 @@ void startClient(arq::config_Launcher& config) {
             config.common.clientNames.hostName,
             config.common.clientNames.serviceName);
 
-    Socket socket{config.common.clientNames.hostName,
-                  config.common.clientNames.serviceName,
-                  SocketType::TCP};
+    Endpoint endpoint{config.common.clientNames.hostName,
+                      config.common.clientNames.serviceName,
+                      SocketType::TCP};
 
-    logDebug("successfully created socket");
+    logDebug("successfully created client endpoint");
 
     usleep(1000);
-    if (!socket.connect()) {
-        throw std::runtime_error("failed to connect to socket");
+    if (!endpoint.connect(config.common.serverNames.hostName, config.common.serverNames.serviceName, SocketType::TCP)) {
+        throw std::runtime_error("failed to connect to server endpoint");
     }
     
     logDebug("successfully connected to socket");
