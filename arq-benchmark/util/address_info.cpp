@@ -4,16 +4,16 @@
 
 using namespace util;
 
-explicit AddressInfo::AddressInfo(std::string_view host, std::string_view service, SocketType type) {
+AddressInfo::AddressInfo(std::string_view host, std::string_view service, SocketType type) {
     info_ = getAddressInfo(host, service, type);
     logDebug("successfully obtained address info for host '{}' and service '{}'",
             host,
             service);
 }
 
-AddrInfoPtr AddressInfo::getAddressInfo(std::string_view host,
-                                        std::string_view service,
-                                        SocketType type) {
+auto AddressInfo::getAddressInfo(std::string_view host,
+                                 std::string_view service,
+                                 SocketType type) -> AddrInfoPtr {
     // Obtain address information using hint struct
     addrinfo hints{
         .ai_family{AF_UNSPEC},
@@ -29,5 +29,13 @@ AddrInfoPtr AddressInfo::getAddressInfo(std::string_view host,
             host,
             service));
     }
+
+    std::print("!");
+    for (int i = 0 ; i < out->ai_addrlen ; ++i) {
+        std::print("{}", out->ai_addr->sa_data[i]);
+    }
+    std::println("");
+
+
     return AddrInfoPtr{out};
 }
