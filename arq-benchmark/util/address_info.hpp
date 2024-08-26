@@ -1,14 +1,12 @@
 #ifndef _UTIL_ADDRESS_INFO_HPP_
 #define _UTIL_ADDRESS_INFO_HPP_
 
+#include <iterator>
 #include <memory>
 #include <netdb.h>
 #include <string_view>
 
 #include "util/network_common.hpp"
-
-
-#include <iterator>
 
 namespace util {
 

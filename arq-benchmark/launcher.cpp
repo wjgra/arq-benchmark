@@ -1,22 +1,15 @@
 #include <array>
-
+#include <boost/program_options.hpp>
+#include <iostream>
+#include <netinet/in.h>
+#include <stdexcept>
+#include <string>
+#include <thread>
 #include <variant>
 
-#include <iostream>
-#include <stdexcept>
-#include <thread>
-
-#include <string>
-
-#include <boost/program_options.hpp>
-
-#include <netinet/in.h>
-
-#include "util/logging.hpp"
-#include "util/socket.hpp"
-#include "util/endpoint.hpp"
-
 #include "config.hpp"
+#include "util/endpoint.hpp"
+#include "util/logging.hpp"
 
 using LogLev_t = std::underlying_type_t<util::LoggingLevel>;
 

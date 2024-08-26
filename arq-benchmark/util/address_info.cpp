@@ -2,16 +2,14 @@
 
 #include "util/logging.hpp"
 
-using namespace util;
-
-AddressInfo::AddressInfo(std::string_view host, std::string_view service, SocketType type) {
+util::AddressInfo::AddressInfo(std::string_view host, std::string_view service, SocketType type) {
     info_ = getAddressInfo(host, service, type);
     logDebug("successfully obtained address info for host '{}' and service '{}'",
             host,
             service);
 }
 
-auto AddressInfo::getAddressInfo(std::string_view host,
+auto util::AddressInfo::getAddressInfo(std::string_view host,
                                  std::string_view service,
                                  SocketType type) -> AddrInfoPtr {
     // Obtain address information using hint struct
