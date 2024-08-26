@@ -38,7 +38,7 @@ auto programOptions = std::to_array<ProgramOption>({
     {"server-addr",     std::string{"127.0.0.1"},               "server IPv4 address"},
     {"server-port",     std::string{"1001"},                    "server port"},
     {"client-addr",     std::string{"127.0.0.1"},               "client IPv4 address"},
-    {"client-port",     std::string{"1001"},                    "client port"},
+    {"client-port",     std::string{"1002"},                    "client port"},
     {"launch-server",   std::monostate{},           "start server thread"},
     {"launch-client",   std::monostate{},           "start client thread"}
 });
@@ -179,27 +179,6 @@ void startServer(arq::config_Launcher& config) {
     logDebug("attempting to start server (host: {}, service: {})",
              config.common.serverNames.hostName,
              config.common.serverNames.serviceName);
-
-/*     Socket sock{config.common.serverNames.hostName,
-                config.common.serverNames.serviceName,
-                SocketType::TCP};
-
-    logDebug("successfully created socket");
-
-    if (!sock.bind()) {
-        logError("failed to bind socket ({})", strerror(errno));
-        throw std::runtime_error("failed to bind socket"); // currently not caught - add a wrapper function to catch the exceptions
-    }
-    logDebug("successfully bound socket");
-
-    if (!sock.listen(50)) {
-        throw std::runtime_error("failed to listen");
-    }
-    logDebug("successfully starting listening to socket");
-    
-    if (!sock.accept()) {
-        throw std::runtime_error("failed to accept");
-    } */
     
     util::Endpoint endpoint{config.common.serverNames.hostName,
                             config.common.serverNames.serviceName,
