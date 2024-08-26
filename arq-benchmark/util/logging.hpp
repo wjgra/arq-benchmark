@@ -10,7 +10,7 @@
 
 namespace util {
 
-enum LoggingLevel {
+enum LoggingLevel : int {
     LOGGING_LEVEL_NONE = 0,
     LOGGING_LEVEL_ERROR,
     LOGGING_LEVEL_WARNING,

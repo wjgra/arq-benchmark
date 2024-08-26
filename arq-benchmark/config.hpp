@@ -11,7 +11,15 @@
 
 namespace arq {
 
+    struct config_AddressInfo {
+        std::string hostName;
+        std::string serviceName;
+    };
+
     struct config_common {
+        config_AddressInfo serverNames;
+        config_AddressInfo clientNames;
+        
         sockaddr_in serverAddr; // replace with strings? then use inet_pton()
         sockaddr_in clientAddr;
     };
