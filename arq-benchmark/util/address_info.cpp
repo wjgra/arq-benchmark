@@ -30,12 +30,5 @@ auto AddressInfo::getAddressInfo(std::string_view host,
             service));
     }
 
-    std::print("!");
-    for (int i = 0 ; i < out->ai_addrlen ; ++i) {
-        std::print("{}", out->ai_addr->sa_data[i]);
-    }
-    std::println("");
-
-
     return AddrInfoPtr{out};
 }

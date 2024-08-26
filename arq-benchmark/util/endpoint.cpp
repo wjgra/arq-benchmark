@@ -12,21 +12,21 @@ util::Endpoint::Endpoint(std::string_view host, std::string_view service, Socket
     // For each entry in AddressInfo linked list, attempt to create a socket and
     // bind to it. If either operation fails, move onto the next entry in the list.
     for (const auto& ai : addressInfo) {
-        for (int i = 0 ; i < ai.ai_addrlen ; ++i) {
-            std::print("{}", ai.ai_addr->sa_data[i]);
-        }
-        std::println("");
         try {
             Socket sock{ai};
 
             if (sock.bind(ai)) {
                 socket_ = std::move(sock);
+                sock = Socket{-1};
                 logDebug("Successfully bound endpoint socket");
                 return;
             }
+            else {
+                logDebug("Failed to bind to socket, trying next addrinfo");
+            }
         }
         catch (const SocketException& e) {
-            continue;
+            logDebug("SocketException detected ({}), trying next addrinfo", e.what());
         }
     }
     throw EndpointException("failed to create endpoint");

@@ -227,8 +227,8 @@ void startClient(arq::config_Launcher& config) {
             config.common.clientNames.hostName,
             config.common.clientNames.serviceName);
 
-    Endpoint endpoint{/* config.common.clientNames.hostName,
-                      config.common.clientNames.serviceName, */
+    Endpoint endpoint{config.common.clientNames.hostName,
+                      config.common.clientNames.serviceName,
                       SocketType::TCP};
 
     logDebug("successfully created client endpoint");

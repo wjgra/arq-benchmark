@@ -22,6 +22,7 @@ util::Socket::Socket(SocketType type) :
                        socketType2SockType(type),
                        socketType2PreferredProtocol(type))}
 {
+
     if (socketID_ == SOCKET_ERROR) {
         throw SocketException("failed to create socket");
     }
@@ -42,6 +43,7 @@ util::Socket::Socket(const addrinfo& ai) {
 }
 
 static bool closeSocket(util::Socket::SocketID id) noexcept {
+    logDebug("closing socket");
     return ::close(id) != SOCKET_ERROR;
 }
 
@@ -57,7 +59,6 @@ bool util::Socket::bind(const addrinfo& ai) {
     if (::setsockopt(socketID_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == SOCKET_ERROR) {
         throw SocketException("failed to set socket options");
     }
-    logDebug("Attempting to bind to {}, {}", ai.ai_addr->sa_data[2], ai.ai_addrlen);
     return ::bind(socketID_, ai.ai_addr, ai.ai_addrlen) != SOCKET_ERROR;
 }
 
