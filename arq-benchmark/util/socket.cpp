@@ -33,8 +33,9 @@ static auto createSocket(const addrinfo& info) noexcept {
 
 util::Socket::Socket(SocketID id) noexcept : socketID_{id} {};
 
-util::Socket::Socket(const addrinfo& ai) {
-    socketID_ = createSocket(ai);
+util::Socket::Socket(const addrinfo& ai) :
+    socketID_{createSocket(ai)}
+{
     if (socketID_ == SOCKET_ERROR) {
         throw SocketException("failed to create socket");
     }
@@ -42,6 +43,15 @@ util::Socket::Socket(const addrinfo& ai) {
 
 util::Socket::~Socket() noexcept {
     ::close(socketID_);
+}
+
+util::Socket::Socket(Socket&& other) noexcept :
+    socketID_{std::exchange(other.socketID_, SOCKET_ERROR)}
+{}
+
+util::Socket& util::Socket::operator=(Socket&& other) noexcept {
+    socketID_ = std::exchange(other.socketID_, SOCKET_ERROR);
+    return *this;
 }
 
 bool util::Socket::bind(const addrinfo& ai) {

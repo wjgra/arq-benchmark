@@ -25,8 +25,8 @@ public:
 
     Socket(const Socket&) = delete;
     Socket& operator=(const Socket&) = delete;
-    Socket(Socket&&) = default;
-    Socket& operator=(Socket&&) = default;
+    Socket(Socket&&) noexcept;
+    Socket& operator=(Socket&&) noexcept;
     ~Socket() noexcept;
 
     bool bind(const addrinfo& ai);

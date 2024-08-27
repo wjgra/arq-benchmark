@@ -17,7 +17,6 @@ util::Endpoint::Endpoint(std::string_view host, std::string_view service, Socket
 
             if (sock.bind(ai)) {
                 socket_ = std::move(sock);
-                sock = Socket{-1};
                 logDebug("Successfully bound endpoint socket");
                 return;
             }
