@@ -72,16 +72,51 @@ bool util::Socket::connect(const addrinfo& ai) {
 
 }
 
-util::Socket util::Socket::accept(std::optional<std::string_view> host, std::optional<std::string_view> service) {
+static auto getInAddr(sockaddr* addr) {
+    return &reinterpret_cast<sockaddr_in*>(addr)->sin_addr;
+}
+
+static auto getIn6Addr(sockaddr* addr) {
+    return &reinterpret_cast<sockaddr_in6*>(addr)->sin6_addr;
+}
+
+static auto sockaddr2Str(sockaddr* addr) {
+    std::array<char, INET6_ADDRSTRLEN> str;
+    if (addr->sa_family == AF_INET) {
+        inet_ntop(addr->sa_family,
+                  getInAddr(addr),
+                  str.data(),
+                  str.size());
+    }
+    else if (addr->sa_family == AF_INET6) {
+        inet_ntop(addr->sa_family,
+                  getIn6Addr(addr),
+                  str.data(),
+                  str.size());
+    }
+    else {
+        throw util::SocketException("connecting address has unknown family");
+    }
+    return std::string{str.data()};
+}
+
+util::Socket util::Socket::accept(std::optional<std::string_view> expectedHost) {
     sockaddr_storage theirAddr;
     socklen_t theirAddrLen = sizeof(theirAddr);
     auto newSocketID = ::accept(socketID_, reinterpret_cast<sockaddr*>(&theirAddr), &theirAddrLen);
 
-    if (host) {
-        // validate... or throw socketexception
-    }
-    if (service) {
-        // validate... or throw socketexception
+    // Check connecting host matches expected
+    if (expectedHost.has_value()) {
+        auto connectingAddr = sockaddr2Str(reinterpret_cast<sockaddr*>(&theirAddr));
+
+        if (connectingAddr == expectedHost.value()) {
+            util::logDebug("validated connection with host {}", connectingAddr);
+        }
+        else {
+            throw util::SocketException(std::format("connecting host ({}) does not match expected ({})",
+                                                    connectingAddr,
+                                                    expectedHost.value()));
+        }
     }
 
     return Socket{newSocketID};

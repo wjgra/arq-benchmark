@@ -1,11 +1,12 @@
 #include <catch2/catch_test_macros.hpp>
-#include <thread>
+#include <future>
 
 #include "util/endpoint.hpp"
+#include "util/logging.hpp"
 
 // To do: use thread exception catcher (which needs its own tests...)
 
-static void test_server(bool authenticateClient) {
+static int test_server(const bool authenticateClient) {
     util::Endpoint endpoint{"127.0.0.1",
                             "65534",
                             util::SocketType::TCP};
@@ -13,14 +14,15 @@ static void test_server(bool authenticateClient) {
     REQUIRE(endpoint.listen(50));
 
     if (authenticateClient) {
-        // To implement when authentication implemented
+        REQUIRE(endpoint.accept("127.0.0.1"));
     }
     else {
         REQUIRE(endpoint.accept());
     }
+    return EXIT_SUCCESS; // Dummy return value for future
 }
 
-static void test_client() {
+static int test_client() {
     util::Endpoint endpoint{"127.0.0.1",
                             "65535",
                             util::SocketType::TCP};
@@ -28,17 +30,38 @@ static void test_client() {
     REQUIRE(endpoint.connect("127.0.0.1",
                              "65534",
                              util::SocketType::TCP));
+
+    return EXIT_SUCCESS; // Dummy return value for future
 }
 
-TEST_CASE( "Endpoint TCP connection", "[util]" ) {
+static void endpoint_tcp_connection_test(const bool authenticateClient) {
+    util::Logger::setLoggingLevel(util::LOGGING_LEVEL_ERROR);
+
+    auto server = std::async(std::launch::async, test_server, authenticateClient);
+    usleep(1000);
+    auto client = std::async(std::launch::async, test_client);
+
     try {
-        std::thread server{test_server, false};
-        usleep(1000);
-        std::thread client{test_client};
-        server.join();
-        client.join();
+        server.get();
     }
     catch (const std::exception& e ) {
+        util::logError("Server exception: {}", e.what());
         REQUIRE(1 == 0);
     }
+
+    try {
+        client.get();
+    }
+    catch (const std::exception& e ) {
+        util::logError("Client exception: {}", e.what());
+        REQUIRE(1 == 0);
+    }
+}
+
+TEST_CASE( "Endpoint TCP connection (no authentication)", "[util]" ) {
+    endpoint_tcp_connection_test(false);
+}
+
+TEST_CASE( "Endpoint TCP connection (with authentication)", "[util]" ) {
+    endpoint_tcp_connection_test(true);
 }

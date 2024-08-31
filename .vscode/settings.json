@@ -2,6 +2,7 @@
     "C_Cpp.default.compilerPath": "/usr/local/gcc-14.1.0/bin/g++-14.1.0",
     "files.associations": {
         "*.pyx": "python",
+        "*.mpp": "cpp",
         "iostream": "cpp",
         "print": "cpp",
         "any": "cpp",
@@ -106,7 +107,8 @@
         "valarray": "cpp",
         "variant": "cpp",
         "format": "cpp",
-        "text_encoding": "cpp"
+        "text_encoding": "cpp",
+        "*.ipp": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled",
     "cmake.configureOnOpen": false

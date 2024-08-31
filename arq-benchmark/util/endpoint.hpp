@@ -26,8 +26,7 @@ public:
     bool connect(std::string_view host, std::string_view service, SocketType type);
     // Accept a connection at the endpoint. If host/service is provided, the connecting socket must match
     // the provided argument(s).
-    bool accept(std::optional<std::string_view> host = std::nullopt,
-                std::optional<std::string_view> service = std::nullopt);
+    bool accept(std::optional<std::string_view> expectedHost = std::nullopt);
 
     // Not implemented
     void send();

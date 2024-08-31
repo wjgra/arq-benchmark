@@ -28,10 +28,10 @@ using namespace std::string_literals; // change once compiling succeeds
 auto programOptions = std::to_array<ProgramOption>({
     {"help",            std::monostate{},           "display help message"},
     {"logging",         util::LOGGING_LEVEL_INFO,   util::Logger::helpText()},
-    {"server-addr",     std::string{"127.0.0.1"},               "server IPv4 address"},
-    {"server-port",     std::string{"1001"},                    "server port"},
-    {"client-addr",     std::string{"127.0.0.1"},               "client IPv4 address"},
-    {"client-port",     std::string{"1002"},                    "client port"},
+    {"server-addr",     std::string{"127.0.0.1"},   "server IPv4 address"},
+    {"server-port",     std::string{"65534"},       "server port"},
+    {"client-addr",     std::string{"127.0.0.1"},   "client IPv4 address"},
+    {"client-port",     std::string{"65535"},       "client port"},
     {"launch-server",   std::monostate{},           "start server thread"},
     {"launch-client",   std::monostate{},           "start client thread"}
 });
@@ -184,7 +184,7 @@ void startServer(arq::config_Launcher& config) {
     }
     logDebug("listening on server endpoint...");
 
-    if (!endpoint.accept(config.common.clientNames.hostName, config.common.clientNames.serviceName)) {
+    if (!endpoint.accept(config.common.clientNames.hostName)) {
         throw std::runtime_error("failed to accept connection at server endpoint");
     }
 
