@@ -1,5 +1,5 @@
 
-name: Build ARQ Benchmarks with CMake
+name: Unit tests
 
 on:
   push:
@@ -17,7 +17,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up GCC 14
+    - name: Install and configure GCC 14
       run: |
         sudo apt install gcc-14 g++-14
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100 --slave /usr/bin/g++ g++ /usr/bin/g++-14 --slave /usr/bin/gcov gcov /usr/bin/gcov-14
@@ -25,6 +25,16 @@ jobs:
 
     - name: Install packages
       run: sudo apt-get update | sudo apt-get install -y libboost-all-dev
+
+    - name: Install Catch2 v3 from Source
+      run: |
+        git clone https://github.com/catchorg/Catch2.git
+        cd Catch2
+        git checkout "v3.4.0"
+        mkdir build && cd build
+        cmake .. -DBUILD_TESTING=Off
+        make -j $(nproc)
+        sudo make install
 
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
