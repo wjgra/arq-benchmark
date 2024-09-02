@@ -32,8 +32,7 @@ public:
     bool bind(const addrinfo& ai);
     bool listen(int backlog) noexcept;
     bool connect(const addrinfo& ai);
-    Socket accept(std::optional<std::string_view> host = std::nullopt, 
-                  std::optional<std::string_view> service = std::nullopt);
+    Socket accept(std::optional<std::string_view> expectedHost = std::nullopt);
 
     // Not implemented
     bool send();
