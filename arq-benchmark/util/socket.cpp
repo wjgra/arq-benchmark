@@ -20,7 +20,6 @@ util::Socket::Socket(SocketType type) :
                        socketType2SockType(type),
                        socketType2PreferredProtocol(type))}
 {
-
     if (socketID_ == SOCKET_ERROR) {
         throw SocketException("failed to create socket");
     }

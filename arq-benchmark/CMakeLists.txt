@@ -10,8 +10,6 @@ find_package(Boost COMPONENTS program_options REQUIRED)
 if (Boost_FOUND)
     target_include_directories(launcher PRIVATE ${Boost_INCLUDE_DIRS})
     target_link_libraries(launcher ${Boost_LIBRARIES})
-    target_include_directories(launcher PRIVATE ${Boost_INCLUDE_DIRS})
-    target_link_libraries(launcher ${Boost_LIBRARIES})
 endif()
 
 # Subdirectories

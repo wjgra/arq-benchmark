@@ -4,8 +4,6 @@
 #include "util/endpoint.hpp"
 #include "util/logging.hpp"
 
-// To do: use thread exception catcher (which needs its own tests...)
-
 static int test_server(const bool authenticateClient) {
     util::Endpoint endpoint{"127.0.0.1",
                             "65534",
