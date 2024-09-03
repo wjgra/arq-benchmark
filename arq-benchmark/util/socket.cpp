@@ -118,3 +118,17 @@ util::Socket util::Socket::accept(std::optional<std::string_view> expectedHost) 
     }
     return Socket{newSocketID};
 }
+
+bool util::Socket::send(std::span<const uint8_t> buffer) noexcept {
+    if (::send(socketID_, buffer.data(), buffer.size(), 0) == SOCKET_ERROR) {
+        return false;
+    }
+    return true;
+}
+
+bool util::Socket::recv(std::span<uint8_t> buffer) noexcept {
+    if (::recv(socketID_, buffer.data(), buffer.size(), 0) == SOCKET_ERROR) {
+        return false;
+    }
+    return true;
+}

@@ -9,7 +9,7 @@
 namespace util{
 
 struct EndpointException : public std::runtime_error {
-    explicit EndpointException(const std::string what) : std::runtime_error(what) {};
+    explicit EndpointException(const std::string& what) : std::runtime_error(what) {};
 };
 
 // A communications endpoint for exchanging data via sockets
@@ -28,11 +28,10 @@ public:
     // the provided argument(s).
     bool accept(std::optional<std::string_view> expectedHost = std::nullopt);
 
-    // Not implemented
-    void send();
-    void recv();
-    void send_to();
-    void recv_from();
+    bool send(std::span<const uint8_t> buffer);
+    bool recv(std::span<uint8_t> buffer);
+/*     void send_to();
+    void recv_from(); */
 private:
     // The socket used for communication at this endpoint
     Socket socket_;

@@ -60,3 +60,11 @@ bool util::Endpoint::accept(std::optional<std::string_view> expectedHost) {
         return false;
     }
 }
+
+bool util::Endpoint::send(std::span<const uint8_t> buffer) {
+    return socket_.send(buffer);
+}
+
+bool util::Endpoint::recv(std::span<uint8_t> buffer) {
+    return socket_.recv(buffer);
+}

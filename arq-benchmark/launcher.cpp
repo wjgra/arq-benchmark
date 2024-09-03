@@ -74,7 +74,7 @@ static auto generateOptionsDescription() {
 }
 
 struct HelpException : public std::invalid_argument {
-    explicit HelpException(const std::string what) : std::invalid_argument(what) {};
+    explicit HelpException(const std::string& what) : std::invalid_argument(what) {};
 };
 
 static auto parseOptions(int argc,
@@ -194,6 +194,13 @@ void startServer(arq::config_Launcher& config) {
 
     logInfo("server connected");
 
+    std::array<uint8_t, 20> dataToSend{"Hello, client!"};
+
+    if (!endpoint.send(dataToSend)) {
+        throw std::runtime_error("failed to send data to client");
+    }
+    logInfo("server sent: {}", std::string(dataToSend.begin(), dataToSend.end()));
+
     logInfo("server thread shutting down");
 }
 
@@ -214,7 +221,14 @@ void startClient(arq::config_Launcher& config) {
         throw std::runtime_error("failed to connect to server endpoint");
     }
     
-    logDebug("successfully connected to socket");
+    logDebug("successfully connected to server endpoint");
+
+    std::array<uint8_t, 20> recvBuffer{};
+
+    if (!endpoint.recv(recvBuffer)) {
+        throw std::runtime_error("failed to receive data from server");
+    }
+    logInfo("client received: {}", std::string(recvBuffer.begin(), recvBuffer.end()));
 
     logInfo("client thread shutting down");
 }

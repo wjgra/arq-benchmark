@@ -2,6 +2,7 @@
 #define _UTIL_SOCKET_HPP_
 
 #include <optional>
+#include <span>
 #include <string_view>
 
 #include "util/address_info.hpp"
@@ -9,7 +10,7 @@
 namespace util {
 
 struct SocketException : public std::runtime_error {
-    explicit SocketException(const std::string what) : std::runtime_error(what) {};
+    explicit SocketException(const std::string& what) : std::runtime_error(what) {};
 };
 
 // Owning wrapper for a socket file descriptor.
@@ -34,8 +35,8 @@ public:
     bool connect(const addrinfo& ai) const noexcept;
     Socket accept(std::optional<std::string_view> expectedHost = std::nullopt) const;
 
-    bool send() noexcept;
-    bool recv() noexcept;
+    bool send(std::span<const uint8_t> buffer) noexcept;
+    bool recv(std::span<uint8_t> buffer) noexcept;
 /*     bool sendTo();
     bool recvFrom(); */
 
