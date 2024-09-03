@@ -73,6 +73,10 @@ static auto generateOptionsDescription() {
     return description;
 }
 
+struct HelpException : public std::invalid_argument {
+    explicit HelpException(const std::string what) : std::invalid_argument(what) {};
+};
+
 static auto parseOptions(int argc,
                          char** argv,
                          boost::program_options::options_description description)
@@ -86,11 +90,11 @@ static auto parseOptions(int argc,
 
     // Parse each possible option in turn, and verify all have been parsed
     try {
-        size_t idx{0};
+        [[maybe_unused]] size_t idx{0};
         // Help
         assert(programOptions[idx++].name == "help");
         if (vm.contains("help")) {
-            throw std::invalid_argument("help requested");
+            throw HelpException("help requested");
         }
 
         // Logging
@@ -107,7 +111,7 @@ static auto parseOptions(int argc,
             config.common.serverNames.hostName = vm["server-addr"].as<std::string>();
         }
         else {
-            throw std::invalid_argument("server-addr not provided");
+            throw HelpException("server-addr not provided");
         }
 
         // Server port
@@ -116,7 +120,7 @@ static auto parseOptions(int argc,
             config.common.serverNames.serviceName = vm["server-port"].as<std::string>();
         }
         else {
-            throw std::invalid_argument("server-port not provided");
+            throw HelpException("server-port not provided");
         }
 
         // Client address
@@ -125,7 +129,7 @@ static auto parseOptions(int argc,
             config.common.clientNames.hostName = vm["client-addr"].as<std::string>();
         }
         else {
-            throw std::invalid_argument("client-addr not provided");
+            throw HelpException("client-addr not provided");
         }
 
         // Client port
@@ -134,7 +138,7 @@ static auto parseOptions(int argc,
             config.common.clientNames.serviceName = vm["client-port"].as<std::string>();
         }
         else {
-            throw std::invalid_argument("client-port not provided");
+            throw HelpException("client-port not provided");
         }
 
         // Launch server
@@ -152,7 +156,7 @@ static auto parseOptions(int argc,
         // Check that all options have been processed
         assert(idx == programOptions.size());
     }
-    catch (const std::invalid_argument& e) {
+    catch (const HelpException& e) {
         std::println("Displaying usage information ({})", e.what());
         // Output usage information
         std::cout << description << '\n';
