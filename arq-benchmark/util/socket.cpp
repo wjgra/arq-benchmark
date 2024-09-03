@@ -53,7 +53,7 @@ util::Socket& util::Socket::operator=(Socket&& other) noexcept {
     return *this;
 }
 
-bool util::Socket::bind(const addrinfo& ai) {
+bool util::Socket::bind(const addrinfo& ai) const {
     // Allow address reuse
     const int yes{1};
     if (::setsockopt(socketID_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == SOCKET_ERROR) {
@@ -62,20 +62,19 @@ bool util::Socket::bind(const addrinfo& ai) {
     return ::bind(socketID_, ai.ai_addr, ai.ai_addrlen) != SOCKET_ERROR;
 }
 
-bool util::Socket::listen(int backlog) noexcept {
+bool util::Socket::listen(int backlog) const noexcept {
     return ::listen(socketID_, backlog) != SOCKET_ERROR;
 }
 
-bool util::Socket::connect(const addrinfo& ai) {
+bool util::Socket::connect(const addrinfo& ai) const noexcept {
     return ::connect(socketID_, ai.ai_addr, ai.ai_addrlen) != SOCKET_ERROR;
-
 }
 
-static auto getInAddr(sockaddr* addr) {
+static auto getInAddr(sockaddr* addr) noexcept {
     return &reinterpret_cast<sockaddr_in*>(addr)->sin_addr;
 }
 
-static auto getIn6Addr(sockaddr* addr) {
+static auto getIn6Addr(sockaddr* addr) noexcept {
     return &reinterpret_cast<sockaddr_in6*>(addr)->sin6_addr;
 }
 
@@ -99,7 +98,7 @@ static auto sockaddr2Str(sockaddr* addr) {
     return std::string{str.data()};
 }
 
-util::Socket util::Socket::accept(std::optional<std::string_view> expectedHost) {
+util::Socket util::Socket::accept(std::optional<std::string_view> expectedHost) const {
     sockaddr_storage theirAddr;
     socklen_t theirAddrLen = sizeof(theirAddr);
     auto newSocketID = ::accept(socketID_, reinterpret_cast<sockaddr*>(&theirAddr), &theirAddrLen);
@@ -117,6 +116,5 @@ util::Socket util::Socket::accept(std::optional<std::string_view> expectedHost) 
                                                     expectedHost.value()));
         }
     }
-
     return Socket{newSocketID};
 }

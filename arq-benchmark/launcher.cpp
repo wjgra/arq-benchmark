@@ -16,24 +16,24 @@ using LogLev_t = std::underlying_type_t<util::LoggingLevel>;
 struct ProgramOption {
     std::string name;
     std::variant<std::monostate, // Options with no arg
-                 int,     // Logging level option
+                 LogLev_t,       // Logging level option
                  std::string>    // String options
     defaultValue;
     std::string helpText;
 };
 
-using namespace std::string_literals; // change once compiling succeeds
+using namespace std::string_literals;
 
 // Possible program options
 auto programOptions = std::to_array<ProgramOption>({
-    {"help",            std::monostate{},           "display help message"},
-    {"logging",         util::LOGGING_LEVEL_INFO,   util::Logger::helpText()},
-    {"server-addr",     std::string{"127.0.0.1"},   "server IPv4 address"},
-    {"server-port",     std::string{"65534"},       "server port"},
-    {"client-addr",     std::string{"127.0.0.1"},   "client IPv4 address"},
-    {"client-port",     std::string{"65535"},       "client port"},
-    {"launch-server",   std::monostate{},           "start server thread"},
-    {"launch-client",   std::monostate{},           "start client thread"}
+    {"help",            std::monostate{},                               "display help message"},
+    {"logging",         std::to_underlying(util::LOGGING_LEVEL_INFO),   util::Logger::helpText()},
+    {"server-addr",     "127.0.0.1"s,                                   "server IPv4 address"},
+    {"server-port",     "65534"s,                                       "server port"},
+    {"client-addr",     "127.0.0.1"s,                                   "client IPv4 address"},
+    {"client-port",     "65535"s,                                       "client port"},
+    {"launch-server",   std::monostate{},                               "start server thread"},
+    {"launch-client",   std::monostate{},                               "start client thread"}
 });
 
 static auto generateOptionsDescription() {

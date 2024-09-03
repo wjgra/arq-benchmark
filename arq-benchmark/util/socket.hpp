@@ -29,16 +29,15 @@ public:
     Socket& operator=(Socket&&) noexcept;
     ~Socket() noexcept;
 
-    bool bind(const addrinfo& ai);
-    bool listen(int backlog) noexcept;
-    bool connect(const addrinfo& ai);
-    Socket accept(std::optional<std::string_view> expectedHost = std::nullopt);
+    bool bind(const addrinfo& ai) const;
+    bool listen(int backlog) const noexcept;
+    bool connect(const addrinfo& ai) const noexcept;
+    Socket accept(std::optional<std::string_view> expectedHost = std::nullopt) const;
 
-    // Not implemented
-    bool send();
-    bool recv();
-    bool sendTo();
-    bool recvFrom();
+    bool send() noexcept;
+    bool recv() noexcept;
+/*     bool sendTo();
+    bool recvFrom(); */
 
 private:
     SocketID socketID_;

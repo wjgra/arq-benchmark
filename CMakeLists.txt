@@ -7,6 +7,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(ENABLE_TESTS "Enable tests" ON)
 
+add_compile_options(-Wall -Wextra -Wpedantic -Werror -Wno-missing-field-initializers)
+
 find_package(Catch2 3 REQUIRED)
 include(CTest)
 include(Catch)

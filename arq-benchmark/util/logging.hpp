@@ -10,7 +10,7 @@
 
 namespace util {
 
-enum LoggingLevel : int {
+enum LoggingLevel : uint16_t {
     LOGGING_LEVEL_NONE = 0,
     LOGGING_LEVEL_ERROR,
     LOGGING_LEVEL_WARNING,
@@ -24,7 +24,7 @@ struct Logger {
     }
 
     static void setLoggingLevel(const LoggingLevel newLevel) {
-        if (newLevel < 0 || newLevel >= labels.size()) {
+        if (newLevel >= labels.size()) {
             throw std::invalid_argument("logging level out of range");
         }
         loggingLevel = newLevel;
