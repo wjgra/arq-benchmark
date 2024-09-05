@@ -35,8 +35,8 @@ public:
     bool connect(const addrinfo& ai) const noexcept;
     Socket accept(std::optional<std::string_view> expectedHost = std::nullopt) const;
 
-    bool send(std::span<const uint8_t> buffer) noexcept;
-    bool recv(std::span<uint8_t> buffer) noexcept;
+    bool send(std::span<const uint8_t> buffer) const noexcept;
+    bool recv(std::span<uint8_t> buffer) const noexcept;
 /*     bool sendTo();
     bool recvFrom(); */
 

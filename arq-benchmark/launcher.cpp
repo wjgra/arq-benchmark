@@ -1,8 +1,10 @@
 #include <array>
 #include <boost/program_options.hpp>
+#include <future>
 #include <iostream>
 #include <netinet/in.h>
 #include <stdexcept>
+#include <ranges>
 #include <string>
 #include <thread>
 #include <variant>
@@ -183,7 +185,7 @@ void startServer(arq::config_Launcher& config) {
     
     logDebug("successfully created server endpoint");
 
-    if (!endpoint.listen(50)) {
+    if (!endpoint.listen(1)) {
         throw std::runtime_error("failed to listen on server endpoint");
     }
     logDebug("listening on server endpoint...");
@@ -216,12 +218,11 @@ void startClient(arq::config_Launcher& config) {
 
     logDebug("successfully created client endpoint");
 
-    usleep(1000);
-    if (!endpoint.connect(config.common.serverNames.hostName, config.common.serverNames.serviceName, SocketType::TCP)) {
-        throw std::runtime_error("failed to connect to server endpoint");
-    }
-    
-    logDebug("successfully connected to server endpoint");
+    endpoint.connectRetry(config.common.serverNames.hostName,
+                          config.common.serverNames.serviceName,
+                          SocketType::TCP,
+                          10,
+                          std::chrono::milliseconds(1000));
 
     std::array<uint8_t, 20> recvBuffer{};
 
@@ -243,7 +244,8 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 
-    std::thread serverThread, clientThread; // To do: consider using async
+    std::thread serverThread, clientThread;
+    
     if (cfg.server.has_value()) {
         serverThread = std::thread(startServer, std::ref(cfg));
     }

@@ -1,9 +1,9 @@
 #ifndef _UTIL_ENDPOINT_HPP_
 #define _UTIL_ENDPOINT_HPP_
 
-#include "util/address_info.hpp"
 #include "util/socket.hpp"
 
+#include <chrono>
 #include <optional>
 
 namespace util{
@@ -21,15 +21,23 @@ public:
     explicit Endpoint(std::string_view host, std::string_view service, SocketType type);
 
     // Listen for connections at this endpoint
-    bool listen(int backlog) noexcept;
-    // Connect to a socker with the given host/service
-    bool connect(std::string_view host, std::string_view service, SocketType type);
+    bool listen(const int backlog) const noexcept;
+    // Connect to a socket with the given host/service
+    bool connect(std::string_view host,
+                 std::string_view service,
+                 SocketType type) const noexcept;
+    // Attempt to connect to a socket maxAttempts times, with a cooldown between attempts
+    bool connectRetry(std::string_view host,
+                      std::string_view service,
+                      SocketType type,
+                      const int maxAttempts,
+                      const std::chrono::duration<int, std::milli> cooldown) const noexcept;
     // Accept a connection at the endpoint. If host/service is provided, the connecting socket must match
     // the provided argument(s).
     bool accept(std::optional<std::string_view> expectedHost = std::nullopt);
 
-    bool send(std::span<const uint8_t> buffer);
-    bool recv(std::span<uint8_t> buffer);
+    bool send(std::span<const uint8_t> buffer) const noexcept;
+    bool recv(std::span<uint8_t> buffer) const noexcept;
 /*     void send_to();
     void recv_from(); */
 private:
