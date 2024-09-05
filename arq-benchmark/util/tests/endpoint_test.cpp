@@ -4,12 +4,14 @@
 #include "util/endpoint.hpp"
 #include "util/logging.hpp"
 
+// To do: proper thread exception handling
+
 static int test_server(const bool authenticateClient) {
     util::Endpoint endpoint{"127.0.0.1",
                             "65534",
                             util::SocketType::TCP};
 
-    REQUIRE(endpoint.listen(50));
+    REQUIRE(endpoint.listen(1));
 
     if (authenticateClient) {
         REQUIRE(endpoint.accept("127.0.0.1"));
@@ -25,9 +27,11 @@ static int test_client() {
                             "65535",
                             util::SocketType::TCP};
 
-    REQUIRE(endpoint.connect("127.0.0.1",
-                             "65534",
-                             util::SocketType::TCP));
+    REQUIRE(endpoint.connectRetry("127.0.0.1",
+                                  "65534",
+                                  util::SocketType::TCP,
+                                  10,
+                                  std::chrono::milliseconds(100)));
 
     return EXIT_SUCCESS; // Dummy return value for future
 }
@@ -36,7 +40,6 @@ static void endpoint_tcp_connection_test(const bool authenticateClient) {
     util::Logger::setLoggingLevel(util::LOGGING_LEVEL_ERROR);
 
     auto server = std::async(std::launch::async, test_server, authenticateClient);
-    usleep(1000);
     auto client = std::async(std::launch::async, test_client);
 
     try {

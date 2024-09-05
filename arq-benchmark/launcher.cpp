@@ -1,8 +1,10 @@
 #include <array>
 #include <boost/program_options.hpp>
+#include <future>
 #include <iostream>
 #include <netinet/in.h>
 #include <stdexcept>
+#include <ranges>
 #include <string>
 #include <thread>
 #include <variant>
@@ -74,7 +76,7 @@ static auto generateOptionsDescription() {
 }
 
 struct HelpException : public std::invalid_argument {
-    explicit HelpException(const std::string what) : std::invalid_argument(what) {};
+    explicit HelpException(const std::string& what) : std::invalid_argument(what) {};
 };
 
 static auto parseOptions(int argc,
@@ -183,7 +185,7 @@ void startServer(arq::config_Launcher& config) {
     
     logDebug("successfully created server endpoint");
 
-    if (!endpoint.listen(50)) {
+    if (!endpoint.listen(1)) {
         throw std::runtime_error("failed to listen on server endpoint");
     }
     logDebug("listening on server endpoint...");
@@ -193,6 +195,13 @@ void startServer(arq::config_Launcher& config) {
     }
 
     logInfo("server connected");
+
+    std::array<uint8_t, 20> dataToSend{"Hello, client!"};
+
+    if (!endpoint.send(dataToSend)) {
+        throw std::runtime_error("failed to send data to client");
+    }
+    logInfo("server sent: {}", std::string(dataToSend.begin(), dataToSend.end()));
 
     logInfo("server thread shutting down");
 }
@@ -209,12 +218,18 @@ void startClient(arq::config_Launcher& config) {
 
     logDebug("successfully created client endpoint");
 
-    usleep(1000);
-    if (!endpoint.connect(config.common.serverNames.hostName, config.common.serverNames.serviceName, SocketType::TCP)) {
-        throw std::runtime_error("failed to connect to server endpoint");
+    endpoint.connectRetry(config.common.serverNames.hostName,
+                          config.common.serverNames.serviceName,
+                          SocketType::TCP,
+                          10,
+                          std::chrono::milliseconds(1000));
+
+    std::array<uint8_t, 20> recvBuffer{};
+
+    if (!endpoint.recv(recvBuffer)) {
+        throw std::runtime_error("failed to receive data from server");
     }
-    
-    logDebug("successfully connected to socket");
+    logInfo("client received: {}", std::string(recvBuffer.begin(), recvBuffer.end()));
 
     logInfo("client thread shutting down");
 }
@@ -229,7 +244,8 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 
-    std::thread serverThread, clientThread; // To do: consider using async
+    std::thread serverThread, clientThread;
+    
     if (cfg.server.has_value()) {
         serverThread = std::thread(startServer, std::ref(cfg));
     }

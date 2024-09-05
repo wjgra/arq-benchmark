@@ -11,7 +11,7 @@
 namespace util {
 
 struct AddrInfoException : public std::runtime_error {
-    explicit AddrInfoException(const std::string what) : std::runtime_error(what) {};
+    explicit AddrInfoException(const std::string& what) : std::runtime_error(what) {};
 };
 
 // Owning wrapper for the heap-allocated addrinfo linked list returned by getaddrinfo().
