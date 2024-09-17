@@ -40,7 +40,7 @@ bool util::Endpoint::listen(const int backlog) const noexcept {
 }
 
 // Connect to the earliest entry in the addrInfo list possible.
-bool attemptConnect(const util::Socket& socket, const util::AddressInfo& addrInfo) noexcept {
+static bool attemptConnect(const util::Socket& socket, const util::AddressInfo& addrInfo) noexcept {
     for (const auto& ai : addrInfo) {
         if (socket.connect(ai)) {
             return true;
@@ -90,22 +90,28 @@ bool util::Endpoint::accept(std::optional<std::string_view> expectedHost) {
     }
 }
 
-bool util::Endpoint::send(std::span<const uint8_t> buffer) const noexcept{
+bool util::Endpoint::send(std::span<const uint8_t> buffer) const noexcept {
     return socket_.send(buffer);
 }
 
-bool util::Endpoint::recv(std::span<uint8_t> buffer) const noexcept{
+bool util::Endpoint::recv(std::span<uint8_t> buffer) const noexcept {
     return socket_.recv(buffer);
 }
 
-/* int32_t util::Endpoint::send_to(std::span<const uint8_t> buffer,
-                                std::string_view host,
-                                std::string_view service,
-                                SocketType type)
+int util::Endpoint::sendTo(std::span<const uint8_t> buffer, std::string_view destinationHost, std::string_view destinationService) const noexcept
 {
+    AddressInfo addr(destinationHost, destinationService, SocketType::UDP);
+    for (const auto& ai : addr) {
+        auto ret = sendTo(buffer, ai);
+        if (ret > 0) return ret;
+    }
     return 0;
 }
 
-int32_t util::Endpoint::recv_from(std::span<uint8_t> buffer) {
-    return 0;
-} */
+int util::Endpoint::sendTo(std::span<const uint8_t> buffer, const addrinfo& ai) const noexcept {
+    return socket_.sendTo(buffer, ai);
+}
+
+int util::Endpoint::recvFrom(std::span<uint8_t> buffer) const noexcept {
+    return socket_.recvFrom(buffer);
+}

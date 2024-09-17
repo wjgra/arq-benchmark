@@ -98,7 +98,7 @@ static auto sockaddr2Str(sockaddr* addr) {
     return std::string{str.data()};
 }
 
-util::Socket util::Socket::accept(std::optional<std::string_view> expectedHost) const {
+[[nodiscard]] util::Socket util::Socket::accept(std::optional<std::string_view> expectedHost) const {
     sockaddr_storage theirAddr;
     socklen_t theirAddrLen = sizeof(theirAddr);
     auto newSocketID = ::accept(socketID_, reinterpret_cast<sockaddr*>(&theirAddr), &theirAddrLen);
@@ -120,15 +120,18 @@ util::Socket util::Socket::accept(std::optional<std::string_view> expectedHost) 
 }
 
 bool util::Socket::send(std::span<const uint8_t> buffer) const noexcept {
-    if (::send(socketID_, buffer.data(), buffer.size(), 0) == SOCKET_ERROR) {
-        return false;
-    }
-    return true;
+    return ::send(socketID_, buffer.data(), buffer.size(), 0) != SOCKET_ERROR;
 }
 
 bool util::Socket::recv(std::span<uint8_t> buffer) const noexcept {
-    if (::recv(socketID_, buffer.data(), buffer.size(), 0) == SOCKET_ERROR) {
-        return false;
-    }
-    return true;
+    return ::recv(socketID_, buffer.data(), buffer.size(), 0) != SOCKET_ERROR;
+}
+
+int util::Socket::sendTo(std::span<const uint8_t> buffer, const addrinfo& ai) const noexcept
+{
+    return ::sendto(socketID_, buffer.data(), buffer.size_bytes(), 0, ai.ai_addr, ai.ai_addrlen);
+}
+
+int32_t util::Socket::recvFrom(std::span<uint8_t> buffer) const noexcept {
+    return ::recvfrom(socketID_, buffer.data(), buffer.size(), 0, nullptr, nullptr);
 }
