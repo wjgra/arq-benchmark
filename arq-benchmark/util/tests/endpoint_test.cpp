@@ -43,18 +43,18 @@ static void endpoint_tcp_connection_test(const bool authenticateClient) {
     auto client = std::async(std::launch::async, test_client);
 
     try {
-        server.get();
-    }
-    catch (const std::exception& e ) {
-        util::logError("Server exception: {}", e.what());
-        REQUIRE(1 == 0);
-    }
-
-    try {
         client.get();
     }
     catch (const std::exception& e ) {
         util::logError("Client exception: {}", e.what());
+        REQUIRE(1 == 0);
+    }
+
+    try {
+        server.get();
+    }
+    catch (const std::exception& e ) {
+        util::logError("Server exception: {}", e.what());
         REQUIRE(1 == 0);
     }
 }

@@ -97,3 +97,15 @@ bool util::Endpoint::send(std::span<const uint8_t> buffer) const noexcept{
 bool util::Endpoint::recv(std::span<uint8_t> buffer) const noexcept{
     return socket_.recv(buffer);
 }
+
+/* int32_t util::Endpoint::send_to(std::span<const uint8_t> buffer,
+                                std::string_view host,
+                                std::string_view service,
+                                SocketType type)
+{
+    return 0;
+}
+
+int32_t util::Endpoint::recv_from(std::span<uint8_t> buffer) {
+    return 0;
+} */

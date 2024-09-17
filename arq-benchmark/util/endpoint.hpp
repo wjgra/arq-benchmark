@@ -38,8 +38,11 @@ public:
 
     bool send(std::span<const uint8_t> buffer) const noexcept;
     bool recv(std::span<uint8_t> buffer) const noexcept;
-/*     void send_to();
-    void recv_from(); */
+    int32_t send_to(std::span<const uint8_t> buffer,
+                    std::string_view host,
+                    std::string_view service,
+                    SocketType type);
+    int32_t recv_from(std::span<uint8_t> buffer);
 private:
     // The socket used for communication at this endpoint
     Socket socket_;
