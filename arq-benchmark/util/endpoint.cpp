@@ -98,20 +98,20 @@ bool util::Endpoint::recv(std::span<uint8_t> buffer) const noexcept {
     return socket_.recv(buffer);
 }
 
-int util::Endpoint::sendTo(std::span<const uint8_t> buffer, std::string_view destinationHost, std::string_view destinationService) const noexcept
+ssize_t util::Endpoint::sendTo(std::span<const uint8_t> buffer, std::string_view destinationHost, std::string_view destinationService) const noexcept
 {
     AddressInfo addr(destinationHost, destinationService, SocketType::UDP);
     for (const auto& ai : addr) {
         auto ret = sendTo(buffer, ai);
         if (ret > 0) return ret;
     }
-    return 0;
+    return 0; // WJG handle -1...
 }
 
-int util::Endpoint::sendTo(std::span<const uint8_t> buffer, const addrinfo& ai) const noexcept {
+ssize_t util::Endpoint::sendTo(std::span<const uint8_t> buffer, const addrinfo& ai) const noexcept {
     return socket_.sendTo(buffer, ai);
 }
 
-int util::Endpoint::recvFrom(std::span<uint8_t> buffer) const noexcept {
+ssize_t util::Endpoint::recvFrom(std::span<uint8_t> buffer) const noexcept {
     return socket_.recvFrom(buffer);
 }

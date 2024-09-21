@@ -127,11 +127,10 @@ bool util::Socket::recv(std::span<uint8_t> buffer) const noexcept {
     return ::recv(socketID_, buffer.data(), buffer.size(), 0) != SOCKET_ERROR;
 }
 
-int util::Socket::sendTo(std::span<const uint8_t> buffer, const addrinfo& ai) const noexcept
-{
+ssize_t util::Socket::sendTo(std::span<const uint8_t> buffer, const addrinfo& ai) const noexcept {
     return ::sendto(socketID_, buffer.data(), buffer.size_bytes(), 0, ai.ai_addr, ai.ai_addrlen);
 }
 
-int32_t util::Socket::recvFrom(std::span<uint8_t> buffer) const noexcept {
+ssize_t util::Socket::recvFrom(std::span<uint8_t> buffer) const noexcept {
     return ::recvfrom(socketID_, buffer.data(), buffer.size(), 0, nullptr, nullptr);
 }

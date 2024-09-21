@@ -39,8 +39,8 @@ public:
 
     bool send(std::span<const uint8_t> buffer) const noexcept;
     bool recv(std::span<uint8_t> buffer) const noexcept;
-    int32_t sendTo(std::span<const uint8_t> buffer, const addrinfo& ai) const noexcept;
-    int32_t recvFrom(std::span<uint8_t> buffer) const noexcept;
+    ssize_t sendTo(std::span<const uint8_t> buffer, const addrinfo& ai) const noexcept;
+    ssize_t recvFrom(std::span<uint8_t> buffer) const noexcept;
 private:
     SocketID socketID_;
 };
