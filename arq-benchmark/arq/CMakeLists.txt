@@ -1,0 +1,8 @@
+set(ARQ_SRCS conversation_id.cpp)
+
+add_library(lib_arq ${ARQ_SRCS})
+target_link_libraries(launcher lib_arq)
+
+if (ENABLE_TESTS)
+add_subdirectory(tests)
+endif()
