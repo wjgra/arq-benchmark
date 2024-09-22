@@ -192,7 +192,7 @@ static int test_client_udp() {
 
 static void endpoint_udp_connection_test() {
     util::Logger::setLoggingLevel(util::LOGGING_LEVEL_DEBUG);
-    util::logError("!!!");
+
     auto server = std::async(std::launch::async, test_server_udp);
     auto client = std::async(std::launch::async, test_client_udp);
 
