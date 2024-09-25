@@ -1,5 +1,6 @@
 #include <array>
 #include <boost/program_options.hpp>
+#include <chrono>
 #include <future>
 #include <iostream>
 #include <netinet/in.h>
@@ -173,6 +174,25 @@ static auto generateConfiguration(int argc, char** argv) {
     return parseOptions(argc, argv, description);
 }
 
+
+// Temp...
+/* #include <random>
+constexpr size_t sizeof_sendBuffer = 1e6;
+
+auto makeSendBuffer() {
+    std::array<uint8_t, sizeof_sendBuffer> buffer;
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    std::uniform_int_distribution<uint8_t> dist(0, UINT8_MAX);
+    for (auto& element : buffer) {
+        element = dist(mt);
+    }
+    return buffer;
+}
+
+static const auto sendBuffer = makeSendBuffer();
+
+
 void startServer(arq::config_Launcher& config) {
     using namespace util;
     logDebug("attempting to start server (host: {}, service: {})",
@@ -196,12 +216,13 @@ void startServer(arq::config_Launcher& config) {
 
     logInfo("server connected");
 
-    std::array<uint8_t, 20> dataToSend{"Hello, client!"};
-
-    if (!endpoint.send(dataToSend)) {
+    // std::array<uint8_t, 20> dataToSend{"Hello, client!"};
+    auto tick = std::chrono::steady_clock::now();
+    if (!endpoint.send(sendBuffer)) {
         throw std::runtime_error("failed to send data to client");
     }
-    logInfo("server sent: {}", std::string(dataToSend.begin(), dataToSend.end()));
+    auto tock = std::chrono::steady_clock::now();
+    logInfo("server sent {} bytes in {}", sendBuffer.size(), std::chrono::duration_cast<std::chrono::microseconds>(tock - tick));
 
     logInfo("server thread shutting down");
 }
@@ -224,15 +245,55 @@ void startClient(arq::config_Launcher& config) {
                           10,
                           std::chrono::milliseconds(1000));
 
-    std::array<uint8_t, 20> recvBuffer{};
+    std::array<uint8_t, sizeof_sendBuffer> recvBuffer{};
 
     if (!endpoint.recv(recvBuffer)) {
         throw std::runtime_error("failed to receive data from server");
     }
-    logInfo("client received: {}", std::string(recvBuffer.begin(), recvBuffer.end()));
+    logInfo("client received {} bytes from server", sizeof_sendBuffer); // this isn't correct
 
     logInfo("client thread shutting down");
 }
+ */
+
+#include "arq/transmitter.hpp"
+#include "arq/receiver.hpp"
+#include "util/endpoint.hpp"
+
+void startTransmitter(arq::config_Launcher& config) {
+    arq::ConversationIDAllocator allocator{};
+    auto id = allocator.getNewID();
+    id = 0x1234;
+    util::logDebug("Conv ID {} generated", id);
+
+    util::Endpoint controlChannel(config.common.serverNames.hostName, config.common.serverNames.serviceName, util::SocketType::TCP);
+
+    if (!controlChannel.listen(1)) {
+        throw std::runtime_error("failed to listen on control channel");
+    }
+
+    if (!controlChannel.accept(config.common.clientNames.hostName)) {
+        throw std::runtime_error("failed to accept control channel connection");
+    }
+    
+    std::array<uint8_t, 2> toSend = {uint8_t(htons(id) & 0xFF), uint8_t((htons(id) >> 8) & 0xFF)};
+    controlChannel.send(toSend); // replace with constexpr fn
+    
+
+    // arq::Transmitter transmitter(id);
+}
+
+void startReceiver(arq::config_Launcher& config) {
+    util::Endpoint controlChannel(config.common.clientNames.hostName, config.common.clientNames.serviceName, util::SocketType::TCP);
+
+    controlChannel.connectRetry(config.common.serverNames.hostName, config.common.serverNames.serviceName, util::SocketType::TCP, 20, std::chrono::milliseconds(500));
+
+    std::array<uint8_t, 2> recvBuffer{};
+    controlChannel.recv(recvBuffer);
+
+    util::logDebug("Received conv ID {}", ntohs(recvBuffer[0] + (recvBuffer[1] << 8)));
+}
+
 
 int main(int argc, char** argv) {
     arq::config_Launcher cfg;
@@ -244,22 +305,22 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 
-    std::thread serverThread, clientThread;
+    std::thread txThread, rxThread;
     
     if (cfg.server.has_value()) {
-        serverThread = std::thread(startServer, std::ref(cfg));
+        txThread = std::thread(startTransmitter, std::ref(cfg));
     }
 
     if (cfg.client.has_value()) {
-        clientThread = std::thread(startClient, std::ref(cfg));
+        rxThread = std::thread(startReceiver, std::ref(cfg));
     }
 
-    if (serverThread.joinable()) {
-        serverThread.join();
+    if (txThread.joinable()) {
+        txThread.join();
     }
     
-    if (clientThread.joinable()) {
-        clientThread.join();
+    if (rxThread.joinable()) {
+        rxThread.join();
     }
 
     return EXIT_SUCCESS;

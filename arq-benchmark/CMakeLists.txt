@@ -13,4 +13,5 @@ if (Boost_FOUND)
 endif()
 
 # Subdirectories
+add_subdirectory(arq)
 add_subdirectory(util)
