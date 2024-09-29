@@ -316,6 +316,8 @@ void startTransmitter(arq::config_Launcher& config) {
 
     shareConversationID(convID, config.common.serverNames, config.common.clientNames.hostName);
     util::logInfo("Conversation ID {} shared with receiver", convID);
+
+    arq::Transmitter txer(convID);
 }
 
 void startReceiver(arq::config_Launcher& config) {
@@ -323,8 +325,8 @@ void startReceiver(arq::config_Launcher& config) {
     auto convID = receiveConversationID(config.common.clientNames, config.common.serverNames);
     util::logInfo("Conversation ID {} received from transmitter", convID);
 
+    arq::Receiver rxer(convID);
 }
-
 
 int main(int argc, char** argv) {
     arq::config_Launcher cfg;
