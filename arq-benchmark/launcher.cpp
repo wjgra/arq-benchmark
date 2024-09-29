@@ -260,38 +260,69 @@ void startClient(arq::config_Launcher& config) {
 #include "arq/receiver.hpp"
 #include "util/endpoint.hpp"
 
-void startTransmitter(arq::config_Launcher& config) {
-    arq::ConversationIDAllocator allocator{};
-    auto id = allocator.getNewID();
-    id = 0x1234;
-    util::logDebug("Conv ID {} generated", id);
-
-    util::Endpoint controlChannel(config.common.serverNames.hostName, config.common.serverNames.serviceName, util::SocketType::TCP);
+void shareConversationID(arq::ConversationID id, const arq::config_AddressInfo& myAddress, std::string_view destHost) {
+    util::Endpoint controlChannel(myAddress.hostName, myAddress.serviceName, util::SocketType::TCP);
 
     if (!controlChannel.listen(1)) {
         throw std::runtime_error("failed to listen on control channel");
     }
 
-    if (!controlChannel.accept(config.common.clientNames.hostName)) {
+    if (!controlChannel.accept(destHost)) {
         throw std::runtime_error("failed to accept control channel connection");
     }
     
-    std::array<uint8_t, 2> toSend = {uint8_t(htons(id) & 0xFF), uint8_t((htons(id) >> 8) & 0xFF)};
-    controlChannel.send(toSend); // replace with constexpr fn
-    
+    if (controlChannel.send({{id}}) != sizeof(id)) {
+        throw std::runtime_error("failed to send conversation ID to receiver");
+    }
 
-    // arq::Transmitter transmitter(id);
+    std::array<uint8_t, sizeof(id)> recvBuffer;
+    if (controlChannel.recv(recvBuffer) != sizeof(id)) {
+        throw std::runtime_error("failed to receive conversation ID ACK");
+    }
+
+    assert(sizeof(id) == 1); // No endianness conversion required
+    if (recvBuffer[0] != id) {
+        throw std::runtime_error(std::format("conversation ID in ACK is incorrect (received {}, expected {})", recvBuffer[0], id));
+    }
+    util::logDebug("received correct conversation ID {} as ACK", recvBuffer[0]);
+}
+
+arq::ConversationID receiveConversationID(const arq::config_AddressInfo& myAddress, const arq::config_AddressInfo& destAddress) {
+    util::Endpoint controlChannel(myAddress.hostName, myAddress.serviceName, util::SocketType::TCP);
+
+    controlChannel.connectRetry(destAddress.hostName, destAddress.serviceName, util::SocketType::TCP, 20, std::chrono::milliseconds(500));
+
+    std::array<uint8_t, sizeof(arq::ConversationID)> recvBuffer;
+    if (controlChannel.recv(recvBuffer) != sizeof(arq::ConversationID)) {
+        throw std::runtime_error("failed to receive conversation ID");
+    }
+
+    assert(sizeof(arq::ConversationID) == 1); // No endianness conversion required
+    arq::ConversationID receivedID = recvBuffer[0];
+    util::logDebug("received conversation ID {}, sending ACK", receivedID);
+
+        
+    if (controlChannel.send({{receivedID}}) != sizeof(receivedID)) {
+        throw std::runtime_error("failed to send ACK");
+    }
+
+    return receivedID;
+}
+
+void startTransmitter(arq::config_Launcher& config) {
+    // Generate a new conversation ID and share with receiver
+    arq::ConversationIDAllocator allocator{};
+    auto convID = allocator.getNewID();
+
+    shareConversationID(convID, config.common.serverNames, config.common.clientNames.hostName);
+    util::logInfo("Conversation ID {} shared with receiver", convID);
 }
 
 void startReceiver(arq::config_Launcher& config) {
-    util::Endpoint controlChannel(config.common.clientNames.hostName, config.common.clientNames.serviceName, util::SocketType::TCP);
+    // Obtain conversation ID from tranmitter
+    auto convID = receiveConversationID(config.common.clientNames, config.common.serverNames);
+    util::logInfo("Conversation ID {} received from transmitter", convID);
 
-    controlChannel.connectRetry(config.common.serverNames.hostName, config.common.serverNames.serviceName, util::SocketType::TCP, 20, std::chrono::milliseconds(500));
-
-    std::array<uint8_t, 2> recvBuffer{};
-    controlChannel.recv(recvBuffer);
-
-    util::logDebug("Received conv ID {}", ntohs(recvBuffer[0] + (recvBuffer[1] << 8)));
 }
 
 

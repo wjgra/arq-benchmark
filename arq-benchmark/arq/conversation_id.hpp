@@ -9,7 +9,7 @@
 
 namespace arq {
 
-using ConversationID = uint16_t;
+using ConversationID = uint8_t;
 
 struct ConversationIDError : public std::runtime_error {
     ConversationIDError()  : std::runtime_error("No more conversation IDs to allocate") 
@@ -18,12 +18,11 @@ struct ConversationIDError : public std::runtime_error {
 
 class ConversationIDAllocator {
 public:
-    ConversationIDAllocator() = default;
     ConversationID getNewID();
     bool registerID(const ConversationID id);
     bool releaseID(const ConversationID id);
 private:
-    ConversationID lastAllocated;
+    ConversationID lastAllocated = 0;
     std::unordered_set<ConversationID> allocatedIDs;
 };
 

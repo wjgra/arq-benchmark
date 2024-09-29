@@ -11,38 +11,38 @@
 
 namespace arq {
 
-    struct config_AddressInfo {
-        std::string hostName;
-        std::string serviceName;
-    };
+struct config_AddressInfo {
+    std::string hostName;
+    std::string serviceName;
+};
 
-    struct config_common {
-        config_AddressInfo serverNames;
-        config_AddressInfo clientNames;
-    };
+struct config_common {
+    config_AddressInfo serverNames;
+    config_AddressInfo clientNames;
+};
 
-    struct config_Server {
-        bool doNotVerifyClientAddr;
-    };
+struct config_Server {
+    bool doNotVerifyClientAddr;
+};
 
-    struct config_Client {
+struct config_Client {
 
-    };
+};
 
-    struct config_Launcher {
-        config_common common;
-        std::optional<config_Server> server;
-        std::optional<config_Client> client;
-    };
+struct config_Launcher {
+    config_common common;
+    std::optional<config_Server> server;
+    std::optional<config_Client> client;
+};
 
-    in_addr stringToSockaddrIn(std::string_view str) {
-        in_addr out;
-        if (inet_aton(str.data(), &out) == 0) {
-            throw std::invalid_argument("invalid IPv4 address provided");
-        }
-        return out;
+in_addr stringToSockaddrIn(std::string_view str) {
+    in_addr out;
+    if (inet_aton(str.data(), &out) == 0) {
+        throw std::invalid_argument("invalid IPv4 address provided");
     }
-    
+    return out;
+}
+
 }
 
 #endif
