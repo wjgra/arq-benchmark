@@ -77,15 +77,15 @@ bool util::Endpoint::connectRetry(std::string_view host,
 }
 
 bool util::Endpoint::accept(std::optional<std::string_view> expectedHost) {
-    try {
-        Socket acceptedSock = socket_.accept(expectedHost);
-        
+    auto acceptedSock = socket_.accept(expectedHost);
+
+    if (acceptedSock.has_value()) {
         // Replace endpoint listening socket with new socket
-        socket_ = std::move(acceptedSock);
+        socket_ = std::move(acceptedSock.value());
         return true;
     }
-    catch (const SocketException& e) {
-        logWarning("failed to accept connection at endpoint ({})", e.what());
+    else {
+        logWarning("failed to accept connection at endpoint");
         return false;
     }
 }

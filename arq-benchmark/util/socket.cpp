@@ -78,7 +78,7 @@ static auto getIn6Addr(sockaddr* addr) noexcept {
     return &reinterpret_cast<sockaddr_in6*>(addr)->sin6_addr;
 }
 
-static auto sockaddr2Str(sockaddr* addr) {
+static std::optional<std::string> sockaddr2Str(sockaddr* addr) {
     std::array<char, INET6_ADDRSTRLEN> str;
     if (addr->sa_family == AF_INET) {
         inet_ntop(addr->sa_family,
@@ -93,12 +93,13 @@ static auto sockaddr2Str(sockaddr* addr) {
                   str.size());
     }
     else {
-        throw util::SocketException("connecting address has unknown family");
+        util::logWarning("connecting address has unknown family");
+        return std::nullopt;
     }
     return std::string{str.data()};
 }
 
-[[nodiscard]] util::Socket util::Socket::accept(std::optional<std::string_view> expectedHost) const {
+[[nodiscard]] std::optional<util::Socket> util::Socket::accept(std::optional<std::string_view> expectedHost) const {
     sockaddr_storage theirAddr;
     socklen_t theirAddrLen = sizeof(theirAddr);
     auto newSocketID = ::accept(socketID_, reinterpret_cast<sockaddr*>(&theirAddr), &theirAddrLen);
@@ -108,12 +109,13 @@ static auto sockaddr2Str(sockaddr* addr) {
         auto connectingAddr = sockaddr2Str(reinterpret_cast<sockaddr*>(&theirAddr));
 
         if (connectingAddr == expectedHost.value()) {
-            util::logDebug("validated connection with host {}", connectingAddr);
+            util::logDebug("validated connection with host {}", connectingAddr.value());
         }
         else {
-            throw util::SocketException(std::format("connecting host ({}) does not match expected ({})",
-                                                    connectingAddr,
-                                                    expectedHost.value()));
+            util::logWarning("connecting host ({}) does not match expected ({})",
+                             connectingAddr.value(),
+                             expectedHost.value());
+            return std::nullopt;
         }
     }
     return Socket{newSocketID};
