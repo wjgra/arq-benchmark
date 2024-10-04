@@ -43,7 +43,7 @@ static int test_server_tcp(const bool authenticateClient, const bool send) {
     }
 
     if (send) {
-        REQUIRE(endpoint.send(sendBuffer));
+        REQUIRE(endpoint.send(sendBuffer) == sendBuffer.size());
     }
 
     return EXIT_SUCCESS; // Dummy return value for future
@@ -62,7 +62,7 @@ static int test_client_tcp(const bool receive) {
 
     if (receive) {
         std::array<uint8_t, sizeof_sendBuffer> recvBuffer{};
-        REQUIRE(endpoint.recv(recvBuffer));
+        REQUIRE(endpoint.recv(recvBuffer) == sendBuffer.size());
 
         // Check received data is correct
         REQUIRE(recvBuffer == sendBuffer);
