@@ -34,13 +34,13 @@ public:
     bool listen(int backlog) const noexcept;
     bool connect(const addrinfo& ai) const noexcept;
     // Accepts a connection, returning a new Socket corresponding to the accepted connection. If
-    // expectedHost is provided, only accept a connection from that host. Throws SocketException on failure.
-    [[nodiscard]] Socket accept(std::optional<std::string_view> expectedHost = std::nullopt) const;
+    // expectedHost is provided, only accept a connection from that host. Returns nullopt on failure.
+    [[nodiscard]] std::optional<Socket> accept(std::optional<std::string_view> expectedHost = std::nullopt) const;
 
-    bool send(std::span<const uint8_t> buffer) const noexcept;
-    bool recv(std::span<uint8_t> buffer) const noexcept;
-    ssize_t sendTo(std::span<const uint8_t> buffer, const addrinfo& ai) const noexcept;
-    ssize_t recvFrom(std::span<uint8_t> buffer) const noexcept;
+    std::optional<size_t> send(std::span<const uint8_t> buffer) const noexcept;
+    std::optional<size_t> recv(std::span<uint8_t> buffer) const noexcept;
+    std::optional<size_t> sendTo(std::span<const uint8_t> buffer, const addrinfo& ai) const noexcept;
+    std::optional<size_t> recvFrom(std::span<uint8_t> buffer) const noexcept;
 private:
     SocketID socketID_;
 };

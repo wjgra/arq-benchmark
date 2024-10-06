@@ -260,7 +260,7 @@ void startClient(arq::config_Launcher& config) {
 #include "arq/receiver.hpp"
 #include "util/endpoint.hpp"
 
-void shareConversationID(arq::ConversationID id, const arq::config_AddressInfo& myAddress, std::string_view destHost) {
+static void shareConversationID(arq::ConversationID id, const arq::config_AddressInfo& myAddress, std::string_view destHost) {
     util::Endpoint controlChannel(myAddress.hostName, myAddress.serviceName, util::SocketType::TCP);
 
     if (!controlChannel.listen(1)) {
@@ -287,7 +287,7 @@ void shareConversationID(arq::ConversationID id, const arq::config_AddressInfo& 
     util::logDebug("received correct conversation ID {} as ACK", recvBuffer[0]);
 }
 
-arq::ConversationID receiveConversationID(const arq::config_AddressInfo& myAddress, const arq::config_AddressInfo& destAddress) {
+static arq::ConversationID receiveConversationID(const arq::config_AddressInfo& myAddress, const arq::config_AddressInfo& destAddress) {
     util::Endpoint controlChannel(myAddress.hostName, myAddress.serviceName, util::SocketType::TCP);
 
     controlChannel.connectRetry(destAddress.hostName, destAddress.serviceName, util::SocketType::TCP, 20, std::chrono::milliseconds(500));
@@ -309,7 +309,7 @@ arq::ConversationID receiveConversationID(const arq::config_AddressInfo& myAddre
     return receivedID;
 }
 
-void startTransmitter(arq::config_Launcher& config) {
+static void startTransmitter(arq::config_Launcher& config) {
     // Generate a new conversation ID and share with receiver
     arq::ConversationIDAllocator allocator{};
     auto convID = allocator.getNewID();
@@ -320,7 +320,7 @@ void startTransmitter(arq::config_Launcher& config) {
     arq::Transmitter txer(convID);
 }
 
-void startReceiver(arq::config_Launcher& config) {
+static void startReceiver(arq::config_Launcher& config) {
     // Obtain conversation ID from tranmitter
     auto convID = receiveConversationID(config.common.clientNames, config.common.serverNames);
     util::logInfo("Conversation ID {} received from transmitter", convID);

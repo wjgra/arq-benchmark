@@ -77,41 +77,43 @@ bool util::Endpoint::connectRetry(std::string_view host,
 }
 
 bool util::Endpoint::accept(std::optional<std::string_view> expectedHost) {
-    try {
-        Socket acceptedSock = socket_.accept(expectedHost);
-        
+    auto acceptedSock = socket_.accept(expectedHost);
+
+    if (acceptedSock.has_value()) {
         // Replace endpoint listening socket with new socket
-        socket_ = std::move(acceptedSock);
+        socket_ = std::move(acceptedSock.value());
         return true;
     }
-    catch (const SocketException& e) {
-        logWarning("failed to accept connection at endpoint ({})", e.what());
+    else {
+        logWarning("failed to accept connection at endpoint");
         return false;
     }
 }
 
-bool util::Endpoint::send(std::span<const uint8_t> buffer) const noexcept {
+std::optional<size_t> util::Endpoint::send(std::span<const uint8_t> buffer) const noexcept {
     return socket_.send(buffer);
 }
 
-bool util::Endpoint::recv(std::span<uint8_t> buffer) const noexcept {
+std::optional<size_t> util::Endpoint::recv(std::span<uint8_t> buffer) const noexcept {
     return socket_.recv(buffer);
 }
 
-ssize_t util::Endpoint::sendTo(std::span<const uint8_t> buffer, std::string_view destinationHost, std::string_view destinationService) const noexcept
+std::optional<size_t> util::Endpoint::sendTo(std::span<const uint8_t> buffer, std::string_view destinationHost, std::string_view destinationService) const noexcept
 {
     AddressInfo addr(destinationHost, destinationService, SocketType::UDP);
     for (const auto& ai : addr) {
         auto ret = sendTo(buffer, ai);
-        if (ret > 0) return ret;
+        if (ret.has_value()) {
+            return ret;
+        }
     }
-    return 0; // WJG handle -1...
+    return std::nullopt;
 }
 
-ssize_t util::Endpoint::sendTo(std::span<const uint8_t> buffer, const addrinfo& ai) const noexcept {
+std::optional<size_t> util::Endpoint::sendTo(std::span<const uint8_t> buffer, const addrinfo& ai) const noexcept {
     return socket_.sendTo(buffer, ai);
 }
 
-ssize_t util::Endpoint::recvFrom(std::span<uint8_t> buffer) const noexcept {
+std::optional<size_t> util::Endpoint::recvFrom(std::span<uint8_t> buffer) const noexcept {
     return socket_.recvFrom(buffer);
 }

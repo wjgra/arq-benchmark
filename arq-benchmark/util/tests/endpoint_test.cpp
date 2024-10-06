@@ -13,7 +13,7 @@ std::string_view serverService = "65534";
 std::string_view clientHost = "127.0.0.1";
 std::string_view clientService = "65535";
 
-constexpr size_t sizeof_sendBuffer = 100;
+constexpr size_t sizeof_sendBuffer = 2000;
 
 auto makeSendBuffer() {
     std::array<uint8_t, sizeof_sendBuffer> buffer;
@@ -43,7 +43,10 @@ static int test_server_tcp(const bool authenticateClient, const bool send) {
     }
 
     if (send) {
-        REQUIRE(endpoint.send(sendBuffer));
+        auto ret = endpoint.send(sendBuffer);
+        REQUIRE(ret.has_value());
+        util::logDebug("Server sent {} bytes", ret.value());
+        REQUIRE(ret == sendBuffer.size());
     }
 
     return EXIT_SUCCESS; // Dummy return value for future
@@ -62,7 +65,10 @@ static int test_client_tcp(const bool receive) {
 
     if (receive) {
         std::array<uint8_t, sizeof_sendBuffer> recvBuffer{};
-        REQUIRE(endpoint.recv(recvBuffer));
+        auto ret = endpoint.recv(recvBuffer);
+        REQUIRE(ret.has_value());
+        util::logDebug("Client received {} bytes", ret.value());
+        REQUIRE(ret == sendBuffer.size());
 
         // Check received data is correct
         REQUIRE(recvBuffer == sendBuffer);
@@ -73,7 +79,7 @@ static int test_client_tcp(const bool receive) {
 
 static void endpoint_tcp_connection_test(const bool authenticateClient,
                                          const bool sendReceive) {
-    util::Logger::setLoggingLevel(util::LOGGING_LEVEL_ERROR);
+    util::Logger::setLoggingLevel(util::LOGGING_LEVEL_DEBUG);
 
     auto server = std::async(std::launch::async, test_server_tcp, authenticateClient, sendReceive);
     auto client = std::async(std::launch::async, test_client_tcp, sendReceive);
@@ -129,7 +135,8 @@ static int test_server_udp() {
     size_t attempt = 0;
     while (attempt < maxSendRecvAttempts && udpTestState == UDPTestState::SERVER_TXING) {
         auto ret = endpoint.sendTo(sendBuffer, clientHost, clientService);
-        if (ret > 0) {
+        if (ret.has_value()) {
+            util::logDebug("Server sent {} bytes", ret.value());
             REQUIRE(ret == sizeof_sendBuffer);
         }
         ++attempt;
@@ -142,8 +149,9 @@ static int test_server_udp() {
     while (attempt < maxSendRecvAttempts && udpTestState == UDPTestState::CLIENT_TXING) {
         std::array<uint8_t, sizeof_sendBuffer> recvBuffer{};
         auto ret = endpoint.recvFrom(recvBuffer);
-        if (ret > 0) {
+        if (ret.has_value()) {
             // Ack received
+            util::logDebug("Client received ACK of {} bytes", ret.value());
             REQUIRE(recvBuffer == sendBuffer);
             udpTestState = UDPTestState::END_TEST;
         }
@@ -166,7 +174,8 @@ static int test_client_udp() {
     size_t attempt = 0;
     while (attempt < maxSendRecvAttempts && udpTestState == UDPTestState::SERVER_TXING) {
         auto ret = endpoint.recvFrom(recvBuffer);
-            if (ret > 0) {
+            if (ret.has_value()) {
+                util::logDebug("Client received {} bytes", ret.value());
                 REQUIRE(recvBuffer == sendBuffer);
                 udpTestState = UDPTestState::CLIENT_TXING;
             }
@@ -179,7 +188,8 @@ static int test_client_udp() {
     attempt = 0;
     while (attempt < maxSendRecvAttempts && udpTestState == UDPTestState::CLIENT_TXING) {
         auto ret = endpoint.sendTo(recvBuffer, serverHost, serverService);
-        if (ret > 0) {
+        if (ret.has_value()) {
+            util::logDebug("Client sent ACK of {} bytes", ret.value());
             REQUIRE( ret == sizeof_sendBuffer);
         }
         ++attempt;

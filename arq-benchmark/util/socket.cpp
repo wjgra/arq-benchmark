@@ -78,7 +78,7 @@ static auto getIn6Addr(sockaddr* addr) noexcept {
     return &reinterpret_cast<sockaddr_in6*>(addr)->sin6_addr;
 }
 
-static auto sockaddr2Str(sockaddr* addr) {
+static std::optional<std::string> sockaddr2Str(sockaddr* addr) {
     std::array<char, INET6_ADDRSTRLEN> str;
     if (addr->sa_family == AF_INET) {
         inet_ntop(addr->sa_family,
@@ -93,12 +93,13 @@ static auto sockaddr2Str(sockaddr* addr) {
                   str.size());
     }
     else {
-        throw util::SocketException("connecting address has unknown family");
+        util::logWarning("connecting address has unknown family");
+        return std::nullopt;
     }
     return std::string{str.data()};
 }
 
-[[nodiscard]] util::Socket util::Socket::accept(std::optional<std::string_view> expectedHost) const {
+[[nodiscard]] std::optional<util::Socket> util::Socket::accept(std::optional<std::string_view> expectedHost) const {
     sockaddr_storage theirAddr;
     socklen_t theirAddrLen = sizeof(theirAddr);
     auto newSocketID = ::accept(socketID_, reinterpret_cast<sockaddr*>(&theirAddr), &theirAddrLen);
@@ -108,29 +109,38 @@ static auto sockaddr2Str(sockaddr* addr) {
         auto connectingAddr = sockaddr2Str(reinterpret_cast<sockaddr*>(&theirAddr));
 
         if (connectingAddr == expectedHost.value()) {
-            util::logDebug("validated connection with host {}", connectingAddr);
+            util::logDebug("validated connection with host {}", connectingAddr.value());
         }
         else {
-            throw util::SocketException(std::format("connecting host ({}) does not match expected ({})",
-                                                    connectingAddr,
-                                                    expectedHost.value()));
+            util::logWarning("connecting host ({}) does not match expected ({})",
+                             connectingAddr.value(),
+                             expectedHost.value());
+            return std::nullopt;
         }
     }
     return Socket{newSocketID};
 }
 
-bool util::Socket::send(std::span<const uint8_t> buffer) const noexcept {
-    return ::send(socketID_, buffer.data(), buffer.size(), 0) != SOCKET_ERROR;
+static inline std::optional<size_t> returnIfNotError(const ssize_t ret) {
+    return ret == SOCKET_ERROR ? std::nullopt : std::make_optional<size_t>(ret);
 }
 
-bool util::Socket::recv(std::span<uint8_t> buffer) const noexcept {
-    return ::recv(socketID_, buffer.data(), buffer.size(), 0) != SOCKET_ERROR;
+std::optional<size_t> util::Socket::send(std::span<const uint8_t> buffer) const noexcept {
+    auto ret = ::send(socketID_, buffer.data(), buffer.size(), 0);
+    return returnIfNotError(ret);
 }
 
-ssize_t util::Socket::sendTo(std::span<const uint8_t> buffer, const addrinfo& ai) const noexcept {
-    return ::sendto(socketID_, buffer.data(), buffer.size_bytes(), 0, ai.ai_addr, ai.ai_addrlen);
+std::optional<size_t> util::Socket::recv(std::span<uint8_t> buffer) const noexcept {
+    auto ret = ::recv(socketID_, buffer.data(), buffer.size(), 0);
+    return returnIfNotError(ret);
 }
 
-ssize_t util::Socket::recvFrom(std::span<uint8_t> buffer) const noexcept {
-    return ::recvfrom(socketID_, buffer.data(), buffer.size(), 0, nullptr, nullptr);
+std::optional<size_t> util::Socket::sendTo(std::span<const uint8_t> buffer, const addrinfo& ai) const noexcept {
+    auto ret = ::sendto(socketID_, buffer.data(), buffer.size_bytes(), 0, ai.ai_addr, ai.ai_addrlen);
+    return returnIfNotError(ret);
+}
+
+std::optional<size_t> util::Socket::recvFrom(std::span<uint8_t> buffer) const noexcept {
+    auto ret = ::recvfrom(socketID_, buffer.data(), buffer.size(), 0, nullptr, nullptr);
+    return returnIfNotError(ret);
 }

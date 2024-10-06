@@ -1,5 +1,6 @@
 set(ARQ_SRCS
     conversation_id.cpp
+    input_buffer.cpp
     transmitter.cpp
     receiver.cpp)
 
