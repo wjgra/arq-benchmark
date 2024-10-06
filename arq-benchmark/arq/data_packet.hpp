@@ -24,10 +24,6 @@ public:
         }
     };
 
-    DataPacket(const DataPacket& other) = delete;
-    DataPacket& operator=(const DataPacket& other) = delete;
-    DataPacket(DataPacket&& other) = default;
-    DataPacket& operator=(DataPacket&& other) = default;
 private:
     std::vector<std::byte> data_;
 };

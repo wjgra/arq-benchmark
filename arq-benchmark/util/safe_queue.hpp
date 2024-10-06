@@ -10,10 +10,11 @@ namespace util {
 
 template <typename T>
 class SafeQueue {
+public:
     // Add an element to the queue
-    void push(T value) {
+    void push(T&& value) {
         std::unique_lock<std::mutex> lock(mut_);
-        queue_.push(value);
+        queue_.push(std::forward<T>(value));
         cv_.notify_one();
     }
 
