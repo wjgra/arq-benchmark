@@ -16,7 +16,7 @@ client_ns="arqns1"
 server_addr="10.0.0.1"
 client_addr="10.0.0.2"
 
-tx_delay="1000ms"
+tx_delay="100ms"
 
 # Clean up old namespaces
 ip netns delete ${server_ns} || true
