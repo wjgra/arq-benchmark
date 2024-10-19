@@ -14,6 +14,26 @@ client_addr="10.0.0.2"
 
 tx_delay="100ms"
 
+usage() { echo "Usage: $0 [-d <tc delay arg string>] [-h]" 1>&2; }
+
+while getopts "d:h" opt; do
+    case ${opt} in
+        d)
+            tx_delay=${OPTARG}
+            echo "tx_delay set to ${tx_delay}"
+            ;;
+        h) 
+            usage
+            exit 0
+            ;;
+        *) 
+            usage
+            exit 1
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
 # Clean up old namespaces
 ip netns delete ${server_ns} || true
 ip netns delete ${client_ns} || true
