@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
 
-WRAP=${WRAP} # Allows scripts to be run under GDB, for instance
-
-BASE_DIR=".."
-
-VETH_NAME="arqveth"
-NS_NAME="arqns"
+wrap_cmd=${WRAP} # Allows scripts to be run under GDB, for instance
+base_dir="$(dirname "$0")/.."
 
 server_veth="arqveth0"
 client_veth="arqveth1"
@@ -42,10 +38,10 @@ ip netns exec ${client_ns} ip route add ${server_addr} dev ${client_veth}
 ip netns exec ${server_ns} tc qdisc add dev ${server_veth} root netem delay ${tx_delay}
 
 # Start server
-tmux new-session -d -s "arq" -n "server" -c "${BASE_DIR}" "ip netns exec ${server_ns} ${WRAP} build/arq-benchmark/launcher --launch-server --logging 4 --client-addr ${client_addr} --server-addr ${server_addr}; read"
+tmux new-session -d -s "arq" -n "server" "ip netns exec ${server_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher --launch-server --logging 4 --client-addr ${client_addr} --server-addr ${server_addr}; read"
 
 # Start client
-tmux new-window -t "arq" -n "client" -c "${BASE_DIR}" "ip netns exec ${client_ns} ${WRAP} build/arq-benchmark/launcher --launch-client --logging 4 --client-addr ${client_addr} --server-addr ${server_addr}; read"
+tmux new-window -t "arq" -n "client" "ip netns exec ${client_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher --launch-client --logging 4 --client-addr ${client_addr} --server-addr ${server_addr}; read"
 
 tmux set-option -t "arq" -g mouse
 tmux attach-session -t "arq"
