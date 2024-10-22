@@ -11,6 +11,11 @@ namespace arq {
 
 using ConversationID = uint8_t;
 
+static inline auto serialiseConversationID(ConversationID id) {
+    static_assert(sizeof(ConversationID) == 1);
+    return std::byte{id};
+}
+
 struct ConversationIDError : public std::runtime_error {
     ConversationIDError()  : std::runtime_error("No more conversation IDs to allocate") 
 {};
