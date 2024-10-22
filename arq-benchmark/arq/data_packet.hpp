@@ -68,13 +68,13 @@ struct DataPacketHeader {
         // Deserialise SN
         static_assert(sizeof(sequenceNumber_) == 2);
         uint16_t temp;
-        std::memcpy(buffer.data() + pos, &temp, sizeof(sequenceNumber_));
+        std::memcpy(&temp, buffer.data() + pos, sizeof(sequenceNumber_));
         sequenceNumber_ = ntohs(temp);
         pos += sizeof(sequenceNumber_);
 
         // Deserialise packet length
         static_assert(sizeof(length_) == 2);
-        std::memcpy(buffer.data() + pos, &temp, sizeof(length_));
+        std::memcpy(&temp, buffer.data() + pos, sizeof(length_));
         length_ = ntohs(temp);
         pos += sizeof(length_);
 
@@ -86,6 +86,8 @@ struct DataPacketHeader {
     constexpr size_t size() const noexcept {
         return sizeof(sequenceNumber_) + sizeof(length_) + sizeof(id_);
     }
+
+    bool operator==(const DataPacketHeader& other) const = default;
 };
 
 class DataPacket {
