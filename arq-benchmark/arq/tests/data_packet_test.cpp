@@ -58,6 +58,16 @@ static void data_packet_serialisation() {
     // Check that length is capped when a packet is made
     arq::DataPacketHeader hdr_before_truncated;
     hdr_before_truncated.deserialise(packet_before.getSpan());
+
+    util::logDebug("hdr_before: id: {} sn: {} len: {}",
+                   hdr_before.id_,
+                   hdr_before.sequenceNumber_,
+                   hdr_before.length_);
+    util::logDebug("hdr_before_truncated: id: {} sn: {} len: {}",
+                   hdr_before_truncated.id_,
+                   hdr_before_truncated.sequenceNumber_,
+                   hdr_before_truncated.length_);
+
     REQUIRE(hdr_before.id_ == hdr_before_truncated.id_);
     REQUIRE(hdr_before.sequenceNumber_ == hdr_before_truncated.sequenceNumber_);
     REQUIRE(hdr_before_truncated.length_ == arq::DATA_PKT_MAX_SIZE);
@@ -81,6 +91,16 @@ static void data_packet_serialisation() {
     arq::DataPacket test_pkt(test_hdr_before);
     arq::DataPacketHeader test_hdr_extracted;
     test_hdr_extracted.deserialise(test_pkt.getSpan());
+
+    util::logDebug("test_hdr_before: id: {} sn: {} len: {}",
+                   test_hdr_before.id_,
+                   test_hdr_before.sequenceNumber_,
+                   test_hdr_before.length_);
+    util::logDebug("test_hdr_extracted: id: {} sn: {} len: {}",
+                   test_hdr_extracted.id_,
+                   test_hdr_extracted.sequenceNumber_,
+                   test_hdr_extracted.length_);
+
     REQUIRE(test_hdr_before == test_hdr_extracted);
 
     // Construct a new packet from serialised data
