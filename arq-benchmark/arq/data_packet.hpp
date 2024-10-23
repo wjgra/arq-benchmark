@@ -3,12 +3,10 @@
 
 #include <cassert>
 #include <cstddef>
-#include <cstring>
-#include <netdb.h>
+#include <exception>
 #include <vector>
 
 #include "arq/conversation_id.hpp"
-#include "util/logging.hpp"
 
 namespace arq {
 
@@ -19,99 +17,50 @@ struct DataPacketHeader {
     uint16_t sequenceNumber_;
     uint16_t length_;
 
-    bool serialise(std::span<std::byte> buffer) const {
-        if (buffer.size() < this->size()) {
-            util::logError("Buffer of size {} is too small to serialise a DataPacketHeader of size {}",
-                           buffer.size(),
-                           this->size());
-            return false;
-        }
+    // Serialises the current contents of the DataPacketHeader to the buffer
+    bool serialise(std::span<std::byte> buffer) const noexcept;
+    // Deserialises the buffer into the DataPacketHeader
+    bool deserialise(std::span<const std::byte> buffer) noexcept;
 
-        size_t pos = 0;
-
-        // Serialise conversation ID
-        static_assert(sizeof(id_) == 1);
-        std::memcpy(buffer.data() + pos, &id_, sizeof(id_));
-        pos += sizeof(id_);
-
-        // Serialise SN
-        static_assert(sizeof(sequenceNumber_) == 2);
-        uint16_t temp = htons(sequenceNumber_);
-        std::memcpy(buffer.data() + pos, &temp, sizeof(sequenceNumber_));
-        pos += sizeof(sequenceNumber_);
-
-        // Serialise packet length
-        static_assert(sizeof(length_) == 2);
-        temp = htons(length_);
-        std::memcpy(buffer.data() + pos, &temp, sizeof(length_));
-        pos += sizeof(length_);
-
-        assert(pos == this->size());
-        return true;
+    // Returns the packed size of DataPacketHeader
+    static inline constexpr auto size() noexcept {
+        return packed_size;
     }
-
-    bool deserialise(std::span<std::byte> buffer) {
-        if (buffer.size() < this->size()) {
-            util::logError("Buffer of size {} is too small to deserialise into a DataPacketHeader of size {}",
-                           buffer.size(),
-                           this->size());
-            return false;
-        }
-
-        size_t pos = 0;
-
-        // Deserialise conversation ID
-        static_assert(sizeof(id_) == 1);
-        id_ = std::to_integer<ConversationID>(buffer[pos]);
-        pos += sizeof(id_);
-
-        // Deserialise SN
-        static_assert(sizeof(sequenceNumber_) == 2);
-        uint16_t temp;
-        std::memcpy(&temp, buffer.data() + pos, sizeof(sequenceNumber_));
-        sequenceNumber_ = ntohs(temp);
-        pos += sizeof(sequenceNumber_);
-
-        // Deserialise packet length
-        static_assert(sizeof(length_) == 2);
-        std::memcpy(&temp, buffer.data() + pos, sizeof(length_));
-        length_ = ntohs(temp);
-        pos += sizeof(length_);
-
-        assert(pos == this->size());
-
-        return true;
-    }
-
-    constexpr size_t size() const noexcept {
-        return sizeof(sequenceNumber_) + sizeof(length_) + sizeof(id_);
-    }
+    static inline constexpr size_t packed_size = sizeof(sequenceNumber_) + sizeof(length_) + sizeof(id_);
 
     bool operator==(const DataPacketHeader& other) const = default;
 };
 
+struct DataPacketException : public std::runtime_error {
+    explicit DataPacketException(const std::string& what) : std::runtime_error(what) {};
+};
+ 
+// Maximum permitted size of a DataPacket. Consider whether this should be configurable.
+// Value here chosen such that DataPacket + header fits inside a single Ethernet frame.
+constexpr size_t DATA_PKT_MAX_SIZE = ETH_FRAME_MAX_SIZE - DataPacketHeader::size();
+
 class DataPacket {
 public:
-    // Maximum permitted size of a DataPacket. Consider whether this should be configurable.
-    // Value here chosen such that DataPacket + header fits inside a single Ethernet frame
-    static constexpr size_t maxSize = ETH_FRAME_MAX_SIZE - sizeof(DataPacketHeader);
+    // Tx-side: construct a packet with the given header
+    DataPacket(const DataPacketHeader& hdr);
+    // Rx-side: construct a packet from serialised packet data
+    DataPacket(std::span<const std::byte> serialData);
+    DataPacket(std::vector<std::byte>&& serialData);
 
-    explicit DataPacket(std::vector<std::byte>&& data) : data_{data}
-    {
-        if (data_.size() > maxSize) {
-            util::logWarning("DataPacket of {} bytes truncated to {} bytes",
-                             data_.size(),
-                             maxSize);
-            data_.resize(maxSize);
-        }
-    };
+    // Set the length of the payload
+    void setDataLength(const size_t len);
+    // Get a span of the payload
+    std::span<std::byte> getDataSpan() noexcept;
+    // Get a read-only span of the whole packet
+    std::span<const std::byte> getSpan() noexcept;
 
-    void serialise() {
-
-    }
-
+    bool operator==(const DataPacket& other) const = default;
 private:
+    DataPacketHeader header_;
     std::vector<std::byte> data_;
+
+    bool serialiseHeader() noexcept;
+    bool deserialiseHeader() noexcept;
 };
 
 }
