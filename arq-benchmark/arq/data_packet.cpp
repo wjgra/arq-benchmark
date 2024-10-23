@@ -127,8 +127,12 @@ std::span<std::byte> arq::DataPacket::getDataSpan() noexcept
     return std::span<std::byte>(data_).subspan(header_.size());
 }
 
-std::span<const std::byte> arq::DataPacket::getSpan() noexcept
+/* std::span<const std::byte> arq::DataPacket::getSpan() noexcept
 {
     return data_;
 }
-
+ */
+std::span<const std::byte> arq::DataPacket::getSpan() noexcept
+{
+    return std::span<const std::byte>(data_.begin(), data_.size());
+}
