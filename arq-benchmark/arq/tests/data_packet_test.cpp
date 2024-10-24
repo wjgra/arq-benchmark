@@ -70,6 +70,14 @@ static void data_packet_serialisation() {
     arq::DataPacketHeader hdr_extracted;
     hdr_extracted.deserialise(packet_before.getHeaderReadSpan());
 
+    std::vector<std::byte> hdr_before_serialdata(hdr_before.size());
+    hdr_before.serialise(hdr_before_serialdata);
+    util::logDebug("hdr_before serialised:");
+    for (auto b : hdr_before_serialdata) {
+        std::print("{} ", std::to_integer<uint8_t>(b));
+    }
+    std::println("");
+
     util::logDebug("packet_before header serialised:");
     for (auto readSpan = packet_before.getHeaderReadSpan(); auto b : readSpan) {
         std::print("{} ", std::to_integer<uint8_t>(b));
@@ -93,6 +101,10 @@ static void data_packet_serialisation() {
                    hdr_before_truncated.id_,
                    hdr_before_truncated.sequenceNumber_,
                    hdr_before_truncated.length_);
+    util::logDebug("hdr_extracted: id: {} sn: {} len: {}",
+                   hdr_extracted.id_,
+                   hdr_extracted.sequenceNumber_,
+                   hdr_extracted.length_);
 
 
     // Create a packet with non-maximal length and random data
