@@ -59,6 +59,12 @@ static void data_packet_serialisation() {
     arq::DataPacketHeader hdr_before_truncated;
     hdr_before_truncated.deserialise(packet_before.getHeaderReadSpan());
 
+    util::logDebug("hdr_before serialised:");
+    for (auto b : packet_before.getHeaderReadSpan()) {
+        std::print("{} ", std::to_integer<uint8_t>(b));
+    }
+    std::println("");
+
     util::logDebug("hdr_before: id: {} sn: {} len: {}",
                    hdr_before.id_,
                    hdr_before.sequenceNumber_,
