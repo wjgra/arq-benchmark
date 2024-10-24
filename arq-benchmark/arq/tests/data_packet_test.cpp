@@ -65,7 +65,7 @@ static void data_packet_serialisation() {
     }
     std::println("");
 
-    std::vector<std::byte> hdr_before_truncated_serialdata;
+    std::vector<std::byte> hdr_before_truncated_serialdata(hdr_before.size());
     hdr_before_truncated.serialise(hdr_before_truncated_serialdata);
 
     util::logDebug("hdr_before_truncated serialised:");
