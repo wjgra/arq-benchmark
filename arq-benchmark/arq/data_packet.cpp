@@ -72,13 +72,9 @@ bool arq::DataPacketHeader::deserialise(std::span<const std::byte> buffer) noexc
 }
 
 arq::DataPacket::DataPacket(const DataPacketHeader& hdr) : 
-    header_{hdr},
-    data_(header_.size() + std::min(static_cast<size_t>(hdr.length_), DATA_PKT_MAX_SIZE))
+    header_{hdr}
 {
-    if (header_.length_ > DATA_PKT_MAX_SIZE) {
-        util::logWarning("DataPacket truncated to {} bytes", DATA_PKT_MAX_SIZE);
-        header_.length_ = DATA_PKT_MAX_SIZE;
-    }
+    setDataLength(hdr.length_);
     assert(serialiseHeader());
 }
 
@@ -100,12 +96,12 @@ arq::DataPacket::DataPacket(std::vector<std::byte>&& serialData) :
 
 bool arq::DataPacket::serialiseHeader() noexcept
 {
-    return header_.serialise(data_);
+    return header_.serialise(std::span<std::byte>(data_).subspan(0, header_.size()));
 }
 
 bool arq::DataPacket::deserialiseHeader() noexcept
 {
-    return header_.deserialise(data_);
+    return header_.deserialise(std::span<const std::byte>(data_).subspan(0, header_.size()));
 }
 
 void arq::DataPacket::setDataLength(const size_t len)
