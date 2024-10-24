@@ -65,6 +65,15 @@ static void data_packet_serialisation() {
     }
     std::println("");
 
+    std::vector<std::byte> hdr_before_truncated_serialdata;
+    hdr_before_truncated.serialise(hdr_before_truncated_serialdata);
+
+    util::logDebug("hdr_before_truncated serialised:");
+    for (auto b : hdr_before_truncated_serialdata) {
+        std::print("{} ", std::to_integer<uint8_t>(b));
+    }
+    std::println("");
+
     util::logDebug("hdr_before: id: {} sn: {} len: {}",
                    hdr_before.id_,
                    hdr_before.sequenceNumber_,
