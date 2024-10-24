@@ -101,7 +101,6 @@ void arq::DataPacket::setHeader(const DataPacketHeader& hdr)
 {
     header_ = hdr;
     setDataLength(hdr.length_);
-    assert(serialiseHeader());
 }
 
 
@@ -116,7 +115,8 @@ void arq::DataPacket::setDataLength(const size_t len)
     }
 
     data_.resize(header_.size() + header_.length_);
-    assert(serialiseHeader());
+    [[maybe_unused]] auto ret = serialiseHeader(); 
+    assert(ret);
 }
 
 std::span<std::byte> arq::DataPacket::getSpan() noexcept
