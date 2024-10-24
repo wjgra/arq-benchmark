@@ -57,7 +57,7 @@ static void data_packet_serialisation() {
 
     // Check that length is capped when a packet is made
     arq::DataPacketHeader hdr_before_truncated;
-    hdr_before_truncated.deserialise(packet_before.getSpan());
+    hdr_before_truncated.deserialise(packet_before.getHeaderReadSpan());
 
     util::logDebug("hdr_before: id: {} sn: {} len: {}",
                    hdr_before.id_,
@@ -90,7 +90,7 @@ static void data_packet_serialisation() {
     // Check header has successfully been inserted
     arq::DataPacket test_pkt(test_hdr_before);
     arq::DataPacketHeader test_hdr_extracted;
-    test_hdr_extracted.deserialise(test_pkt.getSpan());
+    test_hdr_extracted.deserialise(test_pkt.getHeaderReadSpan());
 
     util::logDebug("test_hdr_before: id: {} sn: {} len: {}",
                    test_hdr_before.id_,
@@ -104,13 +104,14 @@ static void data_packet_serialisation() {
     REQUIRE(test_hdr_before == test_hdr_extracted);
 
     // Construct a new packet from serialised data
-    arq::DataPacket test_pkt_after1(test_pkt.getSpan());
+    arq::DataPacket test_pkt_after1(test_pkt.getReadSpan());
     REQUIRE(test_pkt_after1 == test_pkt);
 
     // ...and the same again with the vector rvalue constructor
-    auto pkt_span = test_pkt.getSpan();
+    auto pkt_span = test_pkt.getReadSpan();
     std::vector<std::byte> temp(pkt_span.size());
-    std::memcpy(temp.data(), pkt_span.data(), pkt_span.size());
+    temp.assign(pkt_span.begin(), pkt_span.end());
+    // std::memcpy(temp.data(), pkt_span.data(), pkt_span.size());
     
     arq::DataPacket test_pkt_after2(std::move(temp));
     REQUIRE(test_pkt_after2 == test_pkt);
