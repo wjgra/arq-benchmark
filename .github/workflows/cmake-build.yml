@@ -1,5 +1,5 @@
 
-name: Unit tests
+name: Unit tests (release)
 
 on:
   push:
