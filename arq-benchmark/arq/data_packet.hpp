@@ -47,12 +47,23 @@ public:
     DataPacket(std::span<const std::byte> serialData);
     DataPacket(std::vector<std::byte>&& serialData);
 
+    // Get a copy of the header struct
+    DataPacketHeader getHeader() const noexcept;
+    // Set a new header
+    void setHeader(const DataPacketHeader& hdr);
+
     // Set the length of the payload
     void setDataLength(const size_t len);
-    // Get a span of the payload
-    std::span<std::byte> getDataSpan() noexcept;
-    // Get a read-only span of the whole packet
-    std::span<const std::byte> getSpan() noexcept;
+
+    // Get writable spans of the packet, header or payload
+    std::span<std::byte> getSpan() noexcept;
+    std::span<std::byte> getHeaderSpan() noexcept;
+    std::span<std::byte> getPayloadSpan() noexcept;
+
+    // Get read-only spans of the packet, header or payload
+    std::span<const std::byte> getReadSpan() const noexcept;
+    std::span<const std::byte> getHeaderReadSpan() const noexcept;
+    std::span<const std::byte> getPayloadReadSpan() const noexcept;
 
     bool operator==(const DataPacket& other) const = default;
 private:

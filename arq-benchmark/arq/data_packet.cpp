@@ -71,42 +71,38 @@ bool arq::DataPacketHeader::deserialise(std::span<const std::byte> buffer) noexc
     return true;
 }
 
-arq::DataPacket::DataPacket(const DataPacketHeader& hdr) : 
-    header_{hdr},
-    data_(header_.size() + std::min(static_cast<size_t>(hdr.length_), DATA_PKT_MAX_SIZE))
+arq::DataPacket::DataPacket(const DataPacketHeader& hdr)
 {
-    if (header_.length_ > DATA_PKT_MAX_SIZE) {
-        util::logWarning("DataPacket truncated to {} bytes", DATA_PKT_MAX_SIZE);
-        header_.length_ = DATA_PKT_MAX_SIZE;
-    }
-    assert(serialiseHeader());
+    setHeader(hdr);
 }
 
-arq::DataPacket::DataPacket(std::span<const std::byte> serialData) : 
-    data_(serialData.begin(), serialData.end())
+arq::DataPacket::DataPacket(std::span<const std::byte> serialData)
 {
+    data_.assign(serialData.begin(), serialData.end());
     if (!deserialiseHeader()) {
         throw DataPacketException("serialData is not long enough to contain header");
     }
 }
 
 arq::DataPacket::DataPacket(std::vector<std::byte>&& serialData) : 
-    data_{serialData}
+    data_{std::move(serialData)}
 {
     if (!deserialiseHeader()) {
         throw DataPacketException("serialData is not long enough to contain header");
     }
 }
 
-bool arq::DataPacket::serialiseHeader() noexcept
+arq::DataPacketHeader arq::DataPacket::getHeader() const noexcept
 {
-    return header_.serialise(data_);
+    return header_;
 }
 
-bool arq::DataPacket::deserialiseHeader() noexcept
+void arq::DataPacket::setHeader(const DataPacketHeader& hdr)
 {
-    return header_.deserialise(data_);
+    header_ = hdr;
+    setDataLength(hdr.length_);
 }
+
 
 void arq::DataPacket::setDataLength(const size_t len)
 {
@@ -119,20 +115,46 @@ void arq::DataPacket::setDataLength(const size_t len)
     }
 
     data_.resize(header_.size() + header_.length_);
-    assert(serialiseHeader());
+    [[maybe_unused]] auto ret = serialiseHeader(); 
+    assert(ret);
 }
 
-std::span<std::byte> arq::DataPacket::getDataSpan() noexcept
+std::span<std::byte> arq::DataPacket::getSpan() noexcept
+{
+    return std::span<std::byte>(data_);
+}
+
+std::span<std::byte> arq::DataPacket::getHeaderSpan() noexcept
+{
+    return std::span<std::byte>(data_).subspan(0, header_.size());
+}
+
+std::span<std::byte> arq::DataPacket::getPayloadSpan() noexcept
 {
     return std::span<std::byte>(data_).subspan(header_.size());
 }
 
-/* std::span<const std::byte> arq::DataPacket::getSpan() noexcept
+std::span<const std::byte> arq::DataPacket::getReadSpan() const noexcept
 {
-    return data_;
+    return std::span<const std::byte>(data_);
 }
- */
-std::span<const std::byte> arq::DataPacket::getSpan() noexcept
+
+std::span<const std::byte> arq::DataPacket::getHeaderReadSpan() const noexcept
 {
-    return std::span<const std::byte>(data_.begin(), data_.size());
+    return std::span<const std::byte>(data_).subspan(0, header_.size());
+}
+
+std::span<const std::byte> arq::DataPacket::getPayloadReadSpan() const noexcept
+{
+    return std::span<const std::byte>(data_).subspan(header_.size());
+}
+
+bool arq::DataPacket::serialiseHeader() noexcept
+{
+    return header_.serialise(getHeaderSpan());
+}
+
+bool arq::DataPacket::deserialiseHeader() noexcept
+{
+    return header_.deserialise(getHeaderReadSpan());
 }
