@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+if [ "$(id -u)" -ne 0 ]; then
+        echo "This script must be run as root" >&2
+        exit 1
+fi
+
 wrap_cmd=${WRAP} # Allows scripts to be run under GDB, for instance
 base_dir="$(dirname "$0")/.."
 
