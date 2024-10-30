@@ -11,6 +11,9 @@
 #include <variant>
 
 #include "config.hpp"
+
+#include "arq/receiver.hpp"
+#include "arq/transmitter.hpp"
 #include "util/endpoint.hpp"
 #include "util/logging.hpp"
 
@@ -173,92 +176,6 @@ static auto generateConfiguration(int argc, char** argv) {
     auto description{generateOptionsDescription()};
     return parseOptions(argc, argv, description);
 }
-
-
-// Temp...
-/* #include <random>
-constexpr size_t sizeof_sendBuffer = 1e6;
-
-auto makeSendBuffer() {
-    std::array<uint8_t, sizeof_sendBuffer> buffer;
-    std::random_device rd;
-    std::mt19937 mt(rd());
-    std::uniform_int_distribution<uint8_t> dist(0, UINT8_MAX);
-    for (auto& element : buffer) {
-        element = dist(mt);
-    }
-    return buffer;
-}
-
-static const auto sendBuffer = makeSendBuffer();
-
-
-void startServer(arq::config_Launcher& config) {
-    using namespace util;
-    logDebug("attempting to start server (host: {}, service: {})",
-             config.common.serverNames.hostName,
-             config.common.serverNames.serviceName);
-    
-    util::Endpoint endpoint{config.common.serverNames.hostName,
-                            config.common.serverNames.serviceName,
-                            SocketType::TCP};
-    
-    logDebug("successfully created server endpoint");
-
-    if (!endpoint.listen(1)) {
-        throw std::runtime_error("failed to listen on server endpoint");
-    }
-    logDebug("listening on server endpoint...");
-
-    if (!endpoint.accept(config.common.clientNames.hostName)) {
-        throw std::runtime_error("failed to accept connection at server endpoint");
-    }
-
-    logInfo("server connected");
-
-    // std::array<uint8_t, 20> dataToSend{"Hello, client!"};
-    auto tick = std::chrono::steady_clock::now();
-    if (!endpoint.send(sendBuffer)) {
-        throw std::runtime_error("failed to send data to client");
-    }
-    auto tock = std::chrono::steady_clock::now();
-    logInfo("server sent {} bytes in {}", sendBuffer.size(), std::chrono::duration_cast<std::chrono::microseconds>(tock - tick));
-
-    logInfo("server thread shutting down");
-}
-
-void startClient(arq::config_Launcher& config) {
-    using namespace util;
-    logDebug("attempting to start client (host: {}, service: {})",
-            config.common.clientNames.hostName,
-            config.common.clientNames.serviceName);
-
-    Endpoint endpoint{config.common.clientNames.hostName,
-                      config.common.clientNames.serviceName,
-                      SocketType::TCP};
-
-    logDebug("successfully created client endpoint");
-
-    endpoint.connectRetry(config.common.serverNames.hostName,
-                          config.common.serverNames.serviceName,
-                          SocketType::TCP,
-                          10,
-                          std::chrono::milliseconds(1000));
-
-    std::array<uint8_t, sizeof_sendBuffer> recvBuffer{};
-
-    if (!endpoint.recv(recvBuffer)) {
-        throw std::runtime_error("failed to receive data from server");
-    }
-    logInfo("client received {} bytes from server", sizeof_sendBuffer); // this isn't correct
-
-    logInfo("client thread shutting down");
-}
- */
-
-#include "arq/transmitter.hpp"
-#include "arq/receiver.hpp"
-#include "util/endpoint.hpp"
 
 static void shareConversationID(arq::ConversationID id, const arq::config_AddressInfo& myAddress, std::string_view destHost) {
     util::Endpoint controlChannel(myAddress.hostName, myAddress.serviceName, util::SocketType::TCP);
