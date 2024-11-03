@@ -12,6 +12,7 @@
 
 #include "config.hpp"
 
+#include "arq/input_buffer.hpp"
 #include "arq/receiver.hpp"
 #include "arq/transmitter.hpp"
 #include "util/endpoint.hpp"
@@ -226,15 +227,35 @@ static arq::ConversationID receiveConversationID(const arq::config_AddressInfo& 
     return receivedID;
 }
 
-static void startTransmitter(arq::config_Launcher& config) {
+static void startTransmitter(arq::config_Launcher& config) { // why not const?
     // Generate a new conversation ID and share with receiver
     arq::ConversationIDAllocator allocator{};
     auto convID = allocator.getNewID();
 
-    shareConversationID(convID, config.common.serverNames, config.common.clientNames.hostName);
+    const arq::config_AddressInfo& txerAddress = config.common.serverNames;
+    const arq::config_AddressInfo& rxerAddress = config.common.clientNames;
+
+    shareConversationID(convID, txerAddress, rxerAddress.hostName);
     util::logInfo("Conversation ID {} shared with receiver", convID);
 
-    arq::Transmitter txer(convID);
+    util::Endpoint dataChannel(txerAddress.hostName, txerAddress.serviceName, util::SocketType::UDP);
+
+    arq::TransmitFn txToClient = [&dataChannel, rxerAddress](std::span<const uint8_t> buffer) {
+        return dataChannel.sendTo(buffer, rxerAddress.hostName, rxerAddress.serviceName); // temp: do not recalc address info each time
+    };
+
+    arq::Transmitter txer(convID, txToClient);
+
+    for (size_t i = 0 ; i < 1 ; ++i) {
+        arq::DataPacket inputPacket{};
+
+        // populate packet
+        // ...
+        
+        // Add packet to transmitter's input buffer
+        txer.sendPacket(std::move(inputPacket));
+    }
+
 }
 
 static void startReceiver(arq::config_Launcher& config) {
@@ -265,12 +286,17 @@ int main(int argc, char** argv) {
         rxThread = std::thread(startReceiver, std::ref(cfg));
     }
 
-    if (txThread.joinable()) {
-        txThread.join();
-    }
-    
-    if (rxThread.joinable()) {
-        rxThread.join();
+    bool txJoined = false;
+    bool rxJoined = false;
+    while(!(txJoined && rxJoined)) {
+        if (txThread.joinable()) {
+            txThread.join();
+            txJoined = true;
+        }
+        if (rxThread.joinable()) {
+            rxThread.join();
+            rxJoined = true;
+        }
     }
 
     return EXIT_SUCCESS;

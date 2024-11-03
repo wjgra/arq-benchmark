@@ -10,23 +10,27 @@
 
 namespace arq {
 
+// Consider moving these defs to an ARQ common header (along with ConversationID)
 using SequenceNumber = uint16_t;
+using ClockType = std::chrono::steady_clock;
 
 struct PacketInfo {
     // Time at which packet was added to the input buffer
-    std::chrono::time_point<std::chrono::steady_clock> txTime_;
+    std::chrono::time_point<ClockType> txTime_;
     // Sequence number assigned to packet by the input buffer
     SequenceNumber sequenceNumber_;
 };
 
 struct InputBufferObject {
+    // Packet held in the InputBuffer
     DataPacket packet_;
+    // Information for managing the state of the packet within the InputBuffer
     PacketInfo info_;
 };
 
 class InputBuffer {
     auto getNextInfo() {
-        return PacketInfo{.txTime_ = std::chrono::steady_clock::now(), .sequenceNumber_ = ++lastSequenceNumber};
+        return PacketInfo{.txTime_ = ClockType::now(), .sequenceNumber_ = ++lastSequenceNumber};
     }
 public:
     void addPacket(arq::DataPacket&& packet) {

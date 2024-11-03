@@ -71,6 +71,10 @@ bool arq::DataPacketHeader::deserialise(std::span<const std::byte> buffer) noexc
     return true;
 }
 
+arq::DataPacket::DataPacket() {
+    setDataLength(0);
+}
+
 arq::DataPacket::DataPacket(const DataPacketHeader& hdr)
 {
     setHeader(hdr);
