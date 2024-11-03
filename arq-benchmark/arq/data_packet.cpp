@@ -77,7 +77,7 @@ arq::DataPacket::DataPacket() {
 
 arq::DataPacket::DataPacket(const DataPacketHeader& hdr)
 {
-    setHeader(hdr);
+    updateHeader(hdr);
 }
 
 arq::DataPacket::DataPacket(std::span<const std::byte> serialData)
@@ -101,7 +101,7 @@ arq::DataPacketHeader arq::DataPacket::getHeader() const noexcept
     return header_;
 }
 
-void arq::DataPacket::setHeader(const DataPacketHeader& hdr)
+void arq::DataPacket::updateHeader(const DataPacketHeader& hdr)
 {
     header_ = hdr;
     updateDataLength(hdr.length_);

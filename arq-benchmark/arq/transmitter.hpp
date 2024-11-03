@@ -1,18 +1,17 @@
 #ifndef _ARQ_TRANSMITTER_HPP_
 #define _ARQ_TRANSMITTER_HPP_
 
-#include <functional>
 #include <memory>
-#include <span>
 #include <thread>
 
+#include "arq/arq_common.hpp"
 #include "arq/conversation_id.hpp"
 #include "arq/input_buffer.hpp"
 #include "arq/retransmission_buffer.hpp"
 
-namespace arq {
+#include "util/logging.hpp"
 
-using TransmitFn = std::function<std::optional<size_t>(std::span<const uint8_t> buffer)>;
+namespace arq {
 
 class Transmitter {
 public:
@@ -28,6 +27,7 @@ public:
 
 private:
     void transmitThread();
+    void ackThread();
     ConversationID id_;
     TransmitFn txFn_;
 
@@ -37,6 +37,8 @@ private:
     RetransmissionBuffer retransmissionBuffer_;
     // 
     std::thread transmitThread_;
+    // 
+    std::thread ackThread_;
 };
 
 }

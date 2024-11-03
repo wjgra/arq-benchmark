@@ -56,7 +56,7 @@ public:
     // Get a copy of the header struct
     DataPacketHeader getHeader() const noexcept;
     // Update the header information and serialise it
-    void setHeader(const DataPacketHeader& hdr);
+    void updateHeader(const DataPacketHeader& hdr);
     // Update header sequence number and serialise it
     void updateSequenceNumber(const SequenceNumber seqNum);
 
