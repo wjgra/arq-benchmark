@@ -72,7 +72,7 @@ bool arq::DataPacketHeader::deserialise(std::span<const std::byte> buffer) noexc
 }
 
 arq::DataPacket::DataPacket() {
-    setDataLength(0);
+    updateDataLength(0);
 }
 
 arq::DataPacket::DataPacket(const DataPacketHeader& hdr)
@@ -104,11 +104,17 @@ arq::DataPacketHeader arq::DataPacket::getHeader() const noexcept
 void arq::DataPacket::setHeader(const DataPacketHeader& hdr)
 {
     header_ = hdr;
-    setDataLength(hdr.length_);
+    updateDataLength(hdr.length_);
 }
 
+void arq::DataPacket::updateSequenceNumber(const SequenceNumber seqNum)
+{
+    header_.sequenceNumber_ = seqNum;
+    [[maybe_unused]] auto ret = serialiseHeader(); 
+    assert(ret);
+}
 
-void arq::DataPacket::setDataLength(const size_t len)
+void arq::DataPacket::updateDataLength(const size_t len)
 {
     if (len > DATA_PKT_MAX_SIZE) {
         util::logWarning("DataPacket truncated to {} bytes", DATA_PKT_MAX_SIZE);

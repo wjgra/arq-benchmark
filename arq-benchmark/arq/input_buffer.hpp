@@ -5,14 +5,11 @@
 #include <optional>
 #include <vector>
 
+#include "arq/arq_common.hpp"
 #include "arq/data_packet.hpp"
 #include "util/safe_queue.hpp"
 
 namespace arq {
-
-// Consider moving these defs to an ARQ common header (along with ConversationID)
-using SequenceNumber = uint16_t;
-using ClockType = std::chrono::steady_clock;
 
 struct PacketInfo {
     // Time at which packet was added to the input buffer
@@ -29,24 +26,17 @@ struct InputBufferObject {
 };
 
 class InputBuffer {
-    auto getNextInfo() {
-        return PacketInfo{.txTime_ = ClockType::now(), .sequenceNumber_ = ++lastSequenceNumber};
-    }
 public:
-    void addPacket(arq::DataPacket&& packet) {
-        arq::InputBufferObject temp{.packet_ = std::forward<arq::DataPacket>(packet),
-                                    .info_ = getNextInfo()};
-        inputPackets_.push(std::move(temp));
-    }
-
-    InputBufferObject getPacket() {
-        return inputPackets_.pop_wait();
-    }
-
-    std::optional<InputBufferObject> tryGetPacket() {
-        return inputPackets_.try_pop();
-    }
+    // Submit a packet for transmission
+    void addPacket(arq::DataPacket&& packet);
+    // Get next packet for transmission from the buffer. If the buffer is empty, wait until a packet is available
+    InputBufferObject getPacket();
+    // If a packet is available, get the next packet from the buffer.
+    std::optional<InputBufferObject> tryGetPacket();
 private:
+    // Get information for populating data packet header
+    PacketInfo getNextInfo();
+
     util::SafeQueue<InputBufferObject> inputPackets_;
     arq::SequenceNumber lastSequenceNumber = 0;
 };

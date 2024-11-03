@@ -6,6 +6,7 @@
 #include <exception>
 #include <vector>
 
+#include "arq_common.hpp"
 #include "arq/conversation_id.hpp"
 
 namespace arq {
@@ -16,7 +17,7 @@ struct DataPacketHeader {
     // Identifies the ARQ session
     ConversationID id_;
     // Sequence number assigned by the input buffer
-    uint16_t sequenceNumber_;
+    SequenceNumber sequenceNumber_;
     // Length of the payload
     uint16_t length_; // Q. should len == 0 indicate end of transmission?
 
@@ -54,11 +55,13 @@ public:
 
     // Get a copy of the header struct
     DataPacketHeader getHeader() const noexcept;
-    // Reset the header information and serialise it
+    // Update the header information and serialise it
     void setHeader(const DataPacketHeader& hdr);
+    // Update header sequence number and serialise it
+    void updateSequenceNumber(const SequenceNumber seqNum);
 
-    // Set the length of the payload
-    void setDataLength(const size_t len);
+    // Update the length of the payload
+    void updateDataLength(const size_t len);
 
     // Get writable spans of the packet, header or payload
     std::span<std::byte> getSpan() noexcept;
