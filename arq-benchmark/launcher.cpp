@@ -12,6 +12,7 @@
 
 #include "config.hpp"
 
+#include "arq/input_buffer.hpp"
 #include "arq/receiver.hpp"
 #include "arq/transmitter.hpp"
 #include "util/endpoint.hpp"
@@ -188,20 +189,20 @@ static void shareConversationID(arq::ConversationID id, const arq::config_Addres
         throw std::runtime_error("failed to accept control channel connection");
     }
     
-    if (controlChannel.send({{id}}) != sizeof(id)) {
+    if (controlChannel.send({{std::byte(id)}}) != sizeof(id)) {
         throw std::runtime_error("failed to send conversation ID to receiver");
     }
 
-    std::array<uint8_t, sizeof(id)> recvBuffer;
+    std::array<std::byte, sizeof(id)> recvBuffer;
     if (controlChannel.recv(recvBuffer) != sizeof(id)) {
         throw std::runtime_error("failed to receive conversation ID ACK");
     }
 
     assert(sizeof(id) == 1); // No endianness conversion required
-    if (recvBuffer[0] != id) {
-        throw std::runtime_error(std::format("conversation ID in ACK is incorrect (received {}, expected {})", recvBuffer[0], id));
+    if (std::to_integer<uint8_t>(recvBuffer[0]) != id) {
+        throw std::runtime_error(std::format("conversation ID in ACK is incorrect (received {}, expected {})", std::to_integer<uint8_t>(recvBuffer[0]), id));
     }
-    util::logDebug("received correct conversation ID {} as ACK", recvBuffer[0]);
+    util::logDebug("received correct conversation ID {} as ACK", std::to_integer<uint8_t>(recvBuffer[0]));
 }
 
 static arq::ConversationID receiveConversationID(const arq::config_AddressInfo& myAddress, const arq::config_AddressInfo& destAddress) {
@@ -209,32 +210,57 @@ static arq::ConversationID receiveConversationID(const arq::config_AddressInfo& 
 
     controlChannel.connectRetry(destAddress.hostName, destAddress.serviceName, util::SocketType::TCP, 20, std::chrono::milliseconds(500));
 
-    std::array<uint8_t, sizeof(arq::ConversationID)> recvBuffer;
+    std::array<std::byte, sizeof(arq::ConversationID)> recvBuffer;
     if (controlChannel.recv(recvBuffer) != sizeof(arq::ConversationID)) {
         throw std::runtime_error("failed to receive conversation ID");
     }
 
     assert(sizeof(arq::ConversationID) == 1); // No endianness conversion required
-    arq::ConversationID receivedID = recvBuffer[0];
+    arq::ConversationID receivedID = std::to_integer<uint8_t>(recvBuffer[0]);
     util::logDebug("received conversation ID {}, sending ACK", receivedID);
 
         
-    if (controlChannel.send({{receivedID}}) != sizeof(receivedID)) {
+    if (controlChannel.send({{std::byte(receivedID)}}) != sizeof(receivedID)) {
         throw std::runtime_error("failed to send ACK");
     }
 
     return receivedID;
 }
 
-static void startTransmitter(arq::config_Launcher& config) {
+static void startTransmitter(arq::config_Launcher& config) { // why not const?
     // Generate a new conversation ID and share with receiver
     arq::ConversationIDAllocator allocator{};
     auto convID = allocator.getNewID();
 
-    shareConversationID(convID, config.common.serverNames, config.common.clientNames.hostName);
+    const arq::config_AddressInfo& txerAddress = config.common.serverNames;
+    const arq::config_AddressInfo& rxerAddress = config.common.clientNames;
+
+    shareConversationID(convID, txerAddress, rxerAddress.hostName);
     util::logInfo("Conversation ID {} shared with receiver", convID);
 
-    arq::Transmitter txer(convID);
+    util::Endpoint dataChannel(txerAddress.hostName, txerAddress.serviceName, util::SocketType::UDP);
+
+    arq::TransmitFn txToClient = [&dataChannel, rxerAddress](std::span<const std::byte> buffer) {
+        return dataChannel.sendTo(buffer, rxerAddress.hostName, rxerAddress.serviceName); // temp: do not recalc address info each time
+    };
+
+    arq::ReceiveFn rxFromClient = [&dataChannel](std::span<std::byte> buffer) {
+        return dataChannel.recvFrom(buffer);
+    };
+
+
+    arq::Transmitter txer(convID, txToClient, rxFromClient);
+
+    for (size_t i = 0 ; i < 1 ; ++i) {
+        arq::DataPacket inputPacket{};
+
+        // populate packet
+        // ...
+        
+        // Add packet to transmitter's input buffer
+        txer.sendPacket(std::move(inputPacket));
+    }
+
 }
 
 static void startReceiver(arq::config_Launcher& config) {
@@ -243,6 +269,31 @@ static void startReceiver(arq::config_Launcher& config) {
     util::logInfo("Conversation ID {} received from transmitter", convID);
 
     arq::Receiver rxer(convID);
+
+    // Temp receiver implementation
+
+    // Receive packet and assert len
+    util::Endpoint dataChannel(config.common.clientNames.hostName, config.common.clientNames.serviceName, util::SocketType::UDP);
+
+    usleep(1000);
+
+    std::array<std::byte, arq::DATA_PKT_MAX_SIZE> recvBuffer; 
+    auto ret = dataChannel.recvFrom(recvBuffer);
+
+    if (ret.has_value()) {
+        arq::DataPacket packet(recvBuffer);
+        util::logInfo("Received packet with length {} and SN {}", packet.getHeader().length_, packet.getHeader().sequenceNumber_);
+
+        util::logInfo("Sending ACK x1");
+        std::array<std::byte, 1> ack {{std::byte(packet.getHeader().sequenceNumber_)}}; // this is temp as SN is two bytes
+        dataChannel.sendTo(ack, config.common.serverNames.hostName, config.common.serverNames.serviceName);
+    }
+    else {
+        assert(false);
+    }
+
+
+    // Send ack until EOT received
 }
 
 int main(int argc, char** argv) {
@@ -265,12 +316,17 @@ int main(int argc, char** argv) {
         rxThread = std::thread(startReceiver, std::ref(cfg));
     }
 
-    if (txThread.joinable()) {
-        txThread.join();
-    }
-    
-    if (rxThread.joinable()) {
-        rxThread.join();
+    bool txJoined = false;
+    bool rxJoined = false;
+    while(!(txJoined && rxJoined)) {
+        if (txThread.joinable()) {
+            txThread.join();
+            txJoined = true;
+        }
+        if (rxThread.joinable()) {
+            rxThread.join();
+            rxJoined = true;
+        }
     }
 
     return EXIT_SUCCESS;

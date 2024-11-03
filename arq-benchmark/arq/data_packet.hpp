@@ -6,6 +6,7 @@
 #include <exception>
 #include <vector>
 
+#include "arq_common.hpp"
 #include "arq/conversation_id.hpp"
 
 namespace arq {
@@ -13,9 +14,12 @@ namespace arq {
 constexpr size_t ETH_FRAME_MAX_SIZE = 1500;
 
 struct DataPacketHeader {
+    // Identifies the ARQ session
     ConversationID id_;
-    uint16_t sequenceNumber_;
-    uint16_t length_;
+    // Sequence number assigned by the input buffer
+    SequenceNumber sequenceNumber_;
+    // Length of the payload
+    uint16_t length_; // Q. should len == 0 indicate end of transmission?
 
     // Serialises the current contents of the DataPacketHeader to the buffer
     bool serialise(std::span<std::byte> buffer) const noexcept;
@@ -41,6 +45,8 @@ constexpr size_t DATA_PKT_MAX_SIZE = ETH_FRAME_MAX_SIZE - DataPacketHeader::size
 
 class DataPacket {
 public:
+    // Construct a packet with a default header
+    DataPacket();
     // Tx-side: construct a packet with the given header
     DataPacket(const DataPacketHeader& hdr);
     // Rx-side: construct a packet from serialised packet data
@@ -49,11 +55,13 @@ public:
 
     // Get a copy of the header struct
     DataPacketHeader getHeader() const noexcept;
-    // Set a new header
-    void setHeader(const DataPacketHeader& hdr);
+    // Update the header information and serialise it
+    void updateHeader(const DataPacketHeader& hdr);
+    // Update header sequence number and serialise it
+    void updateSequenceNumber(const SequenceNumber seqNum);
 
-    // Set the length of the payload
-    void setDataLength(const size_t len);
+    // Update the length of the payload
+    void updateDataLength(const size_t len);
 
     // Get writable spans of the packet, header or payload
     std::span<std::byte> getSpan() noexcept;

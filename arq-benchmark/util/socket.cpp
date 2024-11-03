@@ -125,22 +125,22 @@ static inline std::optional<size_t> returnIfNotError(const ssize_t ret) {
     return ret == SOCKET_ERROR ? std::nullopt : std::make_optional<size_t>(ret);
 }
 
-std::optional<size_t> util::Socket::send(std::span<const uint8_t> buffer) const noexcept {
+std::optional<size_t> util::Socket::send(std::span<const std::byte> buffer) const noexcept {
     auto ret = ::send(socketID_, buffer.data(), buffer.size(), 0);
     return returnIfNotError(ret);
 }
 
-std::optional<size_t> util::Socket::recv(std::span<uint8_t> buffer) const noexcept {
+std::optional<size_t> util::Socket::recv(std::span<std::byte> buffer) const noexcept {
     auto ret = ::recv(socketID_, buffer.data(), buffer.size(), 0);
     return returnIfNotError(ret);
 }
 
-std::optional<size_t> util::Socket::sendTo(std::span<const uint8_t> buffer, const addrinfo& ai) const noexcept {
+std::optional<size_t> util::Socket::sendTo(std::span<const std::byte> buffer, const addrinfo& ai) const noexcept {
     auto ret = ::sendto(socketID_, buffer.data(), buffer.size_bytes(), 0, ai.ai_addr, ai.ai_addrlen);
     return returnIfNotError(ret);
 }
 
-std::optional<size_t> util::Socket::recvFrom(std::span<uint8_t> buffer) const noexcept {
+std::optional<size_t> util::Socket::recvFrom(std::span<std::byte> buffer) const noexcept {
     auto ret = ::recvfrom(socketID_, buffer.data(), buffer.size(), 0, nullptr, nullptr);
     return returnIfNotError(ret);
 }

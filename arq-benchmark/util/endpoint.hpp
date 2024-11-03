@@ -36,13 +36,13 @@ public:
     // the provided argument(s).
     bool accept(std::optional<std::string_view> expectedHost = std::nullopt);
 
-    std::optional<size_t> send(std::span<const uint8_t> buffer) const noexcept;
-    std::optional<size_t> recv(std::span<uint8_t> buffer) const noexcept;
-    std::optional<size_t> sendTo(std::span<const uint8_t> buffer, 
+    std::optional<size_t> send(std::span<const std::byte> buffer) const noexcept;
+    std::optional<size_t> recv(std::span<std::byte> buffer) const noexcept;
+    std::optional<size_t> sendTo(std::span<const std::byte> buffer, 
                                  std::string_view destinationHost,
                                  std::string_view destinationService) const noexcept;
-    std::optional<size_t> sendTo(std::span<const uint8_t> buffer, const addrinfo& ai) const noexcept;
-    std::optional<size_t> recvFrom(std::span<uint8_t> buffer) const noexcept;
+    std::optional<size_t> sendTo(std::span<const std::byte> buffer, const addrinfo& ai) const noexcept;
+    std::optional<size_t> recvFrom(std::span<std::byte> buffer) const noexcept;
 private:
     // The socket used for communication at this endpoint
     Socket socket_;
