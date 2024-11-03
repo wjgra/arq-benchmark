@@ -90,15 +90,15 @@ bool util::Endpoint::accept(std::optional<std::string_view> expectedHost) {
     }
 }
 
-std::optional<size_t> util::Endpoint::send(std::span<const uint8_t> buffer) const noexcept {
+std::optional<size_t> util::Endpoint::send(std::span<const std::byte> buffer) const noexcept {
     return socket_.send(buffer);
 }
 
-std::optional<size_t> util::Endpoint::recv(std::span<uint8_t> buffer) const noexcept {
+std::optional<size_t> util::Endpoint::recv(std::span<std::byte> buffer) const noexcept {
     return socket_.recv(buffer);
 }
 
-std::optional<size_t> util::Endpoint::sendTo(std::span<const uint8_t> buffer, std::string_view destinationHost, std::string_view destinationService) const noexcept
+std::optional<size_t> util::Endpoint::sendTo(std::span<const std::byte> buffer, std::string_view destinationHost, std::string_view destinationService) const noexcept
 {
     AddressInfo addr(destinationHost, destinationService, SocketType::UDP);
     for (const auto& ai : addr) {
@@ -110,10 +110,10 @@ std::optional<size_t> util::Endpoint::sendTo(std::span<const uint8_t> buffer, st
     return std::nullopt;
 }
 
-std::optional<size_t> util::Endpoint::sendTo(std::span<const uint8_t> buffer, const addrinfo& ai) const noexcept {
+std::optional<size_t> util::Endpoint::sendTo(std::span<const std::byte> buffer, const addrinfo& ai) const noexcept {
     return socket_.sendTo(buffer, ai);
 }
 
-std::optional<size_t> util::Endpoint::recvFrom(std::span<uint8_t> buffer) const noexcept {
+std::optional<size_t> util::Endpoint::recvFrom(std::span<std::byte> buffer) const noexcept {
     return socket_.recvFrom(buffer);
 }

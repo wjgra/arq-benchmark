@@ -189,20 +189,20 @@ static void shareConversationID(arq::ConversationID id, const arq::config_Addres
         throw std::runtime_error("failed to accept control channel connection");
     }
     
-    if (controlChannel.send({{id}}) != sizeof(id)) {
+    if (controlChannel.send({{std::byte(id)}}) != sizeof(id)) {
         throw std::runtime_error("failed to send conversation ID to receiver");
     }
 
-    std::array<uint8_t, sizeof(id)> recvBuffer;
+    std::array<std::byte, sizeof(id)> recvBuffer;
     if (controlChannel.recv(recvBuffer) != sizeof(id)) {
         throw std::runtime_error("failed to receive conversation ID ACK");
     }
 
     assert(sizeof(id) == 1); // No endianness conversion required
-    if (recvBuffer[0] != id) {
-        throw std::runtime_error(std::format("conversation ID in ACK is incorrect (received {}, expected {})", recvBuffer[0], id));
+    if (std::to_integer<uint8_t>(recvBuffer[0]) != id) {
+        throw std::runtime_error(std::format("conversation ID in ACK is incorrect (received {}, expected {})", std::to_integer<uint8_t>(recvBuffer[0]), id));
     }
-    util::logDebug("received correct conversation ID {} as ACK", recvBuffer[0]);
+    util::logDebug("received correct conversation ID {} as ACK", std::to_integer<uint8_t>(recvBuffer[0]));
 }
 
 static arq::ConversationID receiveConversationID(const arq::config_AddressInfo& myAddress, const arq::config_AddressInfo& destAddress) {
@@ -210,17 +210,17 @@ static arq::ConversationID receiveConversationID(const arq::config_AddressInfo& 
 
     controlChannel.connectRetry(destAddress.hostName, destAddress.serviceName, util::SocketType::TCP, 20, std::chrono::milliseconds(500));
 
-    std::array<uint8_t, sizeof(arq::ConversationID)> recvBuffer;
+    std::array<std::byte, sizeof(arq::ConversationID)> recvBuffer;
     if (controlChannel.recv(recvBuffer) != sizeof(arq::ConversationID)) {
         throw std::runtime_error("failed to receive conversation ID");
     }
 
     assert(sizeof(arq::ConversationID) == 1); // No endianness conversion required
-    arq::ConversationID receivedID = recvBuffer[0];
+    arq::ConversationID receivedID = std::to_integer<uint8_t>(recvBuffer[0]);
     util::logDebug("received conversation ID {}, sending ACK", receivedID);
 
         
-    if (controlChannel.send({{receivedID}}) != sizeof(receivedID)) {
+    if (controlChannel.send({{std::byte(receivedID)}}) != sizeof(receivedID)) {
         throw std::runtime_error("failed to send ACK");
     }
 
@@ -240,7 +240,7 @@ static void startTransmitter(arq::config_Launcher& config) { // why not const?
 
     util::Endpoint dataChannel(txerAddress.hostName, txerAddress.serviceName, util::SocketType::UDP);
 
-    arq::TransmitFn txToClient = [&dataChannel, rxerAddress](std::span<const uint8_t> buffer) {
+    arq::TransmitFn txToClient = [&dataChannel, rxerAddress](std::span<const std::byte> buffer) {
         return dataChannel.sendTo(buffer, rxerAddress.hostName, rxerAddress.serviceName); // temp: do not recalc address info each time
     };
 

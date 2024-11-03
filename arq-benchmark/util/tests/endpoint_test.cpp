@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <array>
+#include <cstddef>
 #include <mutex>
 #include <future>
 #include <random>
@@ -16,12 +17,12 @@ std::string_view clientService = "65535";
 constexpr size_t sizeof_sendBuffer = 2000;
 
 auto makeSendBuffer() {
-    std::array<uint8_t, sizeof_sendBuffer> buffer;
+    std::array<std::byte, sizeof_sendBuffer> buffer;
     std::random_device rd;
     std::mt19937 mt(rd());
     std::uniform_int_distribution<uint8_t> dist(0, UINT8_MAX);
     for (auto& element : buffer) {
-        element = dist(mt);
+        element = std::byte{dist(mt)};
     }
     return buffer;
 }
@@ -64,7 +65,7 @@ static int test_client_tcp(const bool receive) {
                                   std::chrono::milliseconds(100)));
 
     if (receive) {
-        std::array<uint8_t, sizeof_sendBuffer> recvBuffer{};
+        std::array<std::byte, sizeof_sendBuffer> recvBuffer{};
         auto ret = endpoint.recv(recvBuffer);
         REQUIRE(ret.has_value());
         util::logDebug("Client received {} bytes", ret.value());
@@ -147,7 +148,7 @@ static int test_server_udp() {
     // Listen for ack from client
     attempt = 0;
     while (attempt < maxSendRecvAttempts && udpTestState == UDPTestState::CLIENT_TXING) {
-        std::array<uint8_t, sizeof_sendBuffer> recvBuffer{};
+        std::array<std::byte, sizeof_sendBuffer> recvBuffer{};
         auto ret = endpoint.recvFrom(recvBuffer);
         if (ret.has_value()) {
             // Ack received
@@ -170,7 +171,7 @@ static int test_client_udp() {
                             util::SocketType::UDP};
     
     // Listen for packet from server
-    std::array<uint8_t, sizeof_sendBuffer> recvBuffer{};
+    std::array<std::byte, sizeof_sendBuffer> recvBuffer{};
     size_t attempt = 0;
     while (attempt < maxSendRecvAttempts && udpTestState == UDPTestState::SERVER_TXING) {
         auto ret = endpoint.recvFrom(recvBuffer);

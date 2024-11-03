@@ -6,7 +6,7 @@ arq::Transmitter::Transmitter(ConversationID id, TransmitFn txFn) :
     transmitThread_{[this]() { return this->transmitThread(); }},
     ackThread_{[this]() { return this->ackThread(); }}
 {
-};
+}
 
 void arq::Transmitter::transmitThread() {
     // Determine when to pop from input buffer, transmit and retransmit
@@ -26,14 +26,14 @@ void arq::Transmitter::transmitThread() {
             auto header = next.packet_.getHeader();
             if (header.length_ == 0) {
                 util::logInfo("input buffer pushed packet with zero length (SN: {}) - ending transmission of new packets",
-                            header.sequenceNumber_);
+                              header.sequenceNumber_);
                 receivedEndOfTx = true;
             }
             else {
                 txFn_(next.packet_.getReadSpan());
                 util::logInfo("input buffer pushed packet with length {}, SN: {} - transmitting and adding to retransmission buffer",
-                            header.length_,
-                            header.sequenceNumber_);
+                              header.length_,
+                              header.sequenceNumber_);
                 // Push to retransmission buffer
                 retransmissionBuffer_.addPacket(std::move(next));
             }
