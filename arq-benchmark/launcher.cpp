@@ -244,7 +244,12 @@ static void startTransmitter(arq::config_Launcher& config) { // why not const?
         return dataChannel.sendTo(buffer, rxerAddress.hostName, rxerAddress.serviceName); // temp: do not recalc address info each time
     };
 
-    arq::Transmitter txer(convID, txToClient);
+    arq::ReceiveFn rxFromClient = [&dataChannel](std::span<std::byte> buffer) {
+        return dataChannel.recvFrom(buffer);
+    };
+
+
+    arq::Transmitter txer(convID, txToClient, rxFromClient);
 
     for (size_t i = 0 ; i < 1 ; ++i) {
         arq::DataPacket inputPacket{};
@@ -264,6 +269,31 @@ static void startReceiver(arq::config_Launcher& config) {
     util::logInfo("Conversation ID {} received from transmitter", convID);
 
     arq::Receiver rxer(convID);
+
+    // Temp receiver implementation
+
+    // Receive packet and assert len
+    util::Endpoint dataChannel(config.common.clientNames.hostName, config.common.clientNames.serviceName, util::SocketType::UDP);
+
+    usleep(1000);
+
+    std::array<std::byte, arq::DATA_PKT_MAX_SIZE> recvBuffer; 
+    auto ret = dataChannel.recvFrom(recvBuffer);
+
+    if (ret.has_value()) {
+        arq::DataPacket packet(recvBuffer);
+        util::logInfo("Received packet with length {} and SN {}", packet.getHeader().length_, packet.getHeader().sequenceNumber_);
+
+        util::logInfo("Sending ACK x1");
+        std::array<std::byte, 1> ack {{std::byte(packet.getHeader().sequenceNumber_)}}; // this is temp as SN is two bytes
+        dataChannel.sendTo(ack, config.common.serverNames.hostName, config.common.serverNames.serviceName);
+    }
+    else {
+        assert(false);
+    }
+
+
+    // Send ack until EOT received
 }
 
 int main(int argc, char** argv) {

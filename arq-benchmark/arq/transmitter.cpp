@@ -1,8 +1,9 @@
 #include "arq/transmitter.hpp"
 
-arq::Transmitter::Transmitter(ConversationID id, TransmitFn txFn) : 
+arq::Transmitter::Transmitter(ConversationID id, TransmitFn txFn, ReceiveFn rxFn) : 
     id_{id},
     txFn_{txFn},
+    rxFn_{rxFn},
     transmitThread_{[this]() { return this->transmitThread(); }},
     ackThread_{[this]() { return this->ackThread(); }}
 {
@@ -13,13 +14,6 @@ void arq::Transmitter::transmitThread() {
     // Use a temporary S&W implementation??
     bool receivedEndOfTx = false;
     while (retransmissionBuffer_.packetsPending() || !receivedEndOfTx) {
-        // Tx from RT, or get next from IB
-        auto retransmitPacket = retransmissionBuffer_.getRetransmitPacketData();
-        if (retransmitPacket.has_value()) {
-            txFn_(retransmitPacket.value());
-            continue; // For temp S&W
-        }
-
         if (!receivedEndOfTx) {
             // Get next from IB
             auto next = inputBuffer_.getPacket();
@@ -28,6 +22,7 @@ void arq::Transmitter::transmitThread() {
                 util::logInfo("input buffer pushed packet with zero length (SN: {}) - ending transmission of new packets",
                               header.sequenceNumber_);
                 receivedEndOfTx = true;
+                retransmissionBuffer_.addPacket(std::move(next)); // Temp S&W - push empty packet to RT
             }
             else {
                 txFn_(next.packet_.getReadSpan());
@@ -38,9 +33,26 @@ void arq::Transmitter::transmitThread() {
                 retransmissionBuffer_.addPacket(std::move(next));
             }
         }
+
+        // Tx from RT, or get next from IB
+        auto retransmitPacket = retransmissionBuffer_.getRetransmitPacketData();
+        if (retransmitPacket.has_value()) {
+            txFn_(retransmitPacket.value());
+            continue; // For temp S&W
+        }
+
     }
 }
 
 void arq::Transmitter::ackThread() {
     // Use rxfn to get acks, then signal to RT buffer
+    std::array<std::byte, 1> recvBuffer;
+    while(true) {
+        auto ret = rxFn_(recvBuffer);
+        if (ret.has_value()) {
+            util::logInfo("Received ACK for SN {}", std::to_integer<uint8_t>(recvBuffer[0])); // u8 vs u16
+            retransmissionBuffer_.acknowledgePacket(std::to_integer<uint8_t>(recvBuffer[0]));
+            break;
+        }
+    }
 }

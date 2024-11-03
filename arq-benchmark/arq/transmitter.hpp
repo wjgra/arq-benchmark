@@ -15,10 +15,15 @@ namespace arq {
 
 class Transmitter {
 public:
-    Transmitter(ConversationID id, TransmitFn txFn);
+    Transmitter(ConversationID id, TransmitFn txFn, ReceiveFn rxFn);
 
     ~Transmitter() {
-        transmitThread_.join();
+        if (transmitThread_.joinable()) {
+            transmitThread_.join();
+        }
+        if (ackThread_.joinable()) {
+            ackThread_.join();
+        }
     }
 
     void sendPacket(arq::DataPacket&& packet) {
@@ -30,6 +35,7 @@ private:
     void ackThread();
     ConversationID id_;
     TransmitFn txFn_;
+    ReceiveFn rxFn_;
 
     // Store packets for transmission that are yet to be transmitted
     InputBuffer inputBuffer_;
