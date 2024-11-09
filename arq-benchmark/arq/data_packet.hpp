@@ -19,7 +19,7 @@ struct DataPacketHeader {
     // Sequence number assigned by the input buffer
     SequenceNumber sequenceNumber_;
     // Length of the payload
-    uint16_t length_; // Q. should len == 0 indicate end of transmission?
+    uint16_t length_; // A packet with payload length zero is an EndofTx packet
 
     // Serialises the current contents of the DataPacketHeader to the buffer
     bool serialise(std::span<std::byte> buffer) const noexcept;
@@ -59,6 +59,9 @@ public:
     void updateHeader(const DataPacketHeader& hdr);
     // Update header sequence number and serialise it
     void updateSequenceNumber(const SequenceNumber seqNum);
+
+    // Indicates whether the packet is an EndOfTx packet 
+    bool isEndOfTx() const;
 
     // Update the length of the payload
     void updateDataLength(const size_t len);

@@ -8,7 +8,7 @@ namespace arq {
 // Enforce CRTP requirements using statically checked concepts
 template <typename T>
 concept has_addPacket = requires(T t, TransmitBufferObject&& packet) {
-    { t.do_addPacket(packet) } -> std::same_as<void>;
+    { t.do_addPacket(std::forward<TransmitBufferObject>(packet)) } -> std::same_as<void>;
 };
 
 template <typename T>
@@ -50,22 +50,22 @@ public:
     }
     // Add a packet to the transmission buffer
     void addPacket(TransmitBufferObject&& packet) {
-        static_cast<T*>(this)->do_addPacket(std::forward(packet));
+        static_cast<T*>(this)->do_addPacket(std::forward<TransmitBufferObject>(packet));
     }
 
     // Get a span of the next packet for retransmission
-    std::optional<std::span<const std::byte>> getPacketData() {
-        return static_cast<T*>(this)->do_getPacketData();
+    std::optional<std::span<const std::byte>> getPacketData() const {
+        return static_cast<const T*>(this)->do_getPacketData();
     }
 
     // Can another packet be added to the retransmission buffer?
-    bool readyForNewPacket() {
-        return static_cast<T*>(this)->do_readyForNewPacket();
+    bool readyForNewPacket() const {
+        return static_cast<const T*>(this)->do_readyForNewPacket();
     }
 
     // Are there any packets in the retransmission buffer currently?
-    bool packetsPending() {
-        return static_cast<T*>(this)->do_packetsPending();
+    bool packetsPending() const {
+        return static_cast<const T*>(this)->do_packetsPending();
     }
 
     // Update tracking information for a packet which has just been acknowledged
