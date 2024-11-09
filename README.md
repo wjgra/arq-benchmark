@@ -33,7 +33,7 @@ Compilation of the library is handled by CMake and ninja. As such, starting from
 ```
 mkdir build
 cd build
-cmake ..
+cmake -GNinja ..
 ninja
 ninja test
 ```
