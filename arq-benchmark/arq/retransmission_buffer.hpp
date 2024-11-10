@@ -54,8 +54,8 @@ public:
     }
 
     // Get a span of the next packet for retransmission
-    std::optional<std::span<const std::byte>> getPacketData() const {
-        return static_cast<const T*>(this)->do_getPacketData();
+    std::optional<std::span<const std::byte>> getPacketData() {
+        return static_cast<T*>(this)->do_getPacketData();
     }
 
     // Can another packet be added to the retransmission buffer?

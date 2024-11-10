@@ -2,13 +2,20 @@
 
 #include "util/logging.hpp"
 
+arq::StopAndWaitRTBuffer::StopAndWaitRTBuffer() {
+    // Set a fixed timeout between retransmissions
+    using namespace std::chrono_literals;
+    timeout_ = 1000ms;
+}
+
 void arq::StopAndWaitRTBuffer::do_addPacket(arq::TransmitBufferObject&& packet) {
     retransmitPacket_ = std::move(packet);
 }
 
-std::optional<std::span<const std::byte>> arq::StopAndWaitRTBuffer::do_getPacketData() const {
+std::optional<std::span<const std::byte>> arq::StopAndWaitRTBuffer::do_getPacketData() {
 
-    if (retransmitPacket_.has_value()) {
+    if (currentPacketReadyForRT()) {
+        retransmitPacket_.value().info_.txTime_ = arq::ClockType::now();
         return retransmitPacket_.value().packet_.getReadSpan();
     }
     else {
@@ -31,4 +38,14 @@ void arq::StopAndWaitRTBuffer::do_acknowledgePacket(const SequenceNumber seqNum)
     else {
         util::logError("Ack received for SN {}, but expected SN {}", seqNum, retransmitPacket_.value().info_.sequenceNumber_);
     }
+}
+
+bool arq::StopAndWaitRTBuffer::currentPacketReadyForRT() const {
+    if (retransmitPacket_.has_value()) {
+        const auto now = arq::ClockType::now();
+        const auto then = retransmitPacket_.value().info_.txTime_;
+        const auto timeSinceLastTx = std::chrono::duration_cast<std::chrono::microseconds>(now - then);
+        return timeSinceLastTx.count() > timeout_.count();
+    }
+    return false;   
 }

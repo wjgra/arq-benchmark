@@ -18,14 +18,19 @@ server_addr="10.0.0.1"
 client_addr="10.0.0.2"
 
 tx_delay="100ms"
+tx_loss="random 1%"
 
-usage() { echo "Usage: $0 [-d <tc delay arg string>] [-h]" 1>&2; }
+usage() { echo "Usage: $0 [-d <tc delay arg string>] [-l <tc loss arg string>] [-h]" 1>&2; }
 
-while getopts "d:h" opt; do
+while getopts "d:l:h" opt; do
     case ${opt} in
         d)
             tx_delay=${OPTARG}
             echo "tx_delay set to ${tx_delay}"
+            ;;
+        l)
+            tx_loss=${OPTARG}
+            echo "tx_loss set to ${tx_delay}"
             ;;
         h) 
             usage
@@ -60,7 +65,7 @@ ip netns exec ${server_ns} ip route add ${client_addr} dev ${server_veth}
 ip netns exec ${client_ns} ip route add ${server_addr} dev ${client_veth}
 
 # Simulate network conditions
-ip netns exec ${server_ns} tc qdisc add dev ${server_veth} root netem delay ${tx_delay}
+ip netns exec ${server_ns} tc qdisc add dev ${server_veth} root netem delay ${tx_delay} loss ${tx_loss}
 
 # Start server
 tmux new-session -d -s "arq" -n "server" "ip netns exec ${server_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher --launch-server --logging 4 --client-addr ${client_addr} --server-addr ${server_addr}; read"
