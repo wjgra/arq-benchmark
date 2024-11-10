@@ -248,8 +248,7 @@ static void startTransmitter(arq::config_Launcher& config) { // why not const?
         return dataChannel.recvFrom(buffer);
     };
 
-
-    arq::Transmitter txer(convID, txToClient, rxFromClient);
+    arq::Transmitter<arq::StopAndWaitRTBuffer> txer(convID, txToClient, rxFromClient);
 
     for (size_t i = 0 ; i < 1 ; ++i) {
         arq::DataPacket inputPacket{};

@@ -114,6 +114,10 @@ void arq::DataPacket::updateSequenceNumber(const SequenceNumber seqNum)
     assert(ret);
 }
 
+bool arq::DataPacket::isEndOfTx() const {
+    return header_.length_ == 0;
+}
+
 void arq::DataPacket::updateDataLength(const size_t len)
 {
     if (len > DATA_PKT_MAX_SIZE) {
