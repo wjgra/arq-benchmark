@@ -9,7 +9,7 @@
 #include "arq/arq_common.hpp"
 #include "arq/conversation_id.hpp"
 #include "arq/input_buffer.hpp"
-#include "arq/rt_buffers/stop_and_wait.hpp"
+#include "arq/retransmission_buffers/stop_and_wait_rt.hpp"
 
 #include "util/logging.hpp"
 

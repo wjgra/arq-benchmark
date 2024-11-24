@@ -248,10 +248,8 @@ static void startTransmitter(arq::config_Launcher& config) { // why not const?
         return dataChannel.recvFrom(buffer);
     };
 
-    // arq::Transmitter<arq::StopAndWaitRTBuffer> txer(convID, txToClient, rxFromClient);
-
     using namespace std::chrono_literals;
-    arq::Transmitter txer(convID, txToClient, rxFromClient, std::make_unique<arq::StopAndWaitRTBuffer>(100ms, true));
+    arq::Transmitter txer(convID, txToClient, rxFromClient, std::make_unique<arq::rt::StopAndWait>(100ms, true));
     for (size_t i = 0 ; i < 1 ; ++i) {
         arq::DataPacket inputPacket{};
 

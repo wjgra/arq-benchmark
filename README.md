@@ -7,25 +7,29 @@ This project is a work-in-progress, with further details TBC! In short, this rep
 Below is a general overview of the repo as it currently stands. For each source file, `T` indicates that the file is covered by one or more dedicated unit tests, while `T*` indicates partial test coverage. 
 ```
 arq-benchmark
- |-->arq
-      |--> conversation_id.hpp/cpp
-      |--> data_packet.hpp/cpp (T)
-      |--> input_buffer.hpp/cpp - implementation ongoing
-      |--> launcher.cpp
-      |--> receiver.hpp/cpp - implementation ongoing
-      |--> transmitter.hpp/cpp - implementation ongoing
- |-->util
-      |--> address_info.hpp/cpp (T*)
-      |--> endpoint.hpp.cpp (T)
-      |--> logging.hpp
-      |--> network_common.hpp
-      |--> safe_queue.hpp
-      |--> socket.hpp/cpp (T*)
+ |--> arq
+       |--> retransmission_buffers
+             |--> stop_and_wait_rt.hpp/cpp - implementation ongoing
+       |--> resequencing_buffers
+             |--> stop_and_wait_rs.hpp/cpp - implementation ongoing
+       |--> conversation_id.hpp/cpp
+       |--> data_packet.hpp/cpp (T)
+       |--> input_buffer.hpp/cpp - implementation ongoing
+       |--> launcher.cpp
+       |--> receiver.hpp - implementation ongoing
+       |--> transmitter.hpp - implementation ongoing
+ |--> util
+       |--> address_info.hpp/cpp (T*)
+       |--> endpoint.hpp.cpp (T)
+       |--> logging.hpp
+       |--> network_common.hpp
+       |--> safe_queue.hpp
+       |--> socket.hpp/cpp (T*)
 test-scripts
- |-->run.sh (runs a tmux'd launcher session with a transmitter and receiver)
+ |--> run.sh (runs a tmux'd launcher session with a transmitter and receiver)
 ```
 ## Dependencies and compilation
-The bulk of the implementation depends only on the BSD sockets API and the C++23 STL. The launcher uses Boost.ProgramOptions to handle the CLI. The run script uses `tmux` to handle transmitter and receiver instances, and `tc` to simulate a lossy network connection between them.
+The bulk of the implementation depends only on the BSD sockets API and the C++23 STL. The launcher uses Boost.ProgramOptions to handle the CLI. The run script uses `tmux` to handle transmitter and receiver instances, and `tc` to simulate a lossy network connection between them. Unit tests depend on Catch2.
 
 N.B. In order to use `tc` on WSL, you must recompile the Linux kernel with the network emulator enabled. This is fairly straightforward using `menuconfig`, but I may add brief instructions here in the future.
 

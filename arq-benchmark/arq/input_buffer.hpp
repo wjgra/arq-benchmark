@@ -5,7 +5,7 @@
 
 #include "arq/arq_common.hpp"
 #include "arq/data_packet.hpp"
-#include "arq/tx_buffer.hpp"
+#include "arq/tx_buffer_object.hpp"
 
 #include "util/safe_queue.hpp"
 

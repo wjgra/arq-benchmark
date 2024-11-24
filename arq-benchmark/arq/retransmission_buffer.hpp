@@ -1,7 +1,7 @@
 #ifndef _ARQ_RETRANSMISSION_BUFFER_HPP_
 #define _ARQ_RETRANSMISSION_BUFFER_HPP_
 
-#include "arq/tx_buffer.hpp"
+#include "arq/tx_buffer_object.hpp"
 
 namespace arq {
 

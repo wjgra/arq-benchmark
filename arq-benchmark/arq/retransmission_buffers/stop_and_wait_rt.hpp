@@ -7,10 +7,11 @@
 #include "arq/retransmission_buffer.hpp"
 
 namespace arq {
+namespace rt {
 
-class StopAndWaitRTBuffer : public RetransmissionBuffer<StopAndWaitRTBuffer> {
+class StopAndWait : public RetransmissionBuffer<StopAndWait> {
 public:
-    StopAndWaitRTBuffer(const std::chrono::microseconds timeout, const bool adaptiveTimeout);
+    StopAndWait(const std::chrono::microseconds timeout, const bool adaptiveTimeout);
 
     // Standard functions required by RetransmissionBuffer CRTP interface
     void do_addPacket(TransmitBufferObject&& packet);
@@ -32,6 +33,7 @@ private:
     const bool adaptiveTimeout_;
 };
 
+}
 }
 
 #endif

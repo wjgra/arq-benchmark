@@ -1,19 +1,19 @@
-#include "arq/rt_buffers/stop_and_wait.hpp"
+#include "arq/retransmission_buffers/stop_and_wait_rt.hpp"
 
 #include "util/logging.hpp"
 
-arq::StopAndWaitRTBuffer::StopAndWaitRTBuffer(const std::chrono::microseconds timeout, const bool adaptiveTimeout) :
+arq::rt::StopAndWait::StopAndWait(const std::chrono::microseconds timeout, const bool adaptiveTimeout) :
     timeout_{timeout},
     adaptiveTimeout_{adaptiveTimeout}
 {
 }
 
-void arq::StopAndWaitRTBuffer::do_addPacket(arq::TransmitBufferObject&& packet) {
+void arq::rt::StopAndWait::do_addPacket(arq::TransmitBufferObject&& packet) {
     std::scoped_lock<std::mutex> lock(rtPacketMutex_);
     retransmitPacket_ = std::move(packet);
 }
 
-std::optional<std::span<const std::byte>> arq::StopAndWaitRTBuffer::do_getPacketData() {
+std::optional<std::span<const std::byte>> arq::rt::StopAndWait::do_getPacketData() {
     if (currentPacketReadyForRT()) {
         std::scoped_lock<std::mutex> lock(rtPacketMutex_);
         retransmitPacket_.value().info_.lastTxTime_ = arq::ClockType::now();
@@ -24,17 +24,17 @@ std::optional<std::span<const std::byte>> arq::StopAndWaitRTBuffer::do_getPacket
     }
 }
 
-bool arq::StopAndWaitRTBuffer::do_readyForNewPacket() const {
+bool arq::rt::StopAndWait::do_readyForNewPacket() const {
     std::scoped_lock<std::mutex> lock(rtPacketMutex_);
     return !retransmitPacket_.has_value();
 }
 
-bool arq::StopAndWaitRTBuffer::do_packetsPending() const {
+bool arq::rt::StopAndWait::do_packetsPending() const {
     std::scoped_lock<std::mutex> lock(rtPacketMutex_);
     return retransmitPacket_.has_value();
 }
 
-void arq::StopAndWaitRTBuffer::do_acknowledgePacket(const SequenceNumber seqNum) {
+void arq::rt::StopAndWait::do_acknowledgePacket(const SequenceNumber seqNum) {
     std::scoped_lock<std::mutex> lock(rtPacketMutex_);
     if (retransmitPacket_.has_value() == false) {
         util::logError("Ack received for SN {} but no packet stored for retransmission", seqNum);
@@ -69,7 +69,7 @@ void arq::StopAndWaitRTBuffer::do_acknowledgePacket(const SequenceNumber seqNum)
     }
 }
 
-bool arq::StopAndWaitRTBuffer::currentPacketReadyForRT() const {
+bool arq::rt::StopAndWait::currentPacketReadyForRT() const {
     std::scoped_lock<std::mutex> lock(rtPacketMutex_);
     if (retransmitPacket_.has_value()) {
         const auto now = arq::ClockType::now();
