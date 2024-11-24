@@ -23,5 +23,8 @@ std::optional<arq::TransmitBufferObject> arq::InputBuffer::tryGetPacket() {
 }
 
 arq::PacketInfo arq::InputBuffer::getNextInfo() {
-    return PacketInfo{.txTime_ = ClockType::now(), .sequenceNumber_ = ++lastSequenceNumber_};
+    const auto currentTime = ClockType::now();
+    return PacketInfo{.firstTxTime_ = currentTime,
+                      .lastTxTime_ = currentTime,
+                      .sequenceNumber_ = ++lastSequenceNumber_};
 }

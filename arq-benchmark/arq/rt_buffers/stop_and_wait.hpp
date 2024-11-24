@@ -1,6 +1,7 @@
 #ifndef _ARQ_RT_BUFFERS_STOP_AND_WAIT_HPP_
 #define _ARQ_RT_BUFFERS_STOP_AND_WAIT_HPP_
 
+#include <mutex>
 #include <optional>
 
 #include "arq/retransmission_buffer.hpp"
@@ -9,7 +10,7 @@ namespace arq {
 
 class StopAndWaitRTBuffer : public RetransmissionBuffer<StopAndWaitRTBuffer> {
 public:
-    StopAndWaitRTBuffer();
+    StopAndWaitRTBuffer(const std::chrono::microseconds timeout, const bool adaptiveTimeout);
 
     // Standard functions required by RetransmissionBuffer CRTP interface
     void do_addPacket(TransmitBufferObject&& packet);
@@ -22,9 +23,13 @@ private:
 
     // In Stop and Wait, only one packet is stored for retransmission at a time.
     std::optional<TransmitBufferObject> retransmitPacket_ = std::nullopt;
+    // Control access to the retransmit packet
+    mutable std::mutex rtPacketMutex_;
     // A packet is retransmitted only when the timeout has expired without
     // reception of an ACK.
     std::chrono::microseconds timeout_;
+    // Update the timeout based on the measured round trip time.
+    const bool adaptiveTimeout_;
 };
 
 }

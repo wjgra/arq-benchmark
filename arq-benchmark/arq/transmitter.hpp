@@ -21,10 +21,11 @@ concept RTBuffer = std::is_base_of<RetransmissionBuffer<T>, T>::value;
 template<RTBuffer RTBufferType>
 class Transmitter {
 public:
-    Transmitter(ConversationID id, TransmitFn txFn, ReceiveFn rxFn) : 
+    Transmitter(ConversationID id, TransmitFn txFn, ReceiveFn rxFn, std::unique_ptr<RTBufferType>&& rtBuffer_p) : 
         id_{id},
         txFn_{txFn},
         rxFn_{rxFn},
+        retransmissionBuffer_{std::move(rtBuffer_p)},
         transmitThread_{[this]() { return this->transmitThread(); }},
         ackThread_{[this]() { return this->ackThread(); }}
     {}
@@ -46,15 +47,15 @@ private:
     void transmitThread() {
         util::logDebug("Transmitter Tx thread started");
         bool receivedEndOfTx = false;
-        while (!receivedEndOfTx || retransmissionBuffer_.packetsPending()) {
-            auto pkt = retransmissionBuffer_.getPacketData();
+        while (!receivedEndOfTx || retransmissionBuffer_->packetsPending()) {
+            auto pkt = retransmissionBuffer_->getPacketData();
             if (pkt.has_value()) {
                 DataPacketHeader hdr;
                 hdr.deserialise(pkt.value());
                 util::logDebug("Retransmitting packet with SN {}", hdr.sequenceNumber_);
                 txFn_(pkt.value());
             }
-            else if (!receivedEndOfTx && retransmissionBuffer_.readyForNewPacket()) {
+            else if (!receivedEndOfTx && retransmissionBuffer_->readyForNewPacket()) {
                 auto nextPkt = inputBuffer_.getPacket();
                 if (nextPkt.packet_.isEndOfTx()) { // consider making isEndOfTx a fn of the buffer object
                     util::logDebug("Transmitter received end of EndofTx");
@@ -63,7 +64,7 @@ private:
                 util::logDebug("Transmitting packet with SN {} and adding to retransmission buffer",
                                nextPkt.info_.sequenceNumber_);
                 txFn_(nextPkt.packet_.getReadSpan());
-                retransmissionBuffer_.addPacket(std::move(nextPkt));
+                retransmissionBuffer_->addPacket(std::move(nextPkt));
             }
         }
         util::logDebug("Transmitter Tx thread exited");
@@ -77,7 +78,7 @@ private:
             auto ret = rxFn_(recvBuffer);
             if (ret.has_value()) {
                 util::logInfo("Received ACK for SN {}", std::to_integer<uint8_t>(recvBuffer[0])); // u8 vs u16
-                retransmissionBuffer_.acknowledgePacket(std::to_integer<uint8_t>(recvBuffer[0]));
+                retransmissionBuffer_->acknowledgePacket(std::to_integer<uint8_t>(recvBuffer[0]));
                 break;
             }
         }
@@ -91,7 +92,7 @@ private:
     // Store packets for transmission that are yet to be transmitted
     InputBuffer inputBuffer_;
     // Store packets that have been transmitted but not acknowledged, and so may require retransmission
-    RTBufferType retransmissionBuffer_;
+    std::unique_ptr<RTBufferType> retransmissionBuffer_;
     // 
     std::thread transmitThread_;
     // 

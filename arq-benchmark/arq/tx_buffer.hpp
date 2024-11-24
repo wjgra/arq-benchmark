@@ -9,8 +9,10 @@
 namespace arq {
 
 struct PacketInfo {
-    // Time at which packet was added to the input buffer
-    std::chrono::time_point<ClockType> txTime_;
+    // Time at which packet was first added to the buffer
+    std::chrono::time_point<ClockType> firstTxTime_;
+    // Time at which packet was last transmitted
+    std::chrono::time_point<ClockType> lastTxTime_;
     // Sequence number assigned to packet by the input buffer
     SequenceNumber sequenceNumber_;
 };
