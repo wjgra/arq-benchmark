@@ -66,6 +66,7 @@ ip netns exec ${client_ns} ip route add ${server_addr} dev ${client_veth}
 
 # Simulate network conditions
 ip netns exec ${server_ns} tc qdisc add dev ${server_veth} root netem delay ${tx_delay} loss ${tx_loss}
+ip netns exec ${client_ns} tc qdisc add dev ${client_veth} root netem delay ${tx_delay} loss ${tx_loss}
 
 # Start server
 tmux new-session -d -s "arq" -n "server" "ip netns exec ${server_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher --launch-server --logging 4 --client-addr ${client_addr} --server-addr ${server_addr}; read"
