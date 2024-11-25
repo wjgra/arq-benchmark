@@ -28,22 +28,19 @@ struct DataPacketHeader {
 
     // Returns the packed size of DataPacketHeader
     static inline constexpr auto size() noexcept { return packed_size; }
-    static inline constexpr size_t packed_size =
-        sizeof(sequenceNumber_) + sizeof(length_) + sizeof(id_);
+    static inline constexpr size_t packed_size = sizeof(sequenceNumber_) + sizeof(length_) + sizeof(id_);
 
     bool operator==(const DataPacketHeader& other) const = default;
 };
 
 struct DataPacketException : public std::runtime_error {
-    explicit DataPacketException(const std::string& what) :
-        std::runtime_error(what){};
+    explicit DataPacketException(const std::string& what) : std::runtime_error(what){};
 };
 
 // Maximum permitted size of a DataPacket. Consider whether this should be
 // configurable. Value here chosen such that DataPacket + header fits inside a
 // single Ethernet frame.
-constexpr size_t DATA_PKT_MAX_PAYLOAD_SIZE =
-    MAX_TRANSMISSION_UNIT - DataPacketHeader::size();
+constexpr size_t DATA_PKT_MAX_PAYLOAD_SIZE = MAX_TRANSMISSION_UNIT - DataPacketHeader::size();
 
 class DataPacket {
 public:

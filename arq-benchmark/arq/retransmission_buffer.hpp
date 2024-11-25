@@ -54,33 +54,20 @@ public:
     // Add a packet to the transmission buffer
     void addPacket(TransmitBufferObject&& packet)
     {
-        static_cast<T*>(this)->do_addPacket(
-            std::forward<TransmitBufferObject>(packet));
+        static_cast<T*>(this)->do_addPacket(std::forward<TransmitBufferObject>(packet));
     }
 
     // Get a span of the next packet for retransmission
-    std::optional<std::span<const std::byte>> getPacketData()
-    {
-        return static_cast<T*>(this)->do_getPacketData();
-    }
+    std::optional<std::span<const std::byte>> getPacketData() { return static_cast<T*>(this)->do_getPacketData(); }
 
     // Can another packet be added to the retransmission buffer?
-    bool readyForNewPacket() const
-    {
-        return static_cast<const T*>(this)->do_readyForNewPacket();
-    }
+    bool readyForNewPacket() const { return static_cast<const T*>(this)->do_readyForNewPacket(); }
 
     // Are there any packets in the retransmission buffer currently?
-    bool packetsPending() const
-    {
-        return static_cast<const T*>(this)->do_packetsPending();
-    }
+    bool packetsPending() const { return static_cast<const T*>(this)->do_packetsPending(); }
 
     // Update tracking information for a packet which has just been acknowledged
-    void acknowledgePacket(const SequenceNumber seqNum)
-    {
-        static_cast<T*>(this)->do_acknowledgePacket(seqNum);
-    }
+    void acknowledgePacket(const SequenceNumber seqNum) { static_cast<T*>(this)->do_acknowledgePacket(seqNum); }
 };
 
 } // namespace arq

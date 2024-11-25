@@ -18,8 +18,7 @@ static inline auto serialiseConversationID(ConversationID id)
 }
 
 struct ConversationIDError : public std::runtime_error {
-    ConversationIDError() :
-        std::runtime_error("No more conversation IDs to allocate"){};
+    ConversationIDError() : std::runtime_error("No more conversation IDs to allocate"){};
 };
 
 class ConversationIDAllocator {

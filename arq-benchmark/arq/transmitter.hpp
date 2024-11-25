@@ -21,10 +21,7 @@ concept RTBuffer = std::is_base_of<RetransmissionBuffer<T>, T>::value;
 template <RTBuffer RTBufferType>
 class Transmitter {
 public:
-    Transmitter(ConversationID id,
-                TransmitFn txFn,
-                ReceiveFn rxFn,
-                std::unique_ptr<RTBufferType>&& rtBuffer_p) :
+    Transmitter(ConversationID id, TransmitFn txFn, ReceiveFn rxFn, std::unique_ptr<RTBufferType>&& rtBuffer_p) :
         id_{id},
         txFn_{txFn},
         rxFn_{rxFn},
@@ -44,10 +41,7 @@ public:
         }
     }
 
-    void sendPacket(arq::DataPacket&& packet)
-    {
-        inputBuffer_.addPacket(std::forward<arq::DataPacket>(packet));
-    }
+    void sendPacket(arq::DataPacket&& packet) { inputBuffer_.addPacket(std::forward<arq::DataPacket>(packet)); }
 
 private:
     void transmitThread()
@@ -59,12 +53,10 @@ private:
             if (pkt.has_value()) {
                 DataPacketHeader hdr;
                 hdr.deserialise(pkt.value());
-                util::logDebug("Retransmitting packet with SN {}",
-                               hdr.sequenceNumber_);
+                util::logDebug("Retransmitting packet with SN {}", hdr.sequenceNumber_);
                 txFn_(pkt.value());
             }
-            else if (!receivedEndOfTx &&
-                     retransmissionBuffer_->readyForNewPacket()) {
+            else if (!receivedEndOfTx && retransmissionBuffer_->readyForNewPacket()) {
                 auto nextPkt = inputBuffer_.getPacket();
                 if (nextPkt.packet_.isEndOfTx()) { // consider making isEndOfTx
                                                    // a fn of the buffer object
@@ -90,11 +82,9 @@ private:
         while (true) {
             auto ret = rxFn_(recvBuffer);
             if (ret.has_value()) {
-                util::logInfo(
-                    "Received ACK for SN {}",
-                    std::to_integer<uint8_t>(recvBuffer[0])); // u8 vs u16
-                retransmissionBuffer_->acknowledgePacket(
-                    std::to_integer<uint8_t>(recvBuffer[0]));
+                util::logInfo("Received ACK for SN {}",
+                              std::to_integer<uint8_t>(recvBuffer[0])); // u8 vs u16
+                retransmissionBuffer_->acknowledgePacket(std::to_integer<uint8_t>(recvBuffer[0]));
                 if (std::to_integer<uint8_t>(recvBuffer[0]) == 11) {
                     break;
                 }
