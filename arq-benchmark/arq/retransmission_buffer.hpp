@@ -6,6 +6,7 @@
 namespace arq {
 
 // Enforce CRTP requirements using statically checked concepts
+// clang-format off
 template <typename T>
 concept has_addPacket = requires(T t, TransmitBufferObject&& packet) {
     { t.do_addPacket(std::forward<TransmitBufferObject>(packet)) } -> std::same_as<void>;
@@ -30,6 +31,7 @@ template <typename T>
 concept has_acknowledgePacket = requires(T t, const SequenceNumber seqNum) {
     { t.do_acknowledgePacket(seqNum) } -> std::same_as<void>;
 };
+// clang-format on
 
 /*
  * A CRTP interface for an ARQ retransmission buffer (RT). This buffer holds
@@ -40,7 +42,8 @@ concept has_acknowledgePacket = requires(T t, const SequenceNumber seqNum) {
 template <typename T>
 class RetransmissionBuffer {
 public:
-    RetransmissionBuffer() {
+    RetransmissionBuffer()
+    {
         static_assert(std::derived_from<T, RetransmissionBuffer>);
         static_assert(has_addPacket<T>);
         static_assert(has_getPacketData<T>);
@@ -49,31 +52,37 @@ public:
         static_assert(has_acknowledgePacket<T>);
     }
     // Add a packet to the transmission buffer
-    void addPacket(TransmitBufferObject&& packet) {
-        static_cast<T*>(this)->do_addPacket(std::forward<TransmitBufferObject>(packet));
+    void addPacket(TransmitBufferObject&& packet)
+    {
+        static_cast<T*>(this)->do_addPacket(
+            std::forward<TransmitBufferObject>(packet));
     }
 
     // Get a span of the next packet for retransmission
-    std::optional<std::span<const std::byte>> getPacketData() {
+    std::optional<std::span<const std::byte>> getPacketData()
+    {
         return static_cast<T*>(this)->do_getPacketData();
     }
 
     // Can another packet be added to the retransmission buffer?
-    bool readyForNewPacket() const {
+    bool readyForNewPacket() const
+    {
         return static_cast<const T*>(this)->do_readyForNewPacket();
     }
 
     // Are there any packets in the retransmission buffer currently?
-    bool packetsPending() const {
+    bool packetsPending() const
+    {
         return static_cast<const T*>(this)->do_packetsPending();
     }
 
     // Update tracking information for a packet which has just been acknowledged
-    void acknowledgePacket(const SequenceNumber seqNum) {
+    void acknowledgePacket(const SequenceNumber seqNum)
+    {
         static_cast<T*>(this)->do_acknowledgePacket(seqNum);
     }
 };
 
-}
+} // namespace arq
 
 #endif

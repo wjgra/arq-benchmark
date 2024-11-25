@@ -12,6 +12,7 @@ BreakConstructorInitializers: AfterColon
 BreakInheritanceList: AfterColon
 FixNamespaceComments: 'true'
 SortIncludes: 'true'
+SpacesBeforeTrailingComments: 1
 IndentWidth: '4'
 UseTab: Never
 

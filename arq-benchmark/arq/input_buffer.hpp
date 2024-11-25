@@ -15,10 +15,12 @@ class InputBuffer {
 public:
     // Submit a packet for transmission
     void addPacket(arq::DataPacket&& packet);
-    // Get next packet for transmission from the buffer. If the buffer is empty, wait until a packet is available
+    // Get next packet for transmission from the buffer. If the buffer is empty,
+    // wait until a packet is available
     TransmitBufferObject getPacket();
     // If a packet is available, get the next packet from the buffer.
     std::optional<TransmitBufferObject> tryGetPacket();
+
 private:
     // Get information for populating data packet header
     PacketInfo getNextInfo();
@@ -27,6 +29,6 @@ private:
     arq::SequenceNumber lastSequenceNumber_ = 0;
 };
 
-}
+} // namespace arq
 
 #endif
