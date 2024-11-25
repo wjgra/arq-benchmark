@@ -10,7 +10,7 @@
 namespace util {
 
 struct SocketException : public std::runtime_error {
-    explicit SocketException(const std::string& what) : std::runtime_error(what) {};
+    explicit SocketException(const std::string& what) : std::runtime_error(what){};
 };
 
 // Owning wrapper for a socket file descriptor.
@@ -41,10 +41,11 @@ public:
     std::optional<size_t> recv(std::span<std::byte> buffer) const noexcept;
     std::optional<size_t> sendTo(std::span<const std::byte> buffer, const addrinfo& ai) const noexcept;
     std::optional<size_t> recvFrom(std::span<std::byte> buffer) const noexcept;
+
 private:
     SocketID socketID_;
 };
 
-}
+} // namespace util
 
 #endif

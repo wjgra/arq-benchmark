@@ -12,15 +12,17 @@ template <typename T>
 class SafeQueue {
 public:
     // Add an element to the queue
-    void push(T&& value) {
+    void push(T&& value)
+    {
         std::unique_lock<std::mutex> lock(mut_);
         queue_.push(std::forward<T>(value));
         cv_.notify_one();
     }
 
-    // Remove an element from the queue. If queue is empty, wait 
+    // Remove an element from the queue. If queue is empty, wait
     // until an element is added.
-    T pop_wait() {
+    T pop_wait()
+    {
         std::unique_lock<std::mutex> lock(mut_);
         while (queue_.empty()) {
             cv_.wait(lock);
@@ -32,7 +34,8 @@ public:
 
     // Remove an element from the queue. If the queue is empty, return
     // std::nullopt.
-    std::optional<T> try_pop() {
+    std::optional<T> try_pop()
+    {
         std::unique_lock<std::mutex> lock(mut_);
         if (queue_.empty()) {
             return std::nullopt;
@@ -43,6 +46,7 @@ public:
             return val;
         }
     }
+
 private:
     // Underlying queue data
     std::queue<T> queue_;
@@ -52,6 +56,6 @@ private:
     std::condition_variable cv_;
 };
 
-}
+} // namespace util
 
 #endif
