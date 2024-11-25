@@ -1,16 +1,15 @@
 #include "arq/data_packet.hpp"
 
-#include <cstring>
 #include <netdb.h>
+#include <cstring>
 
 #include "util/logging.hpp"
 
 bool arq::DataPacketHeader::serialise(std::span<std::byte> buffer) const noexcept
 {
     if (buffer.size() < this->size()) {
-        util::logError("Buffer of size {} is too small to serialise a DataPacketHeader of size {}",
-                        buffer.size(),
-                        this->size());
+        util::logError(
+            "Buffer of size {} is too small to serialise a DataPacketHeader of size {}", buffer.size(), this->size());
         return false;
     }
 
@@ -41,8 +40,8 @@ bool arq::DataPacketHeader::deserialise(std::span<const std::byte> buffer) noexc
 {
     if (buffer.size() < this->size()) {
         util::logError("Buffer of size {} is too small to deserialise into a DataPacketHeader of size {}",
-                        buffer.size(),
-                        this->size());
+                       buffer.size(),
+                       this->size());
         return false;
     }
 
@@ -71,7 +70,8 @@ bool arq::DataPacketHeader::deserialise(std::span<const std::byte> buffer) noexc
     return true;
 }
 
-arq::DataPacket::DataPacket() {
+arq::DataPacket::DataPacket()
+{
     updateDataLength(0);
 }
 
@@ -88,8 +88,7 @@ arq::DataPacket::DataPacket(std::span<const std::byte> serialData)
     }
 }
 
-arq::DataPacket::DataPacket(std::vector<std::byte>&& serialData) : 
-    data_{std::move(serialData)}
+arq::DataPacket::DataPacket(std::vector<std::byte>&& serialData) : data_{std::move(serialData)}
 {
     if (!deserialiseHeader()) {
         throw DataPacketException("serialData is not long enough to contain header");
@@ -110,11 +109,12 @@ void arq::DataPacket::updateHeader(const DataPacketHeader& hdr)
 void arq::DataPacket::updateSequenceNumber(const SequenceNumber seqNum)
 {
     header_.sequenceNumber_ = seqNum;
-    [[maybe_unused]] auto ret = serialiseHeader(); 
+    [[maybe_unused]] auto ret = serialiseHeader();
     assert(ret);
 }
 
-bool arq::DataPacket::isEndOfTx() const {
+bool arq::DataPacket::isEndOfTx() const
+{
     return header_.length_ == 0;
 }
 
@@ -129,7 +129,7 @@ void arq::DataPacket::updateDataLength(const size_t len)
     }
 
     data_.resize(header_.size() + header_.length_);
-    [[maybe_unused]] auto ret = serialiseHeader(); 
+    [[maybe_unused]] auto ret = serialiseHeader();
     assert(ret);
 }
 
