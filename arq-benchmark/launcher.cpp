@@ -5,6 +5,7 @@
 #include <iostream>
 #include <netinet/in.h>
 #include <stdexcept>
+#include <random>
 #include <ranges>
 #include <string>
 #include <thread>
@@ -250,15 +251,27 @@ static void startTransmitter(arq::config_Launcher& config) { // why not const?
 
     using namespace std::chrono_literals;
     arq::Transmitter txer(convID, txToClient, rxFromClient, std::make_unique<arq::rt::StopAndWait>(100ms, true));
-    for (size_t i = 0 ; i < 1 ; ++i) {
+    // Send a few packets with random data
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    std::uniform_int_distribution<uint8_t> dist(0, UINT8_MAX);
+
+    for (size_t i = 0 ; i < 10 ; ++i) {
         arq::DataPacket inputPacket{};
 
         // populate packet
-        // ...
-        
+        inputPacket.updateDataLength(1000);
+        auto dataSpan = inputPacket.getPayloadSpan();
+        for (auto& el : dataSpan) {
+            el = std::byte{dist(mt)};
+        }
+
         // Add packet to transmitter's input buffer
         txer.sendPacket(std::move(inputPacket));
     }
+
+    // Send end of Tx packet
+     txer.sendPacket(arq::DataPacket{});
 
 }
 
@@ -276,19 +289,25 @@ static void startReceiver(arq::config_Launcher& config) {
 
     usleep(1000);
 
-    std::array<std::byte, arq::DATA_PKT_MAX_SIZE> recvBuffer; 
-    auto ret = dataChannel.recvFrom(recvBuffer);
+    bool rxEndOfTx = false;
+    while (!rxEndOfTx) {
+        std::array<std::byte, arq::DATA_PKT_MAX_PAYLOAD_SIZE> recvBuffer; 
+        auto ret = dataChannel.recvFrom(recvBuffer);
+        assert(ret.has_value());
 
-    if (ret.has_value()) {
+        util::logDebug("Received {} bytes of data", ret.value());
+
         arq::DataPacket packet(recvBuffer);
-        util::logInfo("Received packet with length {} and SN {}", packet.getHeader().length_, packet.getHeader().sequenceNumber_);
+        util::logInfo("Received data packet with length {} and SN {}", packet.getHeader().length_, packet.getHeader().sequenceNumber_);
 
-        util::logInfo("Sending ACK x1");
+        if (packet.isEndOfTx()) {
+            rxEndOfTx = true;
+        }
+
+        util::logInfo("Sending ACK for packet with SN {}", packet.getHeader().sequenceNumber_);
         std::array<std::byte, 1> ack {{std::byte(packet.getHeader().sequenceNumber_)}}; // this is temp as SN is two bytes
         dataChannel.sendTo(ack, config.common.serverNames.hostName, config.common.serverNames.serviceName);
-    }
-    else {
-        assert(false);
+
     }
 
 

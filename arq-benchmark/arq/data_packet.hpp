@@ -11,7 +11,7 @@
 
 namespace arq {
 
-constexpr size_t ETH_FRAME_MAX_SIZE = 1500;
+constexpr size_t MAX_TRANSMISSION_UNIT = 1500;
 
 struct DataPacketHeader {
     // Identifies the ARQ session
@@ -41,7 +41,7 @@ struct DataPacketException : public std::runtime_error {
  
 // Maximum permitted size of a DataPacket. Consider whether this should be configurable.
 // Value here chosen such that DataPacket + header fits inside a single Ethernet frame.
-constexpr size_t DATA_PKT_MAX_SIZE = ETH_FRAME_MAX_SIZE - DataPacketHeader::size();
+constexpr size_t DATA_PKT_MAX_PAYLOAD_SIZE = MAX_TRANSMISSION_UNIT - DataPacketHeader::size();
 
 class DataPacket {
 public:

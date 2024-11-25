@@ -52,7 +52,7 @@ static void data_packet_serialisation() {
         .length_ = 0x11D4
     };
 
-    REQUIRE(hdr_before.length_ > arq::DATA_PKT_MAX_SIZE);
+    REQUIRE(hdr_before.length_ > arq::DATA_PKT_MAX_PAYLOAD_SIZE);
     arq::DataPacket packet_before(hdr_before);
 
     // Check that length is capped when a packet is made
@@ -61,7 +61,7 @@ static void data_packet_serialisation() {
     arq::DataPacketHeader hdr_before_truncated {
         .id_ = hdr_before.id_,
         .sequenceNumber_ = hdr_before.sequenceNumber_,
-        .length_ = arq::DATA_PKT_MAX_SIZE
+        .length_ = arq::DATA_PKT_MAX_PAYLOAD_SIZE
     };
 
     REQUIRE(hdr_before_truncated == packet_before.getHeader());

@@ -73,29 +73,33 @@ private:
     void ackThread() {
         util::logDebug("Transmitter ACK thread started");
         // Temporary implementation
-        std::array<std::byte, 1> recvBuffer;
+        std::array<std::byte, arq::MAX_TRANSMISSION_UNIT> recvBuffer;
         while(true) {
             auto ret = rxFn_(recvBuffer);
             if (ret.has_value()) {
                 util::logInfo("Received ACK for SN {}", std::to_integer<uint8_t>(recvBuffer[0])); // u8 vs u16
                 retransmissionBuffer_->acknowledgePacket(std::to_integer<uint8_t>(recvBuffer[0]));
-                break;
+                if (std::to_integer<uint8_t>(recvBuffer[0]) == 11) {
+                    break;
+                }
             }
         }
         util::logDebug("Transmitter ACK thread exited");
     }
 
+    // Identifies the current conversation (TO DO: ignore wrong conv ID)
     ConversationID id_;
+    // Function pointer for raw data transmission
     TransmitFn txFn_;
+    // Function pointer for raw data reception
     ReceiveFn rxFn_;
-
     // Store packets for transmission that are yet to be transmitted
     InputBuffer inputBuffer_;
     // Store packets that have been transmitted but not acknowledged, and so may require retransmission
     std::unique_ptr<RTBufferType> retransmissionBuffer_;
-    // 
+    // Thread handling data packet transmission
     std::thread transmitThread_;
-    // 
+    // Thread handling control packet reception
     std::thread ackThread_;
 };
 

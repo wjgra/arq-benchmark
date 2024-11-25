@@ -120,9 +120,9 @@ bool arq::DataPacket::isEndOfTx() const {
 
 void arq::DataPacket::updateDataLength(const size_t len)
 {
-    if (len > DATA_PKT_MAX_SIZE) {
-        util::logWarning("DataPacket truncated to {} bytes", DATA_PKT_MAX_SIZE);
-        header_.length_ = DATA_PKT_MAX_SIZE;
+    if (len > DATA_PKT_MAX_PAYLOAD_SIZE) {
+        util::logWarning("DataPacket truncated to {} bytes", DATA_PKT_MAX_PAYLOAD_SIZE);
+        header_.length_ = DATA_PKT_MAX_PAYLOAD_SIZE;
     }
     else {
         header_.length_ = len;
