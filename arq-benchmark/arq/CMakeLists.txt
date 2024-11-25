@@ -1,5 +1,6 @@
 set(ARQ_SRCS
     conversation_id.cpp
+    control_packet.cpp
     data_packet.cpp
     input_buffer.cpp
     sequence_number.cpp)
