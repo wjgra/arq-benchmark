@@ -15,5 +15,7 @@ SortIncludes: 'true'
 SpacesBeforeTrailingComments: 1
 IndentWidth: '4'
 UseTab: Never
+BreakStringLiterals: 'false'
+ColumnLimit: 120
 
 ...
