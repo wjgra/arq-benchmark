@@ -307,21 +307,22 @@ static void startReceiver(arq::config_Launcher& config)
         util::logDebug("Received {} bytes of data", ret.value());
 
         arq::DataPacket packet(recvBuffer);
-        util::logInfo("Received data packet with length {} and SN {}",
-                      packet.getHeader().length_,
-                      packet.getHeader().sequenceNumber_);
+        auto pktHdr = packet.getHeader();
+        util::logInfo("Received data packet with length {} and SN {}", pktHdr.length_, pktHdr.sequenceNumber_);
 
         if (packet.isEndOfTx()) {
             rxEndOfTx = true;
         }
 
-        util::logInfo("Sending ACK for packet with SN {}", packet.getHeader().sequenceNumber_);
-        std::array<std::byte, 1> ack{
-            {std::byte(packet.getHeader().sequenceNumber_)}}; // this is temp as SN is two bytes
-        dataChannel.sendTo(ack, config.common.serverNames.hostName, config.common.serverNames.serviceName);
+        util::logInfo("Sending ACK for packet with SN {}", pktHdr.sequenceNumber_);
+
+        std::array<std::byte, sizeof(arq::SequenceNumber)> ackMsg{};
+        arq::serialiseSeqNum(pktHdr.sequenceNumber_, ackMsg);
+
+        dataChannel.sendTo(ackMsg, config.common.serverNames.hostName, config.common.serverNames.serviceName);
     }
 
-    // Send ack until EOT received
+    // Send ACKs until EOT received
 }
 
 int main(int argc, char** argv)

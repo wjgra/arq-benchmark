@@ -1,7 +1,8 @@
 set(ARQ_SRCS
     conversation_id.cpp
     data_packet.cpp
-    input_buffer.cpp)
+    input_buffer.cpp
+    sequence_number.cpp)
 
 add_library(lib_arq ${ARQ_SRCS})
 

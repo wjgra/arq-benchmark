@@ -8,6 +8,7 @@
 
 #include "arq/arq_common.hpp"
 #include "arq/conversation_id.hpp"
+#include "arq/sequence_number.hpp"
 
 namespace arq {
 

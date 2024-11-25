@@ -82,11 +82,16 @@ private:
         while (true) {
             auto ret = rxFn_(recvBuffer);
             if (ret.has_value()) {
-                util::logInfo("Received ACK for SN {}",
-                              std::to_integer<uint8_t>(recvBuffer[0])); // u8 vs u16
-                retransmissionBuffer_->acknowledgePacket(std::to_integer<uint8_t>(recvBuffer[0]));
-                if (std::to_integer<uint8_t>(recvBuffer[0]) == 11) {
-                    break;
+                arq::SequenceNumber seqNum;
+                if (arq::deserialiseSeqNum(seqNum, recvBuffer)) {
+                    util::logInfo("Received ACK for SN {}", seqNum);
+                    retransmissionBuffer_->acknowledgePacket(seqNum);
+                    if (seqNum == 11) { // temp - to replace
+                        break;
+                    }
+                }
+                else {
+                    util::logWarning("Received packet that is too short to be an ACK");
                 }
             }
         }

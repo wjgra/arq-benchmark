@@ -21,13 +21,14 @@ bool arq::DataPacketHeader::serialise(std::span<std::byte> buffer) const noexcep
     pos += sizeof(id_);
 
     // Serialise SN
-    static_assert(sizeof(sequenceNumber_) == 2);
-    uint16_t temp = htons(sequenceNumber_);
-    std::memcpy(buffer.data() + pos, &temp, sizeof(sequenceNumber_));
+    if (!serialiseSeqNum(sequenceNumber_, buffer.subspan(pos))) {
+        return false;
+    }
     pos += sizeof(sequenceNumber_);
 
     // Serialise packet length
     static_assert(sizeof(length_) == 2);
+    uint16_t temp;
     temp = htons(length_);
     std::memcpy(buffer.data() + pos, &temp, sizeof(length_));
     pos += sizeof(length_);
@@ -53,14 +54,14 @@ bool arq::DataPacketHeader::deserialise(std::span<const std::byte> buffer) noexc
     pos += sizeof(id_);
 
     // Deserialise SN
-    static_assert(sizeof(sequenceNumber_) == 2);
-    uint16_t temp;
-    std::memcpy(&temp, buffer.data() + pos, sizeof(sequenceNumber_));
-    sequenceNumber_ = ntohs(temp);
+    if (!deserialiseSeqNum(sequenceNumber_, buffer.subspan(pos))) {
+        return false;
+    }
     pos += sizeof(sequenceNumber_);
 
     // Deserialise packet length
     static_assert(sizeof(length_) == 2);
+    uint16_t temp;
     std::memcpy(&temp, buffer.data() + pos, sizeof(length_));
     length_ = ntohs(temp);
     pos += sizeof(length_);
