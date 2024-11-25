@@ -7,13 +7,12 @@ namespace arq {
 
 class Receiver {
 public:
-    Receiver(ConversationID id) : id_{id} {
-        
-    };
+    Receiver(ConversationID id) : id_{id} {};
+
 private:
     ConversationID id_;
 };
 
-}
+} // namespace arq
 
 #endif

@@ -24,6 +24,6 @@ struct TransmitBufferObject {
     PacketInfo info_;
 };
 
-}
+} // namespace arq
 
 #endif

@@ -6,7 +6,7 @@
 #include <exception>
 #include <vector>
 
-#include "arq_common.hpp"
+#include "arq/arq_common.hpp"
 #include "arq/conversation_id.hpp"
 
 namespace arq {
@@ -27,20 +27,19 @@ struct DataPacketHeader {
     bool deserialise(std::span<const std::byte> buffer) noexcept;
 
     // Returns the packed size of DataPacketHeader
-    static inline constexpr auto size() noexcept {
-        return packed_size;
-    }
+    static inline constexpr auto size() noexcept { return packed_size; }
     static inline constexpr size_t packed_size = sizeof(sequenceNumber_) + sizeof(length_) + sizeof(id_);
 
     bool operator==(const DataPacketHeader& other) const = default;
 };
 
 struct DataPacketException : public std::runtime_error {
-    explicit DataPacketException(const std::string& what) : std::runtime_error(what) {};
+    explicit DataPacketException(const std::string& what) : std::runtime_error(what){};
 };
- 
-// Maximum permitted size of a DataPacket. Consider whether this should be configurable.
-// Value here chosen such that DataPacket + header fits inside a single Ethernet frame.
+
+// Maximum permitted size of a DataPacket. Consider whether this should be
+// configurable. Value here chosen such that DataPacket + header fits inside a
+// single Ethernet frame.
 constexpr size_t DATA_PKT_MAX_PAYLOAD_SIZE = MAX_TRANSMISSION_UNIT - DataPacketHeader::size();
 
 class DataPacket {
@@ -60,7 +59,7 @@ public:
     // Update header sequence number and serialise it
     void updateSequenceNumber(const SequenceNumber seqNum);
 
-    // Indicates whether the packet is an EndOfTx packet 
+    // Indicates whether the packet is an EndOfTx packet
     bool isEndOfTx() const;
 
     // Update the length of the payload
@@ -77,6 +76,7 @@ public:
     std::span<const std::byte> getPayloadReadSpan() const noexcept;
 
     bool operator==(const DataPacket& other) const = default;
+
 private:
     DataPacketHeader header_;
     std::vector<std::byte> data_;
@@ -85,6 +85,6 @@ private:
     bool deserialiseHeader() noexcept;
 };
 
-}
+} // namespace arq
 
 #endif

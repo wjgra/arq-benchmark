@@ -1,0 +1,21 @@
+﻿---
+BasedOnStyle: Chromium
+AccessModifierOffset: '-4'
+AlignAfterOpenBracket: Align
+AlignOperands: 'true'
+AlignTrailingComments: 'false'
+BinPackArguments: 'false'
+BinPackParameters: 'false'
+BreakBeforeBraces: Stroustrup
+BreakBeforeTernaryOperators: 'false'
+BreakConstructorInitializers: AfterColon
+BreakInheritanceList: AfterColon
+FixNamespaceComments: 'true'
+SortIncludes: 'true'
+SpacesBeforeTrailingComments: 1
+IndentWidth: '4'
+UseTab: Never
+BreakStringLiterals: 'false'
+ColumnLimit: 120
+
+...

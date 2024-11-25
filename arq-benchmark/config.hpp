@@ -5,9 +5,9 @@
 #include <stdexcept>
 #include <string_view>
 
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 
 namespace arq {
 
@@ -25,9 +25,7 @@ struct config_Server {
     bool doNotVerifyClientAddr;
 };
 
-struct config_Client {
-
-};
+struct config_Client {};
 
 struct config_Launcher {
     config_common common;
@@ -35,7 +33,8 @@ struct config_Launcher {
     std::optional<config_Client> client;
 };
 
-in_addr stringToSockaddrIn(std::string_view str) {
+in_addr stringToSockaddrIn(std::string_view str)
+{
     in_addr out;
     if (inet_aton(str.data(), &out) == 0) {
         throw std::invalid_argument("invalid IPv4 address provided");
@@ -43,6 +42,6 @@ in_addr stringToSockaddrIn(std::string_view str) {
     return out;
 }
 
-}
+} // namespace arq
 
 #endif

@@ -19,6 +19,7 @@ public:
     bool do_readyForNewPacket() const;
     bool do_packetsPending() const;
     void do_acknowledgePacket(const SequenceNumber seqNum);
+
 private:
     bool currentPacketReadyForRT() const;
 
@@ -33,7 +34,7 @@ private:
     const bool adaptiveTimeout_;
 };
 
-}
-}
+} // namespace rt
+} // namespace arq
 
 #endif
