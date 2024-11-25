@@ -1,6 +1,7 @@
 # Automatic Repeat Request (ARQ) Library
 [![Unit tests (debug)](https://github.com/wjgra/arq-benchmark/actions/workflows/cmake-build-debug.yml/badge.svg)](https://github.com/wjgra/arq-benchmark/actions/workflows/cmake-build-debug.yml)
 [![Unit tests (release)](https://github.com/wjgra/arq-benchmark/actions/workflows/cmake-build-release.yml/badge.svg)](https://github.com/wjgra/arq-benchmark/actions/workflows/cmake-build-release.yml)
+[![clang-format](https://github.com/wjgra/arq-benchmark/actions/workflows/clang-format.yml/badge.svg)](https://github.com/wjgra/arq-benchmark/actions/workflows/clang-format.yml)
 ## Overview
 This project is a work-in-progress, with further details TBC! In short, this repository relates to the [Automatic Repeat Request](https://en.wikipedia.org/wiki/Automatic_repeat_request) scheme for sending data over unreliable networks. The rough goal is to a) write a basic ARQ library for sending packets over UDP connections and b) compare this with both TCP connections and an existing ARQ library, [KCP](https://github.com/skywind3000/kcp/tree/master), in a series of performance benchmarks.
 ## Project structure
