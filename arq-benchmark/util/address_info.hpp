@@ -52,7 +52,7 @@ private:
         }
 
         ConstIterator operator++(int)
-        { // post
+        {
             auto temp{*this};
             this->operator++();
             return temp;
