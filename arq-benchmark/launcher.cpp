@@ -250,9 +250,17 @@ static void startTransmitter(arq::config_Launcher& config)
 
     util::Endpoint dataChannel(txerAddress.hostName, txerAddress.serviceName, util::SocketType::UDP);
 
-    arq::TransmitFn txToClient = [&dataChannel, rxerAddress](std::span<const std::byte> buffer) {
-        return dataChannel.sendTo(
-            buffer, rxerAddress.hostName, rxerAddress.serviceName); // temp: do not recalc address info each time
+    // Use first address info found, if possible
+    auto rxerAddrInfo = [&rxerAddress]() {
+        util::AddressInfo addrInfo(rxerAddress.hostName, rxerAddress.serviceName, util::SocketType::UDP);
+        for (auto ai : addrInfo) {
+            return ai;
+        }
+        throw util::AddrInfoException("Failed to find address info"); // This should never be hit
+    }();
+
+    arq::TransmitFn txToClient = [&dataChannel, rxerAddrInfo](std::span<const std::byte> buffer) {
+        return dataChannel.sendTo(buffer, rxerAddrInfo);
     };
 
     arq::ReceiveFn rxFromClient = [&dataChannel](std::span<std::byte> buffer) { return dataChannel.recvFrom(buffer); };
