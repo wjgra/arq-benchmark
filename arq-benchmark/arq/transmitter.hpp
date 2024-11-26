@@ -27,7 +27,8 @@ public:
         rxFn_{rxFn},
         retransmissionBuffer_{std::move(rtBuffer_p)},
         transmitThread_{[this]() { return this->transmitThread(); }},
-        ackThread_{[this]() { return this->ackThread(); }}
+        ackThread_{[this]() { return this->ackThread(); }},
+        endOfTxSeqNum_{std::nullopt}
     {
     }
 
@@ -47,8 +48,7 @@ private:
     void transmitThread()
     {
         util::logDebug("Transmitter Tx thread started");
-        bool receivedEndOfTx = false;
-        while (!receivedEndOfTx || retransmissionBuffer_->packetsPending()) {
+        while (!endOfTxSeqNum_.has_value() || retransmissionBuffer_->packetsPending()) {
             auto pkt = retransmissionBuffer_->getPacketData();
             if (pkt.has_value()) {
                 DataPacketHeader hdr;
@@ -56,12 +56,12 @@ private:
                 util::logDebug("Retransmitting packet with SN {}", hdr.sequenceNumber_);
                 txFn_(pkt.value());
             }
-            else if (!receivedEndOfTx && retransmissionBuffer_->readyForNewPacket()) {
+            else if (!endOfTxSeqNum_.has_value() && retransmissionBuffer_->readyForNewPacket()) {
                 auto nextPkt = inputBuffer_.getPacket();
                 if (nextPkt.packet_.isEndOfTx()) { // consider making isEndOfTx
                                                    // a fn of the buffer object
                     util::logDebug("Transmitter received end of EndofTx");
-                    receivedEndOfTx = true;
+                    endOfTxSeqNum_ = nextPkt.info_.sequenceNumber_;
                 }
                 util::logDebug(
                     "Transmitting packet with SN {} and adding to "
@@ -86,7 +86,8 @@ private:
                 if (arq::deserialiseSeqNum(seqNum, recvBuffer)) {
                     util::logInfo("Received ACK for SN {}", seqNum);
                     retransmissionBuffer_->acknowledgePacket(seqNum);
-                    if (seqNum == 11) { // temp - to replace
+                    if (seqNum == endOfTxSeqNum_) {
+                        util::logInfo("Received ACK corresponds to end of transmission");
                         break;
                     }
                 }
@@ -113,6 +114,8 @@ private:
     std::thread transmitThread_;
     // Thread handling control packet reception
     std::thread ackThread_;
+    // If an EoT has been received, store the SN here
+    std::optional<SequenceNumber> endOfTxSeqNum_;
 };
 
 } // namespace arq

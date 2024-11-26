@@ -236,8 +236,8 @@ static arq::ConversationID receiveConversationID(const arq::config_AddressInfo& 
     return receivedID;
 }
 
-static void startTransmitter(arq::config_Launcher& config)
-{ // why not const?
+static void startTransmitter(arq::config_Launcher& config /* why not const? */)
+{
     // Generate a new conversation ID and share with receiver
     arq::ConversationIDAllocator allocator{};
     auto convID = allocator.getNewID();
@@ -272,7 +272,7 @@ static void startTransmitter(arq::config_Launcher& config)
     std::mt19937 mt(rd());
     std::uniform_int_distribution<uint8_t> dist(0, UINT8_MAX);
 
-    for (size_t i = 0; i < 10; ++i) {
+    for (size_t i = 0; i < 20; ++i) {
         arq::DataPacket inputPacket{};
 
         // populate packet
@@ -290,7 +290,7 @@ static void startTransmitter(arq::config_Launcher& config)
     txer.sendPacket(arq::DataPacket{});
 }
 
-static void startReceiver(arq::config_Launcher& config)
+static void startReceiver(arq::config_Launcher& config /* why not const? */)
 {
     // Obtain conversation ID from tranmitter
     auto convID = receiveConversationID(config.common.clientNames, config.common.serverNames);
@@ -304,7 +304,7 @@ static void startReceiver(arq::config_Launcher& config)
     util::Endpoint dataChannel(
         config.common.clientNames.hostName, config.common.clientNames.serviceName, util::SocketType::UDP);
 
-    usleep(1000);
+    // usleep(1000);
 
     bool rxEndOfTx = false;
     while (!rxEndOfTx) {
