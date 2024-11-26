@@ -21,8 +21,14 @@ struct config_common {
     config_AddressInfo clientNames;
 };
 
+struct config_txPkts {
+    uint16_t num;
+    uint16_t msInterval;
+};
+
 struct config_Server {
     bool doNotVerifyClientAddr;
+    config_txPkts txPkts;
 };
 
 struct config_Client {};

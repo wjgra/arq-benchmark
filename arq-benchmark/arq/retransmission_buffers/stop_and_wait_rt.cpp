@@ -41,7 +41,7 @@ void arq::rt::StopAndWait::do_acknowledgePacket(const SequenceNumber seqNum)
 {
     std::scoped_lock<std::mutex> lock(rtPacketMutex_);
     if (retransmitPacket_.has_value() == false) {
-        util::logError("Ack received for SN {} but no packet stored for retransmission", seqNum);
+        util::logDebug("Ack received for SN {} but no packet stored for retransmission", seqNum);
         return;
     }
 
@@ -73,7 +73,7 @@ void arq::rt::StopAndWait::do_acknowledgePacket(const SequenceNumber seqNum)
         retransmitPacket_ = std::nullopt;
     }
     else {
-        util::logError(
+        util::logWarning(
             "Ack received for SN {}, but expected SN {}", seqNum, retransmitPacket_.value().info_.sequenceNumber_);
     }
 }

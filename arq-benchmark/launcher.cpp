@@ -19,14 +19,11 @@
 #include "util/endpoint.hpp"
 #include "util/logging.hpp"
 
-using LogLevel_t = std::underlying_type_t<util::LoggingLevel>;
+static_assert(std::is_same_v<std::underlying_type_t<util::LoggingLevel>, uint16_t>);
 
 struct ProgramOption {
     std::string name;
-    std::variant<std::monostate, // Options with no argument
-                 LogLevel_t, // Logging level option
-                 std::string> // String options
-        defaultValue;
+    std::variant<std::monostate, uint16_t, std::string> defaultValue;
     std::string helpText;
 };
 
@@ -42,7 +39,9 @@ auto programOptions = std::to_array<ProgramOption>({
     {"client-addr",     "127.0.0.1"s,                                   "client IPv4 address"},
     {"client-port",     "65535"s,                                       "client port"},
     {"launch-server",   std::monostate{},                               "start server thread"},
-    {"launch-client",   std::monostate{},                               "start client thread"}
+    {"launch-client",   std::monostate{},                               "start client thread"},
+    {"tx-pkt-num",      uint16_t{10},                                   "number of packets to transmit"},
+    {"tx-pkt-interval", uint16_t{10},                                   "ms between transmitted packets"}
 });
 // clang-format on
 
@@ -60,10 +59,10 @@ static auto generateOptionsDescription()
             description.add_options()(option.name.c_str(), option.helpText.c_str());
         }
 
-        // Add options with LogLevel_t type arguments
-        else if (std::holds_alternative<LogLevel_t>(option.defaultValue)) {
+        // Add options with uint16_t type arguments
+        else if (std::holds_alternative<uint16_t>(option.defaultValue)) {
             description.add_options()(option.name.c_str(),
-                                      po::value<LogLevel_t>()->default_value(std::get<LogLevel_t>(option.defaultValue)),
+                                      po::value<uint16_t>()->default_value(std::get<uint16_t>(option.defaultValue)),
                                       option.helpText.c_str());
         }
 
@@ -108,7 +107,7 @@ static auto parseOptions(int argc, char** argv, boost::program_options::options_
         // Logging
         assert(programOptions[idx++].name == "logging");
         if (vm.contains("logging")) {
-            const auto newLevel{static_cast<util::LoggingLevel>(vm["logging"].as<LogLevel_t>())};
+            const auto newLevel{static_cast<util::LoggingLevel>(vm["logging"].as<uint16_t>())};
             util::Logger::setLoggingLevel(newLevel);
         }
         util::logInfo("logging level set to {}", util::Logger::loggingLevelStr());
@@ -159,6 +158,24 @@ static auto parseOptions(int argc, char** argv, boost::program_options::options_
         assert(programOptions[idx++].name == "launch-client");
         if (vm.contains("launch-client")) {
             config.client = arq::config_Client{}; // No content currently
+        }
+
+        // Number of packets to transmit
+        assert(programOptions[idx++].name == "tx-pkt-num");
+        if (vm.contains("tx-pkt-num") && config.server.has_value()) {
+            config.server.value().txPkts.num = vm["tx-pkt-num"].as<uint16_t>();
+        }
+
+        // Interval between packet transmissions in ms
+        assert(programOptions[idx++].name == "tx-pkt-interval");
+        if (vm.contains("tx-pkt-interval") && config.server.has_value()) {
+            config.server.value().txPkts.msInterval = vm["tx-pkt-interval"].as<uint16_t>();
+        }
+
+        if (config.server.has_value()) {
+            util::logInfo("server configured to transmit {} packets with interval {} ms",
+                          config.server.value().txPkts.num,
+                          config.server.value().txPkts.msInterval);
         }
 
         // Check that all options have been processed
@@ -272,7 +289,7 @@ static void startTransmitter(arq::config_Launcher& config /* why not const? */)
     std::mt19937 mt(rd());
     std::uniform_int_distribution<uint8_t> dist(0, UINT8_MAX);
 
-    for (size_t i = 0; i < 20; ++i) {
+    for (size_t i = 0; i < config.server->txPkts.num; ++i) {
         arq::DataPacket inputPacket{};
 
         // populate packet
@@ -284,6 +301,7 @@ static void startTransmitter(arq::config_Launcher& config /* why not const? */)
 
         // Add packet to transmitter's input buffer
         txer.sendPacket(std::move(inputPacket));
+        usleep(1000 * config.server->txPkts.msInterval);
     }
 
     // Send end of Tx packet

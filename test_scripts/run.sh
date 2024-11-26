@@ -20,9 +20,12 @@ client_addr="10.0.0.2"
 tx_delay="100ms"
 tx_loss="random 1%"
 
-usage() { echo "Usage: $0 [-d <tc delay arg string>] [-l <tc loss arg string>] [-h]" 1>&2; }
+pkt_num="10"
+pkt_interval="10"
 
-while getopts "d:l:h" opt; do
+usage() { echo "Usage: $0 [-d <tc delay arg string>] [-l <tc loss arg string>] [-n <number of pkts to tx>] [-i <interval between tx pkts> ] [-h]" 1>&2; }
+
+while getopts "d:l:n:i:h" opt; do
     case ${opt} in
         d)
             tx_delay=${OPTARG}
@@ -31,6 +34,12 @@ while getopts "d:l:h" opt; do
         l)
             tx_loss=${OPTARG}
             echo "tx_loss set to ${tx_delay}"
+            ;;
+        n) 
+            pkt_num=${OPTARG}
+            ;;
+        i)
+            pkt_interval=${OPTARG}
             ;;
         h) 
             usage
@@ -69,7 +78,7 @@ ip netns exec ${server_ns} tc qdisc add dev ${server_veth} root netem delay ${tx
 ip netns exec ${client_ns} tc qdisc add dev ${client_veth} root netem delay ${tx_delay} loss ${tx_loss}
 
 # Start server
-tmux new-session -d -s "arq" -n "server" "ip netns exec ${server_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher --launch-server --logging 4 --client-addr ${client_addr} --server-addr ${server_addr}; read"
+tmux new-session -d -s "arq" -n "server" "ip netns exec ${server_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher --launch-server --logging 4 --client-addr ${client_addr} --server-addr ${server_addr} --tx-pkt-num ${pkt_num} --tx-pkt-interval ${pkt_interval}; read"
 
 # Start client
 tmux new-window -t "arq" -n "client" "ip netns exec ${client_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher --launch-client --logging 4 --client-addr ${client_addr} --server-addr ${server_addr}; read"
