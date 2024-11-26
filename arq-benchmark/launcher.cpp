@@ -163,19 +163,19 @@ static auto parseOptions(int argc, char** argv, boost::program_options::options_
         // Number of packets to transmit
         assert(programOptions[idx++].name == "tx-pkt-num");
         if (vm.contains("tx-pkt-num") && config.server.has_value()) {
-            config.server.value().txPkts.num = vm["tx-pkt-num"].as<uint16_t>();
+            config.server->txPkts.num = vm["tx-pkt-num"].as<uint16_t>();
         }
 
         // Interval between packet transmissions in ms
         assert(programOptions[idx++].name == "tx-pkt-interval");
         if (vm.contains("tx-pkt-interval") && config.server.has_value()) {
-            config.server.value().txPkts.msInterval = vm["tx-pkt-interval"].as<uint16_t>();
+            config.server->txPkts.msInterval = vm["tx-pkt-interval"].as<uint16_t>();
         }
 
         if (config.server.has_value()) {
             util::logInfo("server configured to transmit {} packets with interval {} ms",
-                          config.server.value().txPkts.num,
-                          config.server.value().txPkts.msInterval);
+                          config.server->txPkts.num,
+                          config.server->txPkts.msInterval);
         }
 
         // Check that all options have been processed
@@ -268,16 +268,18 @@ static void startTransmitter(arq::config_Launcher& config /* why not const? */)
     util::Endpoint dataChannel(txerAddress.hostName, txerAddress.serviceName, util::SocketType::UDP);
 
     // Use first address info found, if possible
-    auto rxerAddrInfo = [&rxerAddress]() {
-        util::AddressInfo addrInfo(rxerAddress.hostName, rxerAddress.serviceName, util::SocketType::UDP);
-        for (auto ai : addrInfo) {
-            return ai;
-        }
-        throw util::AddrInfoException("Failed to find address info"); // This should never be hit
-    }();
+    // auto rxerAddrInfo = [&rxerAddress]() {
+    //     util::AddressInfo addrInfo(rxerAddress.hostName, rxerAddress.serviceName, util::SocketType::UDP);
+    //     for (auto ai : addrInfo) {
+    //         return ai;
+    //     }
+    //     throw util::AddrInfoException("Failed to find address info"); // This should never be hit
+    // }();
+    // WJG: For some reason, the address info changes during transmission, leading to failed sendTo calls.
 
-    arq::TransmitFn txToClient = [&dataChannel, rxerAddrInfo](std::span<const std::byte> buffer) {
-        return dataChannel.sendTo(buffer, rxerAddrInfo);
+    arq::TransmitFn txToClient = [&dataChannel, /* &rxerAddrInfo ,*/ &rxerAddress](std::span<const std::byte> buffer) {
+        // return dataChannel.sendTo(buffer, rxerAddrInfo);
+        return dataChannel.sendTo(buffer, rxerAddress.hostName, rxerAddress.serviceName);
     };
 
     arq::ReceiveFn rxFromClient = [&dataChannel](std::span<std::byte> buffer) { return dataChannel.recvFrom(buffer); };
@@ -322,11 +324,12 @@ static void startReceiver(arq::config_Launcher& config /* why not const? */)
     util::Endpoint dataChannel(
         config.common.clientNames.hostName, config.common.clientNames.serviceName, util::SocketType::UDP);
 
-    // usleep(1000);
+    usleep(1000);
 
     bool rxEndOfTx = false;
     while (!rxEndOfTx) {
         std::array<std::byte, arq::DATA_PKT_MAX_PAYLOAD_SIZE> recvBuffer;
+        util::logDebug("Waiting for a data packet");
         auto ret = dataChannel.recvFrom(recvBuffer);
         assert(ret.has_value());
 

@@ -20,12 +20,14 @@ client_addr="10.0.0.2"
 tx_delay="100ms"
 tx_loss="random 1%"
 
-pkt_num="10"
+pkt_num="30"
 pkt_interval="10"
 
-usage() { echo "Usage: $0 [-d <tc delay arg string>] [-l <tc loss arg string>] [-n <number of pkts to tx>] [-i <interval between tx pkts> ] [-h]" 1>&2; }
+logging_level="4"
 
-while getopts "d:l:n:i:h" opt; do
+usage() { echo "Usage: $0 [-d <tc delay arg string>] [-l <tc loss arg string>] [-n <number of pkts to tx>] [-i <interval between tx pkts> ] [-w <logging level>] [-h]" 1>&2; }
+
+while getopts "d:l:n:i:w:h" opt; do
     case ${opt} in
         d)
             tx_delay=${OPTARG}
@@ -40,6 +42,9 @@ while getopts "d:l:n:i:h" opt; do
             ;;
         i)
             pkt_interval=${OPTARG}
+            ;;
+        w)
+            logging_level=${OPTARG}
             ;;
         h) 
             usage
@@ -78,10 +83,10 @@ ip netns exec ${server_ns} tc qdisc add dev ${server_veth} root netem delay ${tx
 ip netns exec ${client_ns} tc qdisc add dev ${client_veth} root netem delay ${tx_delay} loss ${tx_loss}
 
 # Start server
-tmux new-session -d -s "arq" -n "server" "ip netns exec ${server_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher --launch-server --logging 4 --client-addr ${client_addr} --server-addr ${server_addr} --tx-pkt-num ${pkt_num} --tx-pkt-interval ${pkt_interval}; read"
+tmux new-session -d -s "arq" -n "server" "ip netns exec ${server_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher --launch-server --logging ${logging_level} --client-addr ${client_addr} --server-addr ${server_addr} --tx-pkt-num ${pkt_num} --tx-pkt-interval ${pkt_interval}; read"
 
 # Start client
-tmux new-window -t "arq" -n "client" "ip netns exec ${client_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher --launch-client --logging 4 --client-addr ${client_addr} --server-addr ${server_addr}; read"
+tmux new-window -t "arq" -n "client" "ip netns exec ${client_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher --launch-client --logging ${logging_level} --client-addr ${client_addr} --server-addr ${server_addr}; read"
 
 tmux set-option -t "arq" -g mouse
 tmux attach-session -t "arq"

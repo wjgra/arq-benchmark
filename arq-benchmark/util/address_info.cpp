@@ -5,7 +5,7 @@
 util::AddressInfo::AddressInfo(std::string_view host, std::string_view service, SocketType type)
 {
     info_ = getAddressInfo(host, service, type);
-    logDebug("successfully obtained address info for host '{}' and service '{}'", host, service);
+    // logDebug("successfully obtained address info for host '{}' and service '{}'", host, service);
 }
 
 auto util::AddressInfo::getAddressInfo(std::string_view host, std::string_view service, SocketType type) -> AddrInfoPtr

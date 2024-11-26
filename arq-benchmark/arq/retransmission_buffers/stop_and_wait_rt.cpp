@@ -17,8 +17,8 @@ std::optional<std::span<const std::byte>> arq::rt::StopAndWait::do_getPacketData
 {
     if (currentPacketReadyForRT()) {
         std::scoped_lock<std::mutex> lock(rtPacketMutex_);
-        retransmitPacket_.value().info_.lastTxTime_ = arq::ClockType::now();
-        return retransmitPacket_.value().packet_.getReadSpan();
+        retransmitPacket_->info_.lastTxTime_ = arq::ClockType::now();
+        return retransmitPacket_->packet_.getReadSpan();
     }
     else {
         return std::nullopt;
@@ -45,11 +45,11 @@ void arq::rt::StopAndWait::do_acknowledgePacket(const SequenceNumber seqNum)
         return;
     }
 
-    if (seqNum == retransmitPacket_.value().info_.sequenceNumber_) {
+    if (seqNum == retransmitPacket_->info_.sequenceNumber_) {
         // Update timeout based on round trip time
         if (adaptiveTimeout_) {
             const auto now = arq::ClockType::now();
-            const auto then = retransmitPacket_.value().info_.firstTxTime_;
+            const auto then = retransmitPacket_->info_.firstTxTime_;
             const auto timeSinceFirstTx = std::chrono::duration_cast<std::chrono::microseconds>(now - then);
 
             // Due to lost packets, timeSinceFirstTx may actually be greater than the true RTT. Damp
@@ -74,7 +74,7 @@ void arq::rt::StopAndWait::do_acknowledgePacket(const SequenceNumber seqNum)
     }
     else {
         util::logWarning(
-            "Ack received for SN {}, but expected SN {}", seqNum, retransmitPacket_.value().info_.sequenceNumber_);
+            "Ack received for SN {}, but expected SN {}", seqNum, retransmitPacket_->info_.sequenceNumber_);
     }
 }
 
@@ -83,7 +83,7 @@ bool arq::rt::StopAndWait::currentPacketReadyForRT() const
     std::scoped_lock<std::mutex> lock(rtPacketMutex_);
     if (retransmitPacket_.has_value()) {
         const auto now = arq::ClockType::now();
-        const auto then = retransmitPacket_.value().info_.lastTxTime_;
+        const auto then = retransmitPacket_->info_.lastTxTime_;
         const auto timeSinceLastTx = std::chrono::duration_cast<std::chrono::microseconds>(now - then);
         return timeSinceLastTx.count() > timeout_.count();
     }

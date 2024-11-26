@@ -2,6 +2,7 @@
 #define _ARQ_TRANSMITTER_HPP_
 
 #include <concepts>
+#include <functional>
 #include <memory>
 #include <thread>
 #include <type_traits>
@@ -47,36 +48,53 @@ public:
 private:
     void transmitThread()
     {
-        util::logDebug("Transmitter Tx thread started");
+        util::logInfo("Transmitter Tx thread started");
+
+        // Lambda to check check output of the transmit function
+        auto validateTx = [](decltype(std::function{txFn_})::result_type result) {
+            if (result.has_value()) {
+                util::logDebug("Successfully transmitted {} bytes", result.value());
+            }
+            else {
+                util::logError("Transmit function failed!");
+            }
+        };
+
         while (!endOfTxSeqNum_.has_value() || retransmissionBuffer_->packetsPending()) {
-            auto pkt = retransmissionBuffer_->getPacketData();
+            auto pkt =
+                retransmissionBuffer_
+                    ->getPacketData(); // WJG: If an ACK is received for a packet during retransmission, the packet can
+                                       // be freed whilst transmission is in progress. Consider ownership.
             if (pkt.has_value()) {
                 DataPacketHeader hdr;
                 hdr.deserialise(pkt.value());
-                util::logDebug("Retransmitting packet with SN {}", hdr.sequenceNumber_);
-                txFn_(pkt.value());
+
+                util::logInfo("Retransmitting packet with SN {} and length {}", hdr.sequenceNumber_, hdr.length_);
+                auto ret = txFn_(pkt.value());
+                validateTx(ret);
             }
             else if (!endOfTxSeqNum_.has_value() && retransmissionBuffer_->readyForNewPacket()) {
                 auto nextPkt = inputBuffer_.getPacket();
                 if (nextPkt.packet_.isEndOfTx()) { // consider making isEndOfTx
                                                    // a fn of the buffer object
-                    util::logDebug("Transmitter received end of EndofTx");
+                    util::logInfo("Transmitter received end of EndofTx");
                     endOfTxSeqNum_ = nextPkt.info_.sequenceNumber_;
                 }
-                util::logDebug(
-                    "Transmitting packet with SN {} and adding to "
-                    "retransmission buffer",
-                    nextPkt.info_.sequenceNumber_);
-                txFn_(nextPkt.packet_.getReadSpan());
+
+                util::logInfo("Transmitting packet with SN {} and adding to retransmission buffer",
+                              nextPkt.info_.sequenceNumber_);
+                auto ret = txFn_(nextPkt.packet_.getReadSpan());
+                validateTx(ret);
+
                 retransmissionBuffer_->addPacket(std::move(nextPkt));
             }
         }
-        util::logDebug("Transmitter Tx thread exited");
+        util::logInfo("Transmitter Tx thread exited");
     }
 
     void ackThread()
     {
-        util::logDebug("Transmitter ACK thread started");
+        util::logInfo("Transmitter ACK thread started");
         // Temporary implementation
         std::array<std::byte, arq::MAX_TRANSMISSION_UNIT> recvBuffer;
         while (true) {
@@ -87,7 +105,7 @@ private:
                     util::logInfo("Received ACK for SN {}", seqNum);
                     retransmissionBuffer_->acknowledgePacket(seqNum);
                     if (seqNum == endOfTxSeqNum_) {
-                        util::logInfo("Received ACK corresponds to end of transmission");
+                        util::logInfo("Received ACK that corresponds to end of transmission");
                         break;
                     }
                 }
@@ -96,7 +114,7 @@ private:
                 }
             }
         }
-        util::logDebug("Transmitter ACK thread exited");
+        util::logInfo("Transmitter ACK thread exited");
     }
 
     // Identifies the current conversation (TO DO: ignore wrong conv ID)
