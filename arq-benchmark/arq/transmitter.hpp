@@ -41,7 +41,7 @@ public:
         }
     }
 
-    void sendPacket(arq::DataPacket&& packet) { inputBuffer_.addPacket(std::forward<arq::DataPacket>(packet)); }
+    void sendPacket(arq::DataPacket&& packet) { inputBuffer_.addPacket(std::move(packet)); }
 
 private:
     void transmitThread()

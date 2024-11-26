@@ -9,7 +9,7 @@ namespace arq {
 // clang-format off
 template <typename T>
 concept has_addPacket = requires(T t, TransmitBufferObject&& packet) {
-    { t.do_addPacket(std::forward<TransmitBufferObject>(packet)) } -> std::same_as<void>;
+    { t.do_addPacket(std::move(packet)) } -> std::same_as<void>;
 };
 
 template <typename T>
@@ -52,10 +52,7 @@ public:
         static_assert(has_acknowledgePacket<T>);
     }
     // Add a packet to the transmission buffer
-    void addPacket(TransmitBufferObject&& packet)
-    {
-        static_cast<T*>(this)->do_addPacket(std::forward<TransmitBufferObject>(packet));
-    }
+    void addPacket(TransmitBufferObject&& packet) { static_cast<T*>(this)->do_addPacket(std::move(packet)); }
 
     // Get a span of the next packet for retransmission
     std::optional<std::span<const std::byte>> getPacketData() { return static_cast<T*>(this)->do_getPacketData(); }

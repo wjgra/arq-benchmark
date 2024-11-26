@@ -3,21 +3,16 @@ set(ARQ_SRCS
     control_packet.cpp
     data_packet.cpp
     input_buffer.cpp
+    output_buffer.cpp
     sequence_number.cpp)
 
-add_library(lib_arq ${ARQ_SRCS})
-
 set(ARQ_RT_BUFFER_SRCS
-    retransmission_buffers/stop_and_wait_rt.cpp)
+    retransmission_buffers/stop_and_wait_rt.cpp)  
 
-add_library(lib_arq_rtbufs ${ARQ_RT_BUFFER_SRCS})
-target_link_libraries(lib_arq lib_arq_rtbufs)
+set(ARQ_RS_BUFFER_SRCS
+    resequencing_buffers/stop_and_wait_rs.cpp)
 
-# set(ARQ_RS_BUFFER_SRCS
-#     resequencing_buffers/stop_and_wait_rs.cpp)
-
-# add_library(lib_arq_rsbufs ${ARQ_RS_BUFFER_SRCS})
-# target_link_libraries(lib_arq lib_arq_rsbufs)
+add_library(lib_arq ${ARQ_SRCS} ${ARQ_RT_BUFFER_SRCS} ${ARQ_RS_BUFFER_SRCS})
 
 target_link_libraries(launcher lib_arq)
 
