@@ -5,7 +5,7 @@
 ## Overview
 This project is a work-in-progress, with further details TBC! In short, this repository relates to the [Automatic Repeat Request](https://en.wikipedia.org/wiki/Automatic_repeat_request) scheme for sending data over unreliable networks. The rough goal is to a) write a basic ARQ library for sending packets over UDP connections and b) compare this with both TCP connections and an existing ARQ library, [KCP](https://github.com/skywind3000/kcp/tree/master), in a series of performance benchmarks.
 ## Project structure
-Below is a general overview of the repo as it currently stands. For each source file, `T` indicates that the file is covered by one or more dedicated unit tests, while `T*` indicates partial test coverage. 
+Below is a general overview of the repo as it currently stands.
 ```
 arq-benchmark
  |--> arq
@@ -13,19 +13,29 @@ arq-benchmark
              |--> stop_and_wait_rt.hpp/cpp - implementation ongoing
        |--> resequencing_buffers
              |--> stop_and_wait_rs.hpp/cpp - implementation ongoing
+       |--> control_packet.hpp/cpp
        |--> conversation_id.hpp/cpp
-       |--> data_packet.hpp/cpp (T)
+       |--> data_packet.hpp/cpp
        |--> input_buffer.hpp/cpp - implementation ongoing
        |--> launcher.cpp
+       |--> output_buffer.hpp/cpp - implementation ongoing
        |--> receiver.hpp - implementation ongoing
        |--> transmitter.hpp - implementation ongoing
+       |--> tx_buffer_object.hpp
+       |--> tests
+             |--> control_packet_test.cpp
+             |--> data_packet_test.cpp
  |--> util
-       |--> address_info.hpp/cpp (T*)
-       |--> endpoint.hpp.cpp (T)
+       |--> address_info.hpp/cpp
+       |--> endpoint.hpp.cpp
        |--> logging.hpp
        |--> network_common.hpp
        |--> safe_queue.hpp
-       |--> socket.hpp/cpp (T*)
+       |--> socket.hpp/cpp
+       |--> tests
+             |--> endpoint_test.cpp
+ |--> config.hpp
+ |--> launcher.cpp
 test-scripts
  |--> run.sh (runs a tmux'd launcher session with a transmitter and receiver)
 ```
