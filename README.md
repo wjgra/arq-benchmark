@@ -20,6 +20,8 @@ arq-benchmark
        |--> launcher.cpp
        |--> output_buffer.hpp/cpp - implementation ongoing
        |--> receiver.hpp - implementation ongoing
+       |--> retransmission_buffer.hpp - implementation ongoing
+       |--> rx_buffer_object.hpp
        |--> transmitter.hpp
        |--> tx_buffer_object.hpp
        |--> tests

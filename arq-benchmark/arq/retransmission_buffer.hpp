@@ -35,7 +35,7 @@ concept has_acknowledgePacket = requires(T t, const SequenceNumber seqNum) {
 
 /*
  * A CRTP interface for an ARQ retransmission buffer (RT). This buffer holds
- * packets that have alrady been transmitted but are yet to be acknowledged
+ * packets that have already been transmitted but are yet to be acknowledged
  * by the receiver. The various ARQ retransmission schemes are implemented
  * by deriving from this class.
  */
@@ -51,7 +51,8 @@ public:
         static_assert(has_packetsPending<T>);
         static_assert(has_acknowledgePacket<T>);
     }
-    // Add a packet to the transmission buffer
+
+    // Add a packet to the retransmission buffer
     void addPacket(TransmitBufferObject&& packet) { static_cast<T*>(this)->do_addPacket(std::move(packet)); }
 
     // Get a span of the next packet for retransmission
