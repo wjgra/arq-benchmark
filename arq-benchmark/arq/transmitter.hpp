@@ -10,7 +10,7 @@
 #include "arq/arq_common.hpp"
 #include "arq/conversation_id.hpp"
 #include "arq/input_buffer.hpp"
-#include "arq/retransmission_buffers/stop_and_wait_rt.hpp"
+#include "arq/retransmission_buffer.hpp"
 
 #include "util/logging.hpp"
 
@@ -100,7 +100,7 @@ private:
         util::logInfo("Transmitter ACK thread started");
 
         std::array<std::byte, arq::MAX_TRANSMISSION_UNIT> recvBuffer;
-        while (true) {
+        while (true) { // WJG: add timeout if no ACKs Rx'd in certain window after EoT has been Tx'd
             auto ret = rxFn_(recvBuffer);
             if (ret.has_value()) {
                 arq::SequenceNumber rxedSeqNum;
@@ -121,7 +121,7 @@ private:
         util::logInfo("Transmitter ACK thread exited");
     }
 
-    // Identifies the current conversation (TO DO: ignore wrong conv ID)
+    // Identifies the current conversation (TO DO: issue #24)
     ConversationID id_;
     // Function pointer for raw data transmission
     TransmitFn txFn_;

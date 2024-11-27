@@ -2,45 +2,68 @@
 
 #include "util/logging.hpp"
 
-arq::rs::StopAndWait::StopAndWait(const std::chrono::microseconds finalTimeout) :
-    expectedPacketSeqNum_{}, packetForDelivery_{std::nullopt}, nextAck_{std::nullopt}, finalTimeout_{finalTimeout}
-{
-}
+arq::rs::StopAndWait::StopAndWait() : expectedPacketSeqNum_{firstSequenceNumber}, packetForDelivery_{std::nullopt} {}
 
-void arq::rs::StopAndWait::do_addPacket(ReceiveBufferObject&& packet)
+std::optional<arq::SequenceNumber> arq::rs::StopAndWait::do_addPacket(DataPacket&& packet)
 {
-    std::scoped_lock<std::mutex> lock(rsPacketMutex_);
+    std::unique_lock<std::mutex> lock(rsPacketMutex_);
+
+    util::logDebug("Waiting to add packet to RS");
+    while (packetForDelivery_.has_value() == true && endOfTxPushed == false) {
+        rsPacketCv_.wait(lock);
+    }
+
+    // If EoT already pushed to OB, empty RS and indicate that no ACK should be Tx'd
+    if (endOfTxPushed == true) {
+        packetForDelivery_ = std::nullopt;
+        return std::nullopt; // WJG: consider allowing further EoT ACKs to be sent
+    }
+
     // If the received packet is both the next packet expected and we haven't already received that packet,
     // add the packet to the buffer.
-    auto hdr = packet.packet_.getHeader();
-    if (hdr.sequenceNumber_ == expectedPacketSeqNum_ && packetForDelivery_.has_value() == false) {
+    auto hdr = packet.getHeader();
+
+    if (hdr.sequenceNumber_ == expectedPacketSeqNum_ || hdr.sequenceNumber_ == expectedPacketSeqNum_ + 1) {
+        expectedPacketSeqNum_ = hdr.sequenceNumber_;
+
         packetForDelivery_ = std::move(packet);
         util::logInfo("Added packet with SN {} to RS buffer", hdr.sequenceNumber_);
+        rsPacketCv_.notify_all(); // one?
+
+        return hdr.sequenceNumber_;
     }
     else {
-        util::logDebug("RS buffer rejected packet with SN {}", hdr.sequenceNumber_);
+        util::logDebug("RS buffer rejected packet with SN {} (expected {} or {})",
+                       hdr.sequenceNumber_,
+                       expectedPacketSeqNum_,
+                       expectedPacketSeqNum_ + 1);
     }
+
+    return std::nullopt;
 }
 
 bool arq::rs::StopAndWait::do_packetsPending() const noexcept
 {
-    std::scoped_lock<std::mutex> lock(rsPacketMutex_);
+    std::unique_lock<std::mutex> lock(rsPacketMutex_);
     return packetForDelivery_.has_value();
 }
 
-arq::ReceiveBufferObject arq::rs::StopAndWait::do_getNextPacket()
+arq::DataPacket arq::rs::StopAndWait::do_getNextPacket()
 {
-    std::scoped_lock<std::mutex> lock(rsPacketMutex_);
-    auto ret = std::move(packetForDelivery_.value());
-    packetForDelivery_ = std::nullopt;
-    ++expectedPacketSeqNum_;
-    return ret;
-}
+    std::unique_lock<std::mutex> lock(rsPacketMutex_);
 
-std::optional<arq::SequenceNumber> arq::rs::StopAndWait::do_getNextAck()
-{
-    std::scoped_lock<std::mutex> lock(rsPacketMutex_);
-    const auto ret = nextAck_;
-    nextAck_ = std::nullopt;
+    util::logDebug("Waiting to get next packet from RS");
+    while (packetForDelivery_.has_value() == false) {
+        rsPacketCv_.wait(lock);
+    }
+
+    auto ret = std::move(packetForDelivery_.value());
+
+    if (ret.isEndOfTx()) {
+        endOfTxPushed = true;
+    }
+
+    packetForDelivery_ = std::nullopt;
+    rsPacketCv_.notify_all();
     return ret;
 }

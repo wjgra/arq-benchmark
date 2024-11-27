@@ -15,6 +15,8 @@
 
 #include "arq/input_buffer.hpp"
 #include "arq/receiver.hpp"
+#include "arq/resequencing_buffers/stop_and_wait_rs.hpp"
+#include "arq/retransmission_buffers/stop_and_wait_rt.hpp"
 #include "arq/transmitter.hpp"
 #include "util/endpoint.hpp"
 #include "util/logging.hpp"
@@ -316,42 +318,22 @@ static void startReceiver(arq::config_Launcher& config /* why not const? */)
     auto convID = receiveConversationID(config.common.clientNames, config.common.serverNames);
     util::logInfo("Conversation ID {} received from transmitter", convID);
 
-    arq::Receiver rxer(convID);
+    const arq::config_AddressInfo& txerAddress = config.common.serverNames;
+    const arq::config_AddressInfo& rxerAddress = config.common.clientNames;
 
-    // Temp receiver implementation
+    util::Endpoint dataChannel(rxerAddress.hostName, rxerAddress.serviceName, util::SocketType::UDP);
 
-    // Receive packet and assert len
-    util::Endpoint dataChannel(
-        config.common.clientNames.hostName, config.common.clientNames.serviceName, util::SocketType::UDP);
+    // WJG: same considerations apply here as in Transmitter
+    arq::TransmitFn txToServer = [&dataChannel, &txerAddress](std::span<const std::byte> buffer) {
+        return dataChannel.sendTo(buffer, txerAddress.hostName, txerAddress.serviceName);
+    };
 
-    usleep(1000);
+    arq::ReceiveFn rxFromServer = [&dataChannel](std::span<std::byte> buffer) { return dataChannel.recvFrom(buffer); };
 
-    bool rxEndOfTx = false;
-    while (!rxEndOfTx) {
-        std::array<std::byte, arq::DATA_PKT_MAX_PAYLOAD_SIZE> recvBuffer;
-        util::logDebug("Waiting for a data packet");
-        auto ret = dataChannel.recvFrom(recvBuffer);
-        assert(ret.has_value());
+    using namespace std::chrono_literals;
+    arq::Receiver rxer(convID, txToServer, rxFromServer, std::make_unique<arq::rs::StopAndWait>());
 
-        util::logDebug("Received {} bytes of data", ret.value());
-
-        arq::DataPacket packet(recvBuffer);
-        auto pktHdr = packet.getHeader();
-        util::logInfo("Received data packet with length {} and SN {}", pktHdr.length_, pktHdr.sequenceNumber_);
-
-        if (packet.isEndOfTx()) {
-            rxEndOfTx = true;
-        }
-
-        util::logInfo("Sending ACK for packet with SN {}", pktHdr.sequenceNumber_);
-
-        std::array<std::byte, sizeof(arq::SequenceNumber)> ackMsg{};
-        arq::serialiseSeqNum(pktHdr.sequenceNumber_, ackMsg);
-
-        dataChannel.sendTo(ackMsg, config.common.serverNames.hostName, config.common.serverNames.serviceName);
-    }
-
-    // Send ACKs until EOT received
+    // Use rxer.getPacket to get all sent packets...
 }
 
 int main(int argc, char** argv)

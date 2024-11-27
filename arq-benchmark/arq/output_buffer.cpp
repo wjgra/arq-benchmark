@@ -7,7 +7,12 @@ bool arq::OutputBuffer::addPacket(arq::DataPacket&& packet)
     const auto hdr = packet.getHeader();
     if (hdr.sequenceNumber_ == nextSequenceNumber_) {
         ++nextSequenceNumber_;
-        util::logDebug("Adding packet with SN {} to OB", hdr.sequenceNumber_);
+        if (packet.isEndOfTx()) {
+            util::logInfo("Pushed End of Tx packet with SN {} to OB", hdr.sequenceNumber_);
+        }
+        else {
+            util::logInfo("Pushed packet with SN {} to OB", hdr.sequenceNumber_);
+        }
     }
     else {
         util::logDebug("OB rejected packet with SN {} (expected {})", hdr.sequenceNumber_, nextSequenceNumber_);

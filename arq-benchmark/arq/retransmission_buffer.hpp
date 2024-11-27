@@ -33,7 +33,7 @@ concept has_acknowledgePacket = requires(T t, const SequenceNumber seqNum) {
     { t.do_acknowledgePacket(seqNum) } -> std::same_as<void>;
 };
 // clang-format on
-}
+} // namespace rt
 
 /*
  * A CRTP interface for an ARQ retransmission buffer (RT). This buffer holds

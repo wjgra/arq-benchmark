@@ -26,7 +26,7 @@ private:
     PacketInfo getNextInfo();
 
     util::SafeQueue<TransmitBufferObject> inputPackets_;
-    arq::SequenceNumber lastSequenceNumber_ = 0;
+    arq::SequenceNumber lastSequenceNumber_ = firstSequenceNumber - 1;
 };
 
 } // namespace arq

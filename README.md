@@ -5,22 +5,22 @@
 ## Overview
 This project is a work-in-progress, with further details TBC! In short, this repository relates to the [Automatic Repeat Request](https://en.wikipedia.org/wiki/Automatic_repeat_request) scheme for sending data over unreliable networks. The rough goal is to a) write a basic ARQ library for sending packets over UDP connections and b) compare this with both TCP connections and an existing ARQ library, [KCP](https://github.com/skywind3000/kcp/tree/master), in a series of performance benchmarks.
 ## Project structure
-Below is a general overview of the repo as it currently stands.
+A brief overview of the files this repo is shown below.
 ```
 arq-benchmark
  |--> arq
        |--> retransmission_buffers
              |--> stop_and_wait_rt.hpp/cpp
        |--> resequencing_buffers
-             |--> stop_and_wait_rs.hpp/cpp - implementation ongoing
+             |--> stop_and_wait_rs.hpp/cpp
        |--> control_packet.hpp/cpp
        |--> conversation_id.hpp/cpp
        |--> data_packet.hpp/cpp
        |--> input_buffer.hpp/cpp
        |--> launcher.cpp
-       |--> output_buffer.hpp/cpp - implementation ongoing
-       |--> receiver.hpp - implementation ongoing
-       |--> retransmission_buffer.hpp - implementation ongoing
+       |--> output_buffer.hpp/cpp
+       |--> receiver.hpp
+       |--> retransmission_buffer.hpp
        |--> rx_buffer_object.hpp
        |--> transmitter.hpp
        |--> tx_buffer_object.hpp
