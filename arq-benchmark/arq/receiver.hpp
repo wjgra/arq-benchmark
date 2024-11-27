@@ -2,6 +2,7 @@
 #define _ARQ_RECEIVER_HPP_
 
 #include "arq/conversation_id.hpp"
+#include "arq/resequencing_buffer.hpp"
 
 namespace arq {
 

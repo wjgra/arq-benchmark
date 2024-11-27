@@ -4,6 +4,7 @@
 #include "arq/tx_buffer_object.hpp"
 
 namespace arq {
+namespace rt {
 
 // Enforce CRTP requirements using statically checked concepts
 // clang-format off
@@ -32,6 +33,7 @@ concept has_acknowledgePacket = requires(T t, const SequenceNumber seqNum) {
     { t.do_acknowledgePacket(seqNum) } -> std::same_as<void>;
 };
 // clang-format on
+}
 
 /*
  * A CRTP interface for an ARQ retransmission buffer (RT). This buffer holds
@@ -45,11 +47,11 @@ public:
     RetransmissionBuffer()
     {
         static_assert(std::derived_from<T, RetransmissionBuffer>);
-        static_assert(has_addPacket<T>);
-        static_assert(has_getPacketData<T>);
-        static_assert(has_readyForNewPacket<T>);
-        static_assert(has_packetsPending<T>);
-        static_assert(has_acknowledgePacket<T>);
+        static_assert(rt::has_addPacket<T>);
+        static_assert(rt::has_getPacketData<T>);
+        static_assert(rt::has_readyForNewPacket<T>);
+        static_assert(rt::has_packetsPending<T>);
+        static_assert(rt::has_acknowledgePacket<T>);
     }
 
     // Add a packet to the retransmission buffer

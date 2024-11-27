@@ -8,6 +8,7 @@
 #include "arq/sequence_number.hpp"
 
 namespace arq {
+namespace rs {
 
 // Enforce CRTP requirements using statically checked concepts
 // clang-format off
@@ -31,6 +32,7 @@ concept has_getNextAck = requires(T t) {
     { t.do_getNextAck() } -> std::same_as<std::optional<SequenceNumber>>;
 };
 // clang-format on
+}
 
 /*
  * A CRTP interface for an ARQ resequencing buffer (RS). This buffer holds packets
@@ -44,10 +46,10 @@ public:
     ResequencingBuffer()
     {
         static_assert(std::derived_from<T, ResequencingBuffer>);
-        static_assert(has_addPacket<T>);
-        static_assert(has_packetsPending<T>);
-        static_assert(has_getNextPacket<T>);
-        static_assert(has_getNextAck<T>);
+        static_assert(rs::has_addPacket<T>);
+        static_assert(rs::has_packetsPending<T>);
+        static_assert(rs::has_getNextPacket<T>);
+        static_assert(rs::has_getNextAck<T>);
     }
 
     // Add a packet to the resequencing buffer
