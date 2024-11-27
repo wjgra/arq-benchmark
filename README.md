@@ -10,17 +10,17 @@ Below is a general overview of the repo as it currently stands.
 arq-benchmark
  |--> arq
        |--> retransmission_buffers
-             |--> stop_and_wait_rt.hpp/cpp - implementation ongoing
+             |--> stop_and_wait_rt.hpp/cpp
        |--> resequencing_buffers
              |--> stop_and_wait_rs.hpp/cpp - implementation ongoing
        |--> control_packet.hpp/cpp
        |--> conversation_id.hpp/cpp
        |--> data_packet.hpp/cpp
-       |--> input_buffer.hpp/cpp - implementation ongoing
+       |--> input_buffer.hpp/cpp
        |--> launcher.cpp
        |--> output_buffer.hpp/cpp - implementation ongoing
        |--> receiver.hpp - implementation ongoing
-       |--> transmitter.hpp - implementation ongoing
+       |--> transmitter.hpp
        |--> tx_buffer_object.hpp
        |--> tests
              |--> control_packet_test.cpp

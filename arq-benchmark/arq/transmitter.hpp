@@ -46,6 +46,8 @@ public:
     void sendPacket(arq::DataPacket&& packet) { inputBuffer_.addPacket(std::move(packet)); }
 
 private:
+    // The transmit thread handles transmission and retransmission of all packets. It continues
+    // running until an end of transmission (EoT) packet has been transmitted and acknowledged.
     void transmitThread()
     {
         util::logInfo("Transmitter Tx thread started");
@@ -61,10 +63,10 @@ private:
         };
 
         while (!endOfTxSeqNum_.has_value() || retransmissionBuffer_->packetsPending()) {
-            auto pkt =
-                retransmissionBuffer_
-                    ->getPacketData(); // WJG: If an ACK is received for a packet during retransmission, the packet can
-                                       // be freed whilst transmission is in progress. Consider ownership.
+            // WJG: If an ACK is received for a packet during retransmission, the packet can
+            // be freed whilst transmission is in progress. Consider ownership (shared_ptr?).
+            auto pkt = retransmissionBuffer_->getPacketData();
+
             if (pkt.has_value()) {
                 DataPacketHeader hdr;
                 hdr.deserialise(pkt.value());
@@ -75,8 +77,7 @@ private:
             }
             else if (!endOfTxSeqNum_.has_value() && retransmissionBuffer_->readyForNewPacket()) {
                 auto nextPkt = inputBuffer_.getPacket();
-                if (nextPkt.packet_.isEndOfTx()) { // consider making isEndOfTx
-                                                   // a fn of the buffer object
+                if (nextPkt.packet_.isEndOfTx()) { // consider making isEndOfTx a fn of the buffer object
                     util::logInfo("Transmitter received end of EndofTx");
                     endOfTxSeqNum_ = nextPkt.info_.sequenceNumber_;
                 }
@@ -92,19 +93,22 @@ private:
         util::logInfo("Transmitter Tx thread exited");
     }
 
+    // The acknowledgement thread handles ACKs received at the transmitter from the receiver. It runs until
+    // an ACK is received for an EoT packet.
     void ackThread()
     {
         util::logInfo("Transmitter ACK thread started");
-        // Temporary implementation
+
         std::array<std::byte, arq::MAX_TRANSMISSION_UNIT> recvBuffer;
         while (true) {
             auto ret = rxFn_(recvBuffer);
             if (ret.has_value()) {
-                arq::SequenceNumber seqNum;
-                if (arq::deserialiseSeqNum(seqNum, recvBuffer)) {
-                    util::logInfo("Received ACK for SN {}", seqNum);
-                    retransmissionBuffer_->acknowledgePacket(seqNum);
-                    if (seqNum == endOfTxSeqNum_) {
+                arq::SequenceNumber rxedSeqNum;
+                if (arq::deserialiseSeqNum(rxedSeqNum, recvBuffer)) {
+                    util::logInfo("Received ACK for SN {}", rxedSeqNum);
+                    retransmissionBuffer_->acknowledgePacket(rxedSeqNum);
+
+                    if (rxedSeqNum == endOfTxSeqNum_) {
                         util::logInfo("Received ACK that corresponds to end of transmission");
                         break;
                     }
