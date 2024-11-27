@@ -25,7 +25,8 @@ public:
         rxFn_{rxFn},
         resequencingBuffer_{std::move(rsBuffer_p)},
         receiveThread_{[this]() { return this->receiveThread(); }},
-        resequencingThread_{[this]() { return this->resequencingThread(); }} {};
+        resequencingThread_{[this]() { return this->resequencingThread(); }},
+        endOfTxSeqNum_{std::nullopt} {};
 
     ~Receiver()
     {
@@ -45,8 +46,8 @@ private:
     // both an EoT packet has been received and no packets are present in the RS buffer.
     void receiveThread()
     {
-        bool rxEndOfTx = false;
-        while (!rxEndOfTx) {
+        // bool rxEndOfTx = false;
+        while (resequencingBuffer_->packetsPending() || endOfTxSeqNum_.has_value() == false) {
             std::array<std::byte, arq::DATA_PKT_MAX_PAYLOAD_SIZE> recvBuffer;
             util::logDebug("Waiting for a data packet");
             auto ret = rxFn_(recvBuffer);
@@ -54,21 +55,22 @@ private:
 
             util::logDebug("Received {} bytes of data", ret.value());
 
-            arq::ReceiveBufferObject pkt{.packet_{recvBuffer}, .rxTime_ = ClockType::now()};
+            // arq::ReceiveBufferObject pkt{.packet_{recvBuffer}, .rxTime_ = ClockType::now()};
 
-            // arq::DataPacket packet(recvBuffer);
-            auto pktHdr = pkt.packet_.getHeader();
+            arq::DataPacket packet(recvBuffer);
+            auto pktHdr = packet.getHeader();
             util::logInfo("Received data packet with length {} and SN {}", pktHdr.length_, pktHdr.sequenceNumber_);
 
-            if (pkt.packet_.isEndOfTx()) {
-                rxEndOfTx = true;
+            if (packet.isEndOfTx()) {
+                // rxEndOfTx = true;
+                endOfTxSeqNum_ = pktHdr.sequenceNumber_;
             }
 
             // add to rs
-            resequencingBuffer_->addPacket(std::move(pkt));
+            auto ack = resequencingBuffer_->addPacket(std::move(packet));
 
             // ack
-            auto ack = resequencingBuffer_->getNextAck();
+            // auto ack = resequencingBuffer_->getNextAck();
             if (ack.has_value()) {
                 util::logInfo("Sending ACK for packet with SN {}", ack.value());
                 arq::ControlPacket ctrlPkt = {.sequenceNumber_ = ack.value()};
@@ -89,15 +91,25 @@ private:
 
             // dataChannel.sendTo(ackMsg, config.common.serverNames.hostName, config.common.serverNames.serviceName);
         }
+        util::logInfo("Receiver Rx thread exited");
     }
 
     // The resequencing thread delivers packets to the output buffer. It continues until
     // an EoT packet has been delivered to the output buffer.
-    void resequencingThread() {
-        while (true){ // add end condition
-            resequencingBuffer_->getNextPacket();
+    void resequencingThread()
+    {
+        while (resequencingBuffer_->packetsPending() || endOfTxSeqNum_.has_value() == false) {
+            // auto pkt = resequencingBuffer_->getNextPacket();
+
+            // auto hdr = pkt.getHeader();
+
+            outputBuffer_.addPacket(resequencingBuffer_->getNextPacket()); // output ?
+            // if (hdr.sequenceNumber_ == endOfTxSeqNum_) {
+            //     util::logInfo("Pushed End of Tx packet (SN {}) to output buffer", hdr.sequenceNumber_);
+            // }
         }
-     }
+        util::logInfo("Receiver resequencing thread exited"); // output thread?
+    }
 
     // Identifies the current conversation (TO DO: issue #24)
     ConversationID id_;
@@ -115,6 +127,7 @@ private:
     std::thread resequencingThread_;
     // If an EoT has been received, store the SN here
     std::optional<SequenceNumber> endOfTxSeqNum_;
+    // If an EoT has been received, store time of last packet reception
 };
 
 } // namespace arq

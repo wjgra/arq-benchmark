@@ -100,7 +100,7 @@ private:
         util::logInfo("Transmitter ACK thread started");
 
         std::array<std::byte, arq::MAX_TRANSMISSION_UNIT> recvBuffer;
-        while (true) {
+        while (true) { // WJG: add timeout if no ACKs Rx'd in certain window after EoT has been Tx'd
             auto ret = rxFn_(recvBuffer);
             if (ret.has_value()) {
                 arq::SequenceNumber rxedSeqNum;

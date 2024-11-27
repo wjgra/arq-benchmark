@@ -14,9 +14,9 @@ public:
     StopAndWait(const std::chrono::microseconds finalTimeout);
 
     // Standard functions required by RetransmissionBuffer CRTP interface
-    std::optional<SequenceNumber> do_addPacket(ReceiveBufferObject&& packet);
+    std::optional<SequenceNumber> do_addPacket(DataPacket&& packet);
     bool do_packetsPending() const noexcept;
-    ReceiveBufferObject do_getNextPacket();
+    DataPacket do_getNextPacket();
     // std::optional<SequenceNumber> do_getNextAck();
 
 private:
@@ -24,7 +24,7 @@ private:
     // the expected packet, it is ignored.
     SequenceNumber expectedPacketSeqNum_;
     // The packet to deliver to the output buffer.
-    std::optional<ReceiveBufferObject> packetForDelivery_;
+    std::optional<DataPacket> packetForDelivery_;
     // Protect the next Packet and next packet sequence number
     mutable std::mutex rsPacketMutex_;
     // If no packet is ready for delivery, wait on this CV until one is.
@@ -34,6 +34,8 @@ private:
     // Once an ACK for the EoT packet has been transmitted, if no packets are received for the
     // duration of the timeout, terminate the RS buffer. WJG: how to link to receiver?
     std::chrono::microseconds finalTimeout_;
+
+    bool endOfTxPushed = false;
 };
 
 } // namespace rs
