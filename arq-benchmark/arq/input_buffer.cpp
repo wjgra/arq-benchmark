@@ -8,7 +8,7 @@ void arq::InputBuffer::addPacket(arq::DataPacket&& packet)
     // Add info to packet header
     temp.packet_.updateSequenceNumber(temp.info_.sequenceNumber_);
 
-    util::logDebug("Adding packet with SN {} to IB", temp.info_.sequenceNumber_);
+    std::println("Adding packet with SN {} to IB at time {}", temp.info_.sequenceNumber_, temp.info_.firstTxTime_);
 
     // Add packet to buffer
     inputPackets_.push(std::move(temp));

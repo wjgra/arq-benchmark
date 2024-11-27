@@ -8,7 +8,7 @@
 
 namespace arq {
 
-using ClockType = std::chrono::steady_clock;
+using ClockType = std::chrono::high_resolution_clock;
 
 using TransmitFn = std::function<std::optional<size_t>(std::span<const std::byte> buffer)>;
 using ReceiveFn = std::function<std::optional<size_t>(std::span<std::byte> buffer)>;
