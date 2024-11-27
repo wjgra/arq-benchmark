@@ -76,6 +76,9 @@ public:
     std::span<const std::byte> getHeaderReadSpan() const noexcept;
     std::span<const std::byte> getPayloadReadSpan() const noexcept;
 
+    // Get a checksum of the packet, including the header
+    uint32_t getCheckSum() const noexcept; // To implement: issue #23
+
     bool operator==(const DataPacket& other) const = default;
 
 private:
