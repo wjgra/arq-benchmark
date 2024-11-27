@@ -82,11 +82,15 @@ ip netns exec ${client_ns} ip route add ${server_addr} dev ${client_veth}
 ip netns exec ${server_ns} tc qdisc add dev ${server_veth} root netem delay ${tx_delay} loss ${tx_loss}
 ip netns exec ${client_ns} tc qdisc add dev ${client_veth} root netem delay ${tx_delay} loss ${tx_loss}
 
+common_opts="--logging ${logging_level} --client-addr ${client_addr} --server-addr ${server_addr}"
+
 # Start server
-tmux new-session -d -s "arq" -n "server" "ip netns exec ${server_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher --launch-server --logging ${logging_level} --client-addr ${client_addr} --server-addr ${server_addr} --tx-pkt-num ${pkt_num} --tx-pkt-interval ${pkt_interval}; read"
+tmux new-session -d -s "arq" -n "server" "ip netns exec ${server_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher \
+--launch-server ${common_opts} --tx-pkt-num ${pkt_num} --tx-pkt-interval ${pkt_interval}; read"
 
 # Start client
-tmux new-window -t "arq" -n "client" "ip netns exec ${client_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher --launch-client --logging ${logging_level} --client-addr ${client_addr} --server-addr ${server_addr}; read"
+tmux new-window -t "arq" -n "client" "ip netns exec ${client_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher \
+--launch-client ${common_opts}; read"
 
 tmux set-option -t "arq" -g mouse
 tmux attach-session -t "arq"
