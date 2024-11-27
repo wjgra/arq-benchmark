@@ -32,7 +32,7 @@ concept has_getNextAck = requires(T t) {
     { t.do_getNextAck() } -> std::same_as<std::optional<SequenceNumber>>;
 };
 // clang-format on
-}
+} // namespace rs
 
 /*
  * A CRTP interface for an ARQ resequencing buffer (RS). This buffer holds packets
