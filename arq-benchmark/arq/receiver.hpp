@@ -4,9 +4,12 @@
 #include <memory>
 #include <thread>
 
+#include "arq/arq_common.hpp"
+#include "arq/control_packet.hpp"
 #include "arq/conversation_id.hpp"
 #include "arq/output_buffer.hpp"
 #include "arq/resequencing_buffer.hpp"
+#include "util/logging.hpp"
 
 namespace arq {
 
@@ -35,12 +38,66 @@ public:
     }
 
     // If a packet is available, get the next packet from the output buffer.
-    std::optional<ReceiveBufferObject> tryGetPacket();
+    std::optional<ReceiveBufferObject> tryGetPacket() { return outputBuffer_.tryGetPacket(); }
 
 private:
-    void receiveThread() {}
+    // The receive thread handles reception of packets from the transmitter. It continues until
+    // both an EoT packet has been received and no packets are present in the RS buffer.
+    void receiveThread()
+    {
+        bool rxEndOfTx = false;
+        while (!rxEndOfTx) {
+            std::array<std::byte, arq::DATA_PKT_MAX_PAYLOAD_SIZE> recvBuffer;
+            util::logDebug("Waiting for a data packet");
+            auto ret = rxFn_(recvBuffer);
+            assert(ret.has_value());
 
-    void resequencingThread() {}
+            util::logDebug("Received {} bytes of data", ret.value());
+
+            arq::ReceiveBufferObject pkt{.packet_{recvBuffer}, .rxTime_ = ClockType::now()};
+
+            // arq::DataPacket packet(recvBuffer);
+            auto pktHdr = pkt.packet_.getHeader();
+            util::logInfo("Received data packet with length {} and SN {}", pktHdr.length_, pktHdr.sequenceNumber_);
+
+            if (pkt.packet_.isEndOfTx()) {
+                rxEndOfTx = true;
+            }
+
+            // add to rs
+            resequencingBuffer_->addPacket(std::move(pkt));
+
+            // ack
+            auto ack = resequencingBuffer_->getNextAck();
+            if (ack.has_value()) {
+                util::logInfo("Sending ACK for packet with SN {}", ack.value());
+                arq::ControlPacket ctrlPkt = {.sequenceNumber_ = ack.value()};
+                std::array<std::byte, sizeof(arq::ControlPacket)> sendBuffer;
+
+                auto ret2 = ctrlPkt.serialise(sendBuffer);
+                if (!ret2) {
+                    util::logError("Failed to serialise control packet");
+                }
+                else {
+                    txFn_(sendBuffer);
+                    util::logDebug("Sent {} bytes", sendBuffer.size());
+                }
+            }
+
+            // std::array<std::byte, sizeof(arq::SequenceNumber)> ackMsg{};
+            // arq::serialiseSeqNum(pktHdr.sequenceNumber_, ackMsg);
+
+            // dataChannel.sendTo(ackMsg, config.common.serverNames.hostName, config.common.serverNames.serviceName);
+        }
+    }
+
+    // The resequencing thread delivers packets to the output buffer. It continues until
+    // an EoT packet has been delivered to the output buffer.
+    void resequencingThread() {
+        while (true){ // add end condition
+            resequencingBuffer_->getNextPacket();
+        }
+     }
 
     // Identifies the current conversation (TO DO: issue #24)
     ConversationID id_;

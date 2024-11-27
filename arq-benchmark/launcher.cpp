@@ -321,9 +321,6 @@ static void startReceiver(arq::config_Launcher& config /* why not const? */)
     const arq::config_AddressInfo& txerAddress = config.common.serverNames;
     const arq::config_AddressInfo& rxerAddress = config.common.clientNames;
 
-    // Temp receiver implementation
-
-    // Receive packet and assert len
     util::Endpoint dataChannel(rxerAddress.hostName, rxerAddress.serviceName, util::SocketType::UDP);
 
     arq::TransmitFn txToServer = [&dataChannel, &txerAddress](std::span<const std::byte> buffer) {
@@ -335,6 +332,7 @@ static void startReceiver(arq::config_Launcher& config /* why not const? */)
     using namespace std::chrono_literals;
     arq::Receiver rxer(convID, txToServer, rxFromServer, std::make_unique<arq::rs::StopAndWait>(1000ms));
 
+    // Temp receiver implementation
     // usleep(1000);
 
     // bool rxEndOfTx = false;

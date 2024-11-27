@@ -7,6 +7,8 @@
 namespace arq {
 using SequenceNumber = uint16_t;
 
+constexpr SequenceNumber firstSequenceNumber = 1;
+
 // Serialises sequenceNumber to the buffer
 bool serialiseSeqNum(const SequenceNumber sequenceNumber, std::span<std::byte> buffer) noexcept;
 
