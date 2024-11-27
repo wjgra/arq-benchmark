@@ -24,10 +24,12 @@ pkt_num="30"
 pkt_interval="10"
 
 logging_level="4"
+log_dir="/home/wjgra/repos/arq-benchmark/logs"
+log_file="arqlog.txt"
 
 usage() { echo "Usage: $0 [-d <tc delay arg string>] [-l <tc loss arg string>] [-n <number of pkts to tx>] [-i <interval between tx pkts> ] [-w <logging level>] [-h]" 1>&2; }
 
-while getopts "d:l:n:i:w:h" opt; do
+while getopts "d:l:n:i:w:f:h" opt; do
     case ${opt} in
         d)
             tx_delay=${OPTARG}
@@ -46,6 +48,9 @@ while getopts "d:l:n:i:w:h" opt; do
         w)
             logging_level=${OPTARG}
             ;;
+        f)
+            log_file=${OPTARG}
+            ;;
         h) 
             usage
             exit 0
@@ -57,6 +62,12 @@ while getopts "d:l:n:i:w:h" opt; do
     esac
 done
 shift $((OPTIND-1))
+
+# Clean up old logs
+client_log="${log_dir}/client_${log_file}"
+server_log="${log_dir}/server_${log_file}"
+rm -f ${client_log} || true
+rm -f ${server_log} || true
 
 # Clean up old namespaces
 ip netns delete ${server_ns} || true
@@ -85,12 +96,12 @@ ip netns exec ${client_ns} tc qdisc add dev ${client_veth} root netem delay ${tx
 common_opts="--logging ${logging_level} --client-addr ${client_addr} --server-addr ${server_addr}"
 
 # Start server
-tmux new-session -d -s "arq" -n "server" "ip netns exec ${server_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher \
---launch-server ${common_opts} --tx-pkt-num ${pkt_num} --tx-pkt-interval ${pkt_interval}; read"
+tmux new-session -d -s "arq" -n "server" "stdbuf -o0 ip netns exec ${server_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher \
+--launch-server ${common_opts} --tx-pkt-num ${pkt_num} --tx-pkt-interval ${pkt_interval} | tee ${server_log}"
 
 # Start client
-tmux new-window -t "arq" -n "client" "ip netns exec ${client_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher \
---launch-client ${common_opts}; read"
+tmux new-window -t "arq" -n "client" "stdbuf -o0 ip netns exec ${client_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher \
+--launch-client ${common_opts} | tee ${client_log}"
 
 tmux set-option -t "arq" -g mouse
 tmux attach-session -t "arq"
