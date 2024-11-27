@@ -323,6 +323,7 @@ static void startReceiver(arq::config_Launcher& config /* why not const? */)
 
     util::Endpoint dataChannel(rxerAddress.hostName, rxerAddress.serviceName, util::SocketType::UDP);
 
+    // WJG: same considerations apply here as in Transmitter
     arq::TransmitFn txToServer = [&dataChannel, &txerAddress](std::span<const std::byte> buffer) {
         return dataChannel.sendTo(buffer, txerAddress.hostName, txerAddress.serviceName);
     };
@@ -330,37 +331,9 @@ static void startReceiver(arq::config_Launcher& config /* why not const? */)
     arq::ReceiveFn rxFromServer = [&dataChannel](std::span<std::byte> buffer) { return dataChannel.recvFrom(buffer); };
 
     using namespace std::chrono_literals;
-    arq::Receiver rxer(convID, txToServer, rxFromServer, std::make_unique<arq::rs::StopAndWait>(1000ms));
+    arq::Receiver rxer(convID, txToServer, rxFromServer, std::make_unique<arq::rs::StopAndWait>());
 
-    // Temp receiver implementation
-    // usleep(1000);
-
-    // bool rxEndOfTx = false;
-    // while (!rxEndOfTx) {
-    //     std::array<std::byte, arq::DATA_PKT_MAX_PAYLOAD_SIZE> recvBuffer;
-    //     util::logDebug("Waiting for a data packet");
-    //     auto ret = dataChannel.recvFrom(recvBuffer);
-    //     assert(ret.has_value());
-
-    //     util::logDebug("Received {} bytes of data", ret.value());
-
-    //     arq::DataPacket packet(recvBuffer);
-    //     auto pktHdr = packet.getHeader();
-    //     util::logInfo("Received data packet with length {} and SN {}", pktHdr.length_, pktHdr.sequenceNumber_);
-
-    //     if (packet.isEndOfTx()) {
-    //         rxEndOfTx = true;
-    //     }
-
-    //     util::logInfo("Sending ACK for packet with SN {}", pktHdr.sequenceNumber_);
-
-    //     std::array<std::byte, sizeof(arq::SequenceNumber)> ackMsg{};
-    //     arq::serialiseSeqNum(pktHdr.sequenceNumber_, ackMsg);
-
-    //     dataChannel.sendTo(ackMsg, config.common.serverNames.hostName, config.common.serverNames.serviceName);
-    // }
-
-    // Send ACKs until EOT received
+    // Use rxer.getPacket to get all sent packets...
 }
 
 int main(int argc, char** argv)

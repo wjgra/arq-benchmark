@@ -46,50 +46,42 @@ private:
     // both an EoT packet has been received and no packets are present in the RS buffer.
     void receiveThread()
     {
-        // bool rxEndOfTx = false;
-        while (resequencingBuffer_->packetsPending() || endOfTxSeqNum_.has_value() == false) {
+        while (resequencingBuffer_->packetsPending() == true || endOfTxSeqNum_.has_value() == false) {
             std::array<std::byte, arq::DATA_PKT_MAX_PAYLOAD_SIZE> recvBuffer;
             util::logDebug("Waiting for a data packet");
-            auto ret = rxFn_(recvBuffer);
-            assert(ret.has_value());
+            auto bytesRxed = rxFn_(recvBuffer);
 
-            util::logDebug("Received {} bytes of data", ret.value());
+            if (bytesRxed.has_value() == false || bytesRxed == 0) {
+                // No data received
+                continue;
+            }
 
-            // arq::ReceiveBufferObject pkt{.packet_{recvBuffer}, .rxTime_ = ClockType::now()};
+            util::logDebug("Received {} bytes of data", bytesRxed.value());
 
             arq::DataPacket packet(recvBuffer);
             auto pktHdr = packet.getHeader();
             util::logInfo("Received data packet with length {} and SN {}", pktHdr.length_, pktHdr.sequenceNumber_);
 
             if (packet.isEndOfTx()) {
-                // rxEndOfTx = true;
                 endOfTxSeqNum_ = pktHdr.sequenceNumber_;
             }
 
-            // add to rs
+            // Add packet to RS and send an ACK if needed
             auto ack = resequencingBuffer_->addPacket(std::move(packet));
 
-            // ack
-            // auto ack = resequencingBuffer_->getNextAck();
             if (ack.has_value()) {
                 util::logInfo("Sending ACK for packet with SN {}", ack.value());
                 arq::ControlPacket ctrlPkt = {.sequenceNumber_ = ack.value()};
                 std::array<std::byte, sizeof(arq::ControlPacket)> sendBuffer;
 
-                auto ret2 = ctrlPkt.serialise(sendBuffer);
-                if (!ret2) {
-                    util::logError("Failed to serialise control packet");
-                }
-                else {
+                if (ctrlPkt.serialise(sendBuffer)) {
                     txFn_(sendBuffer);
                     util::logDebug("Sent {} bytes", sendBuffer.size());
                 }
+                else {
+                    util::logError("Failed to serialise control packet");
+                }
             }
-
-            // std::array<std::byte, sizeof(arq::SequenceNumber)> ackMsg{};
-            // arq::serialiseSeqNum(pktHdr.sequenceNumber_, ackMsg);
-
-            // dataChannel.sendTo(ackMsg, config.common.serverNames.hostName, config.common.serverNames.serviceName);
         }
         util::logInfo("Receiver Rx thread exited");
     }
@@ -99,14 +91,8 @@ private:
     void resequencingThread()
     {
         while (resequencingBuffer_->packetsPending() || endOfTxSeqNum_.has_value() == false) {
-            // auto pkt = resequencingBuffer_->getNextPacket();
-
-            // auto hdr = pkt.getHeader();
-
-            outputBuffer_.addPacket(resequencingBuffer_->getNextPacket()); // output ?
-            // if (hdr.sequenceNumber_ == endOfTxSeqNum_) {
-            //     util::logInfo("Pushed End of Tx packet (SN {}) to output buffer", hdr.sequenceNumber_);
-            // }
+            outputBuffer_.addPacket(
+                resequencingBuffer_->getNextPacket()); // WJG: consider checking return value and logging
         }
         util::logInfo("Receiver resequencing thread exited"); // output thread?
     }
@@ -121,9 +107,9 @@ private:
     OutputBuffer outputBuffer_;
     // Store packets that have been received but not yet pushed to the output buffer
     std::unique_ptr<RSBufferType> resequencingBuffer_;
-    //
+    // Thread handling data packet reception
     std::thread receiveThread_;
-    //
+    // Thread handling pushing data packets to the output buffer
     std::thread resequencingThread_;
     // If an EoT has been received, store the SN here
     std::optional<SequenceNumber> endOfTxSeqNum_;

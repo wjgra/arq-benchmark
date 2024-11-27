@@ -11,7 +11,7 @@ namespace rs {
 
 class StopAndWait : public ResequencingBuffer<StopAndWait> {
 public:
-    StopAndWait(const std::chrono::microseconds finalTimeout);
+    StopAndWait();
 
     // Standard functions required by RetransmissionBuffer CRTP interface
     std::optional<SequenceNumber> do_addPacket(DataPacket&& packet);
@@ -29,12 +29,7 @@ private:
     mutable std::mutex rsPacketMutex_;
     // If no packet is ready for delivery, wait on this CV until one is.
     std::condition_variable rsPacketCv_;
-    // The next ACK for delivery to the transmitter.
-    // std::optional<SequenceNumber> nextAck_;
-    // Once an ACK for the EoT packet has been transmitted, if no packets are received for the
-    // duration of the timeout, terminate the RS buffer. WJG: how to link to receiver?
-    std::chrono::microseconds finalTimeout_;
-
+    // Has an EoT packet been pushed to the OB?
     bool endOfTxPushed = false;
 };
 

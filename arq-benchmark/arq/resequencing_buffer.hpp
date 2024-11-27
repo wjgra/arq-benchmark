@@ -26,11 +26,6 @@ template <typename T>
 concept has_getNextPacket = requires(T t) {
     { t.do_getNextPacket() } -> std::same_as<DataPacket>;
 };
-
-// template <typename T>
-// concept has_getNextAck = requires(T t) {
-//     { t.do_getNextAck() } -> std::same_as<std::optional<SequenceNumber>>;
-// };
 // clang-format on
 } // namespace rs
 
@@ -49,7 +44,6 @@ public:
         static_assert(rs::has_addPacket<T>);
         static_assert(rs::has_packetsPending<T>);
         static_assert(rs::has_getNextPacket<T>);
-        // static_assert(rs::has_getNextAck<T>);
     }
 
     // Add a packet to the resequencing buffer. Optionally returns a SN to be sent to the transmitter as an ACK
@@ -63,9 +57,6 @@ public:
 
     // Retrieve the next packet from the buffer. If no packet is available, block until one is.
     DataPacket getNextPacket() { return static_cast<T*>(this)->do_getNextPacket(); }
-
-    // Get the next sequence number to be transmitter as an ACK.
-    // std::optional<SequenceNumber> getNextAck() { return static_cast<T*>(this)->do_getNextAck(); }
 };
 
 } // namespace arq
