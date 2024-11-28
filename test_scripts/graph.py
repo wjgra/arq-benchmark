@@ -3,6 +3,7 @@
 import dateutil.parser as dparser
 import matplotlib
 import re
+import sys
 
 def parse_logfile(directory, first_match_str, second_match_str, output = False):
     """
@@ -53,10 +54,34 @@ def parse_client_logfile(directory, output = False):
     """
     return parse_logfile(directory, "Pushed packet with SN (.+?) to OB", " to OB at time (.+?)$", output)
 
-def main():
-    parse_server_logfile("/home/wjgra/repos/arq-benchmark/logs/server_arqlog.txt")
+def validate_time_series_data(server_time_series, client_time_series):
+    # ARQ gives a reliable connection, so the number and sequence of packets should match exactly
+    if len(server_time_series) != len(client_time_series):
+        print(f"len(server_time_series) ({server_time_series}) != len(client_time_series) ({client_time_series})")
+        return 1
+    
+    for server, client in zip(server_time_series, client_time_series):
+        # Check sequence numbers
+        if server[0] != client[0]:
+            print(f"Server SN {server[0]} does not match client SN {client[0]}")
+            return 1
+        
+        # Check OB timestamp does not precede IB timestamp
+        if server[1] > client[1]:
+            print(f"SN {client[0]}: OB timestamp ({client[1]}) precedes IB timestamp ({server[1]})")
+            return 1
+    
+    return 0
 
-    parse_client_logfile("/home/wjgra/repos/arq-benchmark/logs/client_arqlog.txt")
+
+def main():
+    # Extract ARQ time series data
+    server_time_series = parse_server_logfile("/home/wjgra/repos/arq-benchmark/logs/server_arqlog.txt")
+    client_time_series = parse_client_logfile("/home/wjgra/repos/arq-benchmark/logs/client_arqlog.txt")
+
+    if validate_time_series_data(server_time_series, client_time_series) != 0:
+        print("Failed to validate time series data")
+        return 1
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
