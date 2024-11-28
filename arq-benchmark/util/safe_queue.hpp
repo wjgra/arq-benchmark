@@ -47,11 +47,17 @@ public:
         }
     }
 
+    bool empty() const
+    {
+        std::unique_lock<std::mutex> lock(mut_);
+        return queue_.empty();
+    }
+
 private:
     // Underlying queue data
     std::queue<T> queue_;
     // Mutex which must be held to modify the queue
-    std::mutex mut_;
+    mutable std::mutex mut_;
     // CV to enforce wait when popping from empty queue
     std::condition_variable cv_;
 };

@@ -18,6 +18,7 @@ server_addr="10.0.0.1"
 client_addr="10.0.0.2"
 
 arq_timeout="50" # ms
+arq_protocol="dummy-tcp" # Options: "dummy-tcp", "stop-and-wait", "sliding-window" and "selective-repeat"
 
 tx_delay="100ms"
 tx_loss="random 1%"
@@ -31,7 +32,7 @@ log_file="arqlog.txt"
 
 usage() { echo "Usage: $0 [-d <tc delay arg string>] [-l <tc loss arg string>] [-n <number of pkts to tx>] [-i <interval between tx pkts> ] [-w <logging level>] [-f <log file>] [-t <ARQ timeout>] [-h]" 1>&2; }
 
-while getopts "d:l:n:i:w:f:t:h" opt; do
+while getopts "d:l:n:i:w:f:t:p:h" opt; do
     case ${opt} in
         d)
             tx_delay=${OPTARG}
@@ -55,6 +56,9 @@ while getopts "d:l:n:i:w:f:t:h" opt; do
             ;;
         t)
             arq_timeout=${OPTARG}
+            ;;
+        p)
+            arq_protocol=${OPTARG}
             ;;
         h) 
             usage
@@ -98,7 +102,7 @@ ip netns exec ${client_ns} ip route add ${server_addr} dev ${client_veth}
 ip netns exec ${server_ns} tc qdisc add dev ${server_veth} root netem delay ${tx_delay} loss ${tx_loss}
 ip netns exec ${client_ns} tc qdisc add dev ${client_veth} root netem delay ${tx_delay} loss ${tx_loss}
 
-common_opts="--logging ${logging_level} --client-addr ${client_addr} --server-addr ${server_addr}"
+common_opts="--logging ${logging_level} --client-addr ${client_addr} --server-addr ${server_addr} --arq-protocol ${arq_protocol} "
 
 # Start server
 tmux new-session -d -s "arq" -n "server" "stdbuf -o0 ip netns exec ${server_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher \

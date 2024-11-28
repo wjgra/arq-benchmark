@@ -7,10 +7,12 @@ set(ARQ_SRCS
     sequence_number.cpp)
 
 set(ARQ_RT_BUFFER_SRCS
-    retransmission_buffers/stop_and_wait_rt.cpp)  
+    retransmission_buffers/stop_and_wait_rt.cpp
+    retransmission_buffers/dummy_tcp_rt.cpp)  
 
 set(ARQ_RS_BUFFER_SRCS
-    resequencing_buffers/stop_and_wait_rs.cpp)
+    resequencing_buffers/stop_and_wait_rs.cpp
+    resequencing_buffers/dummy_tcp_rs.cpp)
 
 add_library(lib_arq ${ARQ_SRCS} ${ARQ_RT_BUFFER_SRCS} ${ARQ_RS_BUFFER_SRCS})
 

@@ -1,0 +1,192 @@
+#include "arq/resequencing_buffers/dummy_tcp_rs.hpp"
+
+#include "util/logging.hpp"
+
+arq::rs::DummyTCP::DummyTCP() {}
+
+std::optional<arq::SequenceNumber> arq::rs::DummyTCP::do_addPacket(DataPacket&& packet)
+{
+    util::logDebug("Received packet of length {} bytes", packet.getReadSpan().size());
+
+    // for (auto ch : packet.getReadSpan()) {
+    //     std::cout << std::to_integer<int>(ch) << " ";
+    // }
+    const auto dataPktLen = arq::packet_length + DataPacketHeader::size();
+
+    const auto hdr = packet.getHeader();
+
+    if (partialPacket_.size() == 0) { // we're receiving the start of a new packet
+        assert(hdr.sequenceNumber_ == nextSn_ && hdr.length_ == arq::packet_length);
+        
+        const auto rxedSize = packet.getReadSpan().size();
+
+
+        // assert(rxedSize >= dataPktLen);
+
+        // for (size_t i = DataPacketHeader::size() ; i < dataPktLen ; ++i) {
+        //     assert(packet.getReadSpan()[i] == std::byte(2));
+        // }
+        
+        assert(rxedSize >= DataPacketHeader::size() );
+        size_t nextIdx = DataPacketHeader::size();
+        // for (size_t i = DataPacketHeader::size() ; i < rxedSize && i < dataPktLen; ++i) {
+
+        // }
+        for (; nextIdx < rxedSize ; ++nextIdx) {
+            if (packet.getReadSpan()[nextIdx] != std::byte(2)) {
+                break; // reached end of packet or fragment
+            }
+        }
+
+        if (nextIdx != dataPktLen) { // this is a fragment, not a whole packet
+            // append fragment to buffer
+            partialPacket_.insert(partialPacket_.end(), packet.getReadSpan().begin() , packet.getReadSpan().begin() + nextIdx);
+
+            return std::nullopt;
+        }
+
+        // bool restEmpty = true;
+        // for (size_t i = dataPktLen ; i < rxedSize ; ++i) {
+        //     if (packet.getReadSpan()[i] != std::byte(0)) {
+        //         restEmpty = false;
+        //     }
+        // }
+        /* size_t */ assert(nextIdx == dataPktLen); // we are at the end of a packet
+        for (; nextIdx < rxedSize ; ++nextIdx) {
+            if (packet.getReadSpan()[nextIdx] != std::byte(0)) {
+                assert(packet.getReadSpan()[nextIdx] == std::byte(1)); // conv ID starts packet
+                break;
+            }
+        }
+
+        if (nextIdx == rxedSize) { // rest of frame is empty
+            shadowBuffer_.push(std::move(packet));
+            ++nextSn_;
+        }
+        else { // there is more in the frame!
+            // for (size_t i = 0 ; i < rxedSize ; ++i) {
+            //     std::cout << std::to_integer<int>(packet.getReadSpan()[i]) << " ";
+            // }
+            // assert(false);
+            auto tempPkt1 = DataPacket( packet.getSpan().subspan(0, nextIdx));
+            shadowBuffer_.push(std::move(tempPkt1));
+            ++nextSn_;
+
+            auto tempPkt = DataPacket( packet.getSpan().subspan(nextIdx));
+            do_addPacket(std::move(tempPkt));
+
+            // for now, assume at most two packets?
+        }
+        // size_t i = DataPacketHeader::size();
+        // for (; i < rxedSize ; ++i) {
+        //     if (packet.getReadSpan()[i] != std::byte(2)) {
+        //         break; 
+        //     }
+        // }
+
+
+
+        // if (i == dataPktLen && ( (rxedSize == dataPktLen) || (packet.getReadSpan()[dataPktLen] == std::byte(0))) ) {
+        //     // we have a whole packet, and nothing else
+        //     shadowBuffer_.push(std::move(packet));
+        //     ++nextSn_;
+        // }
+        // else {
+        //     util::logError("WJG: {} ({})", i, dataPktLen);
+        //     assert(false);
+        // }
+    }
+    else {
+        // we are in the middle of a packet - append what we have and process as above
+        // assert(packet.getReadSpan()[0] == std::byte(2)); // data element
+        if (packet.getReadSpan()[0] != std::byte(2)) {
+            assert(packet.getReadSpan()[0] == std::byte(1)); // conv ID
+            std::cout << "Partial:\n";
+            for (auto el : partialPacket_) {
+                std::cout << std::to_integer<int>(el) << " ";
+
+            }
+            std::cout << "Pkt:\n";
+            for (auto el : packet.getSpan()) {
+                std::cout << std::to_integer<int>(el) << " ";
+
+            }
+            assert(false);
+        }
+        // partialPacket_.insert(partialPacket_.end(), packet.getSpan().begin() , packet.getSpan().end);
+        for (auto el: packet.getSpan()) {
+            partialPacket_.push_back(el);
+        }
+        
+        auto tempPkt = DataPacket(std::span<std::byte>(partialPacket_.begin(), partialPacket_.end()));
+            do_addPacket(std::move(tempPkt));
+        
+        partialPacket_.resize(0);
+    }
+    return std::nullopt;
+
+    /* 
+    if no fragment, we're going to receive start of pkt
+
+    from start of pkt, check SN and len, then count ones
+    if all there, add to buffer
+    if more there, we have another fragment -> push to frag 
+    
+    if not all there, fragment not done -> push to frag
+    
+    if frag, check SN
+
+     */
+
+
+    // if start of pkt in last
+    // if (packetFragments_.size() > 0) {
+    //     const auto fragSize = packetFragments_.size();
+    //     std::vector<std::byte> pktData(dataPktLen);
+    //     std::copy(packetFragments_.begin(), packetFragments_.end(), pktData.begin());
+    //     packetFragments.resize(0);
+
+    //     DataPacket pkt(std::move(pktData));
+
+    //     assert(pkt.getReadSpan().size() == dataPktLen);
+    
+    //     const auto remainder = pkt.getReadSpan().size() - fragSize;
+
+
+    // }
+
+    // if whole pkt in this
+
+    // if recvd + frag > len
+    // if (packet.getHeader().length_ == arq::packet_length) {
+    //     std::vector<std::byte> pktData();
+    // }
+
+    // assert(packet.getHeader().length_ == arq::packet_length);
+
+    // packetFragments_.insert(packetFragments_.end(), packet.getSpan().begin(), packet.getSpan().end());
+
+    // while (packetFragments_.size() >= dataPktLen) {
+    //     std::vector<std::byte> pktData(packetFragments_.begin(), packetFragments_.begin() + dataPktLen);
+    //     packetFragments_.erase(packetFragments_.begin(), packetFragments_.begin() + dataPktLen);
+    //     DataPacket pkt(std::move(pktData));
+    //     shadowBuffer_.push(std::move(pkt));
+    // }
+
+    // return std::nullopt;
+
+
+    // auto seqNum = packet.getHeader().sequenceNumber_;
+    // shadowBuffer_.push(std::move(packet));
+    // return seqNum;
+}
+
+bool arq::rs::DummyTCP::do_packetsPending() const noexcept
+{
+    return shadowBuffer_.empty() == false;
+}
+
+arq::DataPacket arq::rs::DummyTCP::do_getNextPacket()
+{
+    return shadowBuffer_.pop_wait();
+}

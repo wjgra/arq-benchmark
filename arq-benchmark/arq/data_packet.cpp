@@ -114,6 +114,12 @@ void arq::DataPacket::updateSequenceNumber(const SequenceNumber seqNum)
     assert(ret);
 }
 
+void arq::DataPacket::updateConversationID(const ConversationID convID) {
+    header_.id_ = convID;
+    [[maybe_unused]] auto ret = serialiseHeader();
+    assert(ret);
+}
+
 bool arq::DataPacket::isEndOfTx() const
 {
     return header_.length_ == 0;

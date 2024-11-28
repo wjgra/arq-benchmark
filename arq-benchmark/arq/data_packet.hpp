@@ -59,6 +59,8 @@ public:
     void updateHeader(const DataPacketHeader& hdr);
     // Update header sequence number and serialise it
     void updateSequenceNumber(const SequenceNumber seqNum);
+    // Update header conversation ID and serialise it
+    void updateConversationID(const ConversationID convID);
 
     // Indicates whether the packet is an EndOfTx packet
     bool isEndOfTx() const;

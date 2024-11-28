@@ -83,8 +83,8 @@ def display_time_series_data(server_time_series, client_time_series):
     delays = [(cli[1] - srv[1]) / timedelta(milliseconds=1) for cli, srv in zip(client_time_series, server_time_series)]
 
     # Q. Do we want a line chart or histogram?
-    fig, = ax.plot( sequence_nums, delays)
-    # n,bins,p = plt.hist(delays, bins=50)
+    # fig, = ax.plot( sequence_nums, delays)
+    n,bins,p = plt.hist(delays, bins=50)
     plt.show()
     return fig, ax
 
