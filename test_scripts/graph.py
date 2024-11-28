@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
 import dateutil.parser as dparser
-import matplotlib
+import matplotlib.pyplot as plt
 import re
 import sys
+
+from datetime import timedelta
 
 def parse_logfile(directory, first_match_str, second_match_str, output = False):
     """
@@ -57,7 +59,7 @@ def parse_client_logfile(directory, output = False):
 def validate_time_series_data(server_time_series, client_time_series):
     # ARQ gives a reliable connection, so the number and sequence of packets should match exactly
     if len(server_time_series) != len(client_time_series):
-        print(f"len(server_time_series) ({server_time_series}) != len(client_time_series) ({client_time_series})")
+        print(f"len(server_time_series) ({len(server_time_series)}) != len(client_time_series) ({len(client_time_series)})")
         return 1
     
     for server, client in zip(server_time_series, client_time_series):
@@ -73,6 +75,18 @@ def validate_time_series_data(server_time_series, client_time_series):
     
     return 0
 
+def display_time_series_data(server_time_series, client_time_series):
+    fig, ax = plt.subplots()
+
+    sequence_nums = [elt[0] for elt in server_time_series]
+
+    delays = [(cli[1] - srv[1]) / timedelta(milliseconds=1) for cli, srv in zip(client_time_series, server_time_series)]
+
+    # Q. Do we want a line chart or histogram?
+    fig, = ax.plot( sequence_nums, delays)
+    # n,bins,p = plt.hist(delays, bins=50)
+    plt.show()
+    return fig, ax
 
 def main():
     # Extract ARQ time series data
@@ -82,6 +96,8 @@ def main():
     if validate_time_series_data(server_time_series, client_time_series) != 0:
         print("Failed to validate time series data")
         return 1
+    
+    display_time_series_data(server_time_series, client_time_series)
 
 if __name__ == "__main__":
     sys.exit(main())
