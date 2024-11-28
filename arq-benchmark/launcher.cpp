@@ -293,7 +293,11 @@ static void startTransmitter(arq::config_Launcher& config /* why not const? */)
 
     arq::ReceiveFn rxFromClient = [&dataChannel](std::span<std::byte> buffer) { return dataChannel.recvFrom(buffer); };
 
-    arq::Transmitter txer(convID, txToClient, rxFromClient, std::make_unique<arq::rt::StopAndWait>(std::chrono::milliseconds(config.server->arqTimeout), false));
+    arq::Transmitter txer(
+        convID,
+        txToClient,
+        rxFromClient,
+        std::make_unique<arq::rt::StopAndWait>(std::chrono::milliseconds(config.server->arqTimeout), false));
     // Send a few packets with random data
     std::random_device rd;
     std::mt19937 mt(rd());
