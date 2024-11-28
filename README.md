@@ -40,6 +40,7 @@ arq-benchmark
  |--> launcher.cpp
 test-scripts
  |--> run.sh (runs a tmux'd launcher session with a transmitter and receiver)
+ |--> graph.py (parses logs from run.sh and plots the results)
 ```
 ## Dependencies and compilation
 The bulk of the implementation depends only on the BSD sockets API and the C++23 STL. The launcher uses Boost.ProgramOptions to handle the CLI. The run script uses `tmux` to handle transmitter and receiver instances, and `tc` to simulate a lossy network connection between them. Unit tests depend on Catch2.

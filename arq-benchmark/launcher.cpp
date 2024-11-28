@@ -15,7 +15,9 @@
 
 #include "arq/input_buffer.hpp"
 #include "arq/receiver.hpp"
+#include "arq/resequencing_buffers/dummy_tcp_rs.hpp"
 #include "arq/resequencing_buffers/stop_and_wait_rs.hpp"
+#include "arq/retransmission_buffers/dummy_tcp_rt.hpp"
 #include "arq/retransmission_buffers/stop_and_wait_rt.hpp"
 #include "arq/transmitter.hpp"
 #include "util/endpoint.hpp"
@@ -44,7 +46,8 @@ auto programOptions = std::to_array<ProgramOption>({
     {"launch-client",   std::monostate{},                               "start client thread"},
     {"tx-pkt-num",      uint16_t{10},                                   "number of packets to transmit"},
     {"tx-pkt-interval", uint16_t{10},                                   "ms between transmitted packets"},
-    {"arq-timeout",     uint16_t{50},                                   "ARQ timeout in ms"}
+    {"arq-timeout",     uint16_t{50},                                   "ARQ timeout in ms"},
+    {"arq-protocol",    "dummy-tcp"s,                                   "ARQ protocol to use"}
 });
 // clang-format on
 
@@ -88,6 +91,24 @@ static auto generateOptionsDescription()
 struct HelpException : public std::invalid_argument {
     explicit HelpException(const std::string& what) : std::invalid_argument(what){};
 };
+
+static arq::ArqProtocol getArqProtocolFromStr(const std::string& input)
+{
+    if (input == "dummy-tcp") {
+        return arq::ArqProtocol::DUMMY_TCP;
+    }
+    else if (input == "stop-and-wait") {
+        return arq::ArqProtocol::STOP_AND_WAIT;
+    }
+    else if (input == "sliding-window") {
+        return arq::ArqProtocol::SLIDING_WINDOW;
+    }
+    else if (input == "selective-repeat") {
+        return arq::ArqProtocol::SELECTIVE_REPEAT;
+    }
+
+    throw HelpException(std::format("invalid ARQ protocol \"{}\" provided", input));
+}
 
 static auto parseOptions(int argc, char** argv, boost::program_options::options_description description)
 {
@@ -181,6 +202,12 @@ static auto parseOptions(int argc, char** argv, boost::program_options::options_
             config.server->arqTimeout = vm["arq-timeout"].as<uint16_t>();
         }
 
+        // ARQ protocol
+        assert(programOptions[idx++].name == "arq-protocol");
+        if (vm.contains("arq-protocol")) {
+            config.common.arqProtocol = getArqProtocolFromStr(vm["arq-protocol"].as<std::string>());
+        }
+
         if (config.server.has_value()) {
             util::logInfo("server configured to transmit {} packets with interval {} ms",
                           config.server->txPkts.num,
@@ -210,6 +237,7 @@ static void shareConversationID(arq::ConversationID id,
                                 const arq::config_AddressInfo& myAddress,
                                 std::string_view destHost)
 {
+    return; // WJG: control channel needs to use a different socket to data channel
     util::Endpoint controlChannel(myAddress.hostName, myAddress.serviceName, util::SocketType::TCP);
 
     if (!controlChannel.listen(1)) {
@@ -241,6 +269,7 @@ static void shareConversationID(arq::ConversationID id,
 static arq::ConversationID receiveConversationID(const arq::config_AddressInfo& myAddress,
                                                  const arq::config_AddressInfo& destAddress)
 {
+    return 1; // WJG: control channel needs to use a different socket to data channel
     util::Endpoint controlChannel(myAddress.hostName, myAddress.serviceName, util::SocketType::TCP);
 
     controlChannel.connectRetry(
@@ -262,6 +291,41 @@ static arq::ConversationID receiveConversationID(const arq::config_AddressInfo& 
     return receivedID;
 }
 
+static void transmitPackets(std::function<void(arq::DataPacket&&)> txerSendPacket,
+                            const uint16_t numPackets,
+                            const uint16_t msPacketInterval)
+{
+    // Send a few packets with random data
+    // std::random_device rd;
+    // std::mt19937 mt(rd());
+    // std::uniform_int_distribution<uint8_t> dist(0, UINT8_MAX);
+
+    for (size_t i = 0; i < numPackets; ++i) {
+        arq::DataPacket inputPacket{};
+
+        // Populate packet
+        inputPacket.updateDataLength(arq::packet_length);
+        inputPacket.updateConversationID(1); // WJG temp - should be based on conversation ID
+        auto dataSpan = inputPacket.getPayloadSpan();
+        // for (auto& el : dataSpan) {
+        //     el = std::byte{dist(mt)};
+        //     if (el == 0) {
+        //         ++el; // For TCP...
+        //     }
+        // }
+        for (auto& el : dataSpan) {
+            el = std::byte(2); // Populate packets with 2s (different from conv ID)
+        }
+
+        // Add packet to transmitter's input buffer
+        txerSendPacket(std::move(inputPacket));
+        usleep(1000 * msPacketInterval);
+    }
+
+    // Send end of Tx packet
+    txerSendPacket(arq::DataPacket{});
+}
+
 static void startTransmitter(arq::config_Launcher& config /* why not const? */)
 {
     // Generate a new conversation ID and share with receiver
@@ -274,7 +338,10 @@ static void startTransmitter(arq::config_Launcher& config /* why not const? */)
     shareConversationID(convID, txerAddress, rxerAddress.hostName);
     util::logInfo("Conversation ID {} shared with receiver", convID);
 
-    util::Endpoint dataChannel(txerAddress.hostName, txerAddress.serviceName, util::SocketType::UDP);
+    util::Endpoint dataChannel(
+        txerAddress.hostName,
+        txerAddress.serviceName,
+        config.common.arqProtocol == arq::ArqProtocol::DUMMY_TCP ? util::SocketType::TCP : util::SocketType::UDP);
 
     // Use first address info found, if possible
     // auto rxerAddrInfo = [&rxerAddress]() {
@@ -284,42 +351,56 @@ static void startTransmitter(arq::config_Launcher& config /* why not const? */)
     //     }
     //     throw util::AddrInfoException("Failed to find address info"); // This should never be hit
     // }();
-    // WJG: For some reason, the address info changes during transmission, leading to failed sendTo calls.
+    // WJG: For some reason, the address info changes during transmission, leading to failed sendTo calls. As such, we
+    // can't use return dataChannel.sendTo(buffer, rxerAddrInfo); in the below lambda.
 
-    arq::TransmitFn txToClient = [&dataChannel, /* &rxerAddrInfo ,*/ &rxerAddress](std::span<const std::byte> buffer) {
-        // return dataChannel.sendTo(buffer, rxerAddrInfo);
-        return dataChannel.sendTo(buffer, rxerAddress.hostName, rxerAddress.serviceName);
-    };
-
-    arq::ReceiveFn rxFromClient = [&dataChannel](std::span<std::byte> buffer) { return dataChannel.recvFrom(buffer); };
-
-    arq::Transmitter txer(
-        convID,
-        txToClient,
-        rxFromClient,
-        std::make_unique<arq::rt::StopAndWait>(std::chrono::milliseconds(config.server->arqTimeout), false));
-    // Send a few packets with random data
-    std::random_device rd;
-    std::mt19937 mt(rd());
-    std::uniform_int_distribution<uint8_t> dist(0, UINT8_MAX);
-
-    for (size_t i = 0; i < config.server->txPkts.num; ++i) {
-        arq::DataPacket inputPacket{};
-
-        // populate packet
-        inputPacket.updateDataLength(1000);
-        auto dataSpan = inputPacket.getPayloadSpan();
-        for (auto& el : dataSpan) {
-            el = std::byte{dist(mt)};
+    if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_TCP) {
+        if (!dataChannel.listen(1)) {
+            throw std::runtime_error("failed to listen on data channel");
         }
 
-        // Add packet to transmitter's input buffer
-        txer.sendPacket(std::move(inputPacket));
-        usleep(1000 * config.server->txPkts.msInterval);
+        if (!dataChannel.accept(rxerAddress.hostName)) {
+            throw std::runtime_error("failed to accept data channel connection");
+        }
     }
 
-    // Send end of Tx packet
-    txer.sendPacket(arq::DataPacket{});
+    arq::TransmitFn txToClient;
+    if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_TCP) {
+        txToClient = [&dataChannel](std::span<const std::byte> buffer) { return dataChannel.send(buffer); };
+    }
+    else {
+        txToClient = [&dataChannel, &rxerAddress](std::span<const std::byte> buffer) {
+            return dataChannel.sendTo(buffer, rxerAddress.hostName, rxerAddress.serviceName);
+        };
+    }
+
+    arq::ReceiveFn rxFromClient;
+    if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_TCP) {
+        rxFromClient = [&dataChannel](std::span<std::byte> buffer) { return dataChannel.recv(buffer); };
+    }
+    else {
+        rxFromClient = [&dataChannel](std::span<std::byte> buffer) { return dataChannel.recvFrom(buffer); };
+    }
+
+    // WJG to clean up branches - possible template function?
+    if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_TCP) {
+        arq::Transmitter txer(convID, txToClient, rxFromClient, std::make_unique<arq::rt::DummyTCP>());
+
+        auto txerSend = [&txer](arq::DataPacket&& pkt) { txer.sendPacket(std::move(pkt)); };
+
+        transmitPackets(txerSend, config.server->txPkts.num, config.server->txPkts.msInterval);
+    }
+    else if (config.common.arqProtocol == arq::ArqProtocol::STOP_AND_WAIT) {
+        arq::Transmitter txer(
+            convID,
+            txToClient,
+            rxFromClient,
+            std::make_unique<arq::rt::StopAndWait>(std::chrono::milliseconds(config.server->arqTimeout), false));
+
+        auto txerSend = [&txer](arq::DataPacket&& pkt) { txer.sendPacket(std::move(pkt)); };
+
+        transmitPackets(txerSend, config.server->txPkts.num, config.server->txPkts.msInterval);
+    }
 }
 
 static void startReceiver(arq::config_Launcher& config /* why not const? */)
@@ -331,19 +412,42 @@ static void startReceiver(arq::config_Launcher& config /* why not const? */)
     const arq::config_AddressInfo& txerAddress = config.common.serverNames;
     const arq::config_AddressInfo& rxerAddress = config.common.clientNames;
 
-    util::Endpoint dataChannel(rxerAddress.hostName, rxerAddress.serviceName, util::SocketType::UDP);
+    util::Endpoint dataChannel(
+        rxerAddress.hostName,
+        rxerAddress.serviceName,
+        config.common.arqProtocol == arq::ArqProtocol::DUMMY_TCP ? util::SocketType::TCP : util::SocketType::UDP);
+
+    if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_TCP) {
+        dataChannel.connectRetry(
+            txerAddress.hostName, txerAddress.serviceName, util::SocketType::TCP, 20, std::chrono::milliseconds(500));
+    }
 
     // WJG: same considerations apply here as in Transmitter
-    arq::TransmitFn txToServer = [&dataChannel, &txerAddress](std::span<const std::byte> buffer) {
-        return dataChannel.sendTo(buffer, txerAddress.hostName, txerAddress.serviceName);
-    };
+    arq::TransmitFn txToServer;
+    if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_TCP) {
+        txToServer = [&dataChannel](std::span<const std::byte> buffer) { return dataChannel.send(buffer); };
+    }
+    else {
+        txToServer = [&dataChannel, &txerAddress](std::span<const std::byte> buffer) {
+            return dataChannel.sendTo(buffer, txerAddress.hostName, txerAddress.serviceName);
+        };
+    }
 
-    arq::ReceiveFn rxFromServer = [&dataChannel](std::span<std::byte> buffer) { return dataChannel.recvFrom(buffer); };
-
-    using namespace std::chrono_literals;
-    arq::Receiver rxer(convID, txToServer, rxFromServer, std::make_unique<arq::rs::StopAndWait>());
+    arq::ReceiveFn rxFromServer;
+    if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_TCP) {
+        rxFromServer = [&dataChannel](std::span<std::byte> buffer) { return dataChannel.recv(buffer); };
+    }
+    else {
+        rxFromServer = [&dataChannel](std::span<std::byte> buffer) { return dataChannel.recvFrom(buffer); };
+    }
 
     // Use rxer.getPacket to get all sent packets...
+    if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_TCP) {
+        arq::Receiver rxer(convID, txToServer, rxFromServer, std::make_unique<arq::rs::DummyTCP>());
+    }
+    else if (config.common.arqProtocol == arq::ArqProtocol::STOP_AND_WAIT) {
+        arq::Receiver rxer(convID, txToServer, rxFromServer, std::make_unique<arq::rs::StopAndWait>());
+    }
 }
 
 int main(int argc, char** argv)
