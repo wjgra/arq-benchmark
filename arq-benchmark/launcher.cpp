@@ -43,7 +43,8 @@ auto programOptions = std::to_array<ProgramOption>({
     {"launch-server",   std::monostate{},                               "start server thread"},
     {"launch-client",   std::monostate{},                               "start client thread"},
     {"tx-pkt-num",      uint16_t{10},                                   "number of packets to transmit"},
-    {"tx-pkt-interval", uint16_t{10},                                   "ms between transmitted packets"}
+    {"tx-pkt-interval", uint16_t{10},                                   "ms between transmitted packets"},
+    {"arq-timeout",     uint16_t{50},                                   "ARQ timeout in ms"}
 });
 // clang-format on
 
@@ -174,6 +175,12 @@ static auto parseOptions(int argc, char** argv, boost::program_options::options_
             config.server->txPkts.msInterval = vm["tx-pkt-interval"].as<uint16_t>();
         }
 
+        // ARQ timeout (may change if adaptive timeout enabled)
+        assert(programOptions[idx++].name == "arq-timeout");
+        if (vm.contains("arq-timeout") && config.server.has_value()) {
+            config.server->arqTimeout = vm["arq-timeout"].as<uint16_t>();
+        }
+
         if (config.server.has_value()) {
             util::logInfo("server configured to transmit {} packets with interval {} ms",
                           config.server->txPkts.num,
@@ -286,8 +293,7 @@ static void startTransmitter(arq::config_Launcher& config /* why not const? */)
 
     arq::ReceiveFn rxFromClient = [&dataChannel](std::span<std::byte> buffer) { return dataChannel.recvFrom(buffer); };
 
-    using namespace std::chrono_literals;
-    arq::Transmitter txer(convID, txToClient, rxFromClient, std::make_unique<arq::rt::StopAndWait>(100ms, true));
+    arq::Transmitter txer(convID, txToClient, rxFromClient, std::make_unique<arq::rt::StopAndWait>(std::chrono::milliseconds(config.server->arqTimeout), false));
     // Send a few packets with random data
     std::random_device rd;
     std::mt19937 mt(rd());

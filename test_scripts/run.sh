@@ -17,6 +17,8 @@ client_ns="arqns1"
 server_addr="10.0.0.1"
 client_addr="10.0.0.2"
 
+arq_timeout="50" # ms
+
 tx_delay="100ms"
 tx_loss="random 1%"
 
@@ -27,9 +29,9 @@ logging_level="4"
 log_dir="/home/wjgra/repos/arq-benchmark/logs"
 log_file="arqlog.txt"
 
-usage() { echo "Usage: $0 [-d <tc delay arg string>] [-l <tc loss arg string>] [-n <number of pkts to tx>] [-i <interval between tx pkts> ] [-w <logging level>] [-h]" 1>&2; }
+usage() { echo "Usage: $0 [-d <tc delay arg string>] [-l <tc loss arg string>] [-n <number of pkts to tx>] [-i <interval between tx pkts> ] [-w <logging level>] [-f <log file>] [-t <ARQ timeout>] [-h]" 1>&2; }
 
-while getopts "d:l:n:i:w:f:h" opt; do
+while getopts "d:l:n:i:w:f:t:h" opt; do
     case ${opt} in
         d)
             tx_delay=${OPTARG}
@@ -50,6 +52,9 @@ while getopts "d:l:n:i:w:f:h" opt; do
             ;;
         f)
             log_file=${OPTARG}
+            ;;
+        t)
+            arq_timeout=${OPTARG}
             ;;
         h) 
             usage
@@ -97,7 +102,7 @@ common_opts="--logging ${logging_level} --client-addr ${client_addr} --server-ad
 
 # Start server
 tmux new-session -d -s "arq" -n "server" "stdbuf -o0 ip netns exec ${server_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher \
---launch-server ${common_opts} --tx-pkt-num ${pkt_num} --tx-pkt-interval ${pkt_interval} | tee ${server_log}"
+--launch-server ${common_opts} --tx-pkt-num ${pkt_num} --tx-pkt-interval ${pkt_interval} --arq-timeout ${arq_timeout} | tee ${server_log}"
 
 # Start client
 tmux new-window -t "arq" -n "client" "stdbuf -o0 ip netns exec ${client_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher \

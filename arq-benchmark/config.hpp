@@ -29,6 +29,7 @@ struct config_txPkts {
 struct config_Server {
     bool doNotVerifyClientAddr;
     config_txPkts txPkts;
+    uint16_t arqTimeout;
 };
 
 struct config_Client {};
