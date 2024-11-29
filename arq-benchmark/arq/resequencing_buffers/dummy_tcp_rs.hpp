@@ -4,7 +4,7 @@
 #include "arq/resequencing_buffer.hpp"
 
 #include <util/safe_queue.hpp>
-#include <deque>
+#include <vector>
 
 namespace arq {
 namespace rs {
@@ -19,15 +19,13 @@ public:
     DataPacket do_getNextPacket();
 
 private:
-    void handleFragments(std::span<std::byte> input);
+    size_t processReceiveBuffer();
     
     // TCP guarantees that packets are received in order. Store received packets in here to
     // forward onto the OB as requested.
     util::SafeQueue<arq::DataPacket> shadowBuffer_;
 
-    std::deque<std::byte> packetFragments_;
-
-    std::vector<std::byte> partialPacket_;
+    std::vector<std::byte> receiveBuffer_;
 
     arq::SequenceNumber nextSn_ = arq::firstSequenceNumber;
 };
