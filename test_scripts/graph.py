@@ -90,8 +90,8 @@ def display_time_series_data(server_time_series, client_time_series):
 
 def main():
     # Extract ARQ time series data
-    server_time_series = parse_server_logfile("/home/wjgra/repos/arq-benchmark/logs/server_arqlog.txt")
-    client_time_series = parse_client_logfile("/home/wjgra/repos/arq-benchmark/logs/client_arqlog.txt")
+    server_time_series = parse_server_logfile("/home/wjgra/repos/arq-benchmark/logs/server_snw_log")
+    client_time_series = parse_client_logfile("/home/wjgra/repos/arq-benchmark/logs/client_snw_log")
 
     if validate_time_series_data(server_time_series, client_time_series) != 0:
         print("Failed to validate time series data")

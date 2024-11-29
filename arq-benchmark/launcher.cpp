@@ -316,6 +316,13 @@ static void transmitPackets(std::function<void(arq::DataPacket&&)> txerSendPacke
         for (auto& el : dataSpan) {
             el = std::byte(2); // Populate packets with 2s (different from conv ID)
         }
+        assert(arq::packet_length % 2 == 0);
+        // Popuate packet with repeated SN
+        uint16_t sn = arq::firstSequenceNumber + i;
+        for (size_t j = 0 ; j < arq::packet_length/2 ; ++j) {
+            dataSpan[2 * j] = std::byte(sn & 0xFF00);
+            dataSpan[2 * j + 1] = std::byte(sn & 0x00FF);
+        }
 
         // Add packet to transmitter's input buffer
         txerSendPacket(std::move(inputPacket));
