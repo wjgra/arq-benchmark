@@ -2,7 +2,7 @@
 #define _UTIL_NETWORK_COMMON_HPP_
 namespace util {
 
-enum class SocketType { UNSPEC, TCP, UDP };
+enum class SocketType { UNSPEC, TCP, UDP, SCTP };
 
 static constexpr auto socketType2SockType(const SocketType type)
 {
@@ -11,6 +11,8 @@ static constexpr auto socketType2SockType(const SocketType type)
             return SOCK_STREAM;
         case SocketType::UDP:
             return SOCK_DGRAM;
+        case SocketType::SCTP:
+            return SOCK_STREAM;
         case SocketType::UNSPEC:
         default:
             throw std::invalid_argument("unknown socket type");
@@ -24,6 +26,8 @@ static constexpr inline auto socketType2PreferredProtocol(const SocketType type)
             return IPPROTO_TCP;
         case SocketType::UDP:
             return IPPROTO_UDP;
+        case SocketType::SCTP:
+            return IPPROTO_SCTP;
         case SocketType::UNSPEC:
         default:
             return IPPROTO_IP; // Default protocol
