@@ -113,6 +113,89 @@ TEST_CASE("Endpoint TCP send-receive", "[util]")
     endpoint_tcp_connection_test(false, true);
 }
 
+static int test_server_sctp(const bool authenticateClient, const bool send)
+{
+    util::Endpoint endpoint{serverHost, serverService, util::SocketType::SCTP};
+
+    REQUIRE(endpoint.listen(1));
+
+    if (authenticateClient) {
+        REQUIRE(endpoint.accept(clientHost));
+    }
+    else {
+        REQUIRE(endpoint.accept());
+    }
+
+    if (send) {
+        auto ret = endpoint.send(sendBuffer);
+        REQUIRE(ret.has_value());
+        util::logDebug("Server sent {} bytes", ret.value());
+        REQUIRE(ret == sendBuffer.size());
+    }
+
+    return EXIT_SUCCESS; // Dummy return value for future
+}
+
+static int test_client_sctp(const bool receive)
+{
+    util::Endpoint endpoint{clientHost, clientService, util::SocketType::SCTP};
+
+    REQUIRE(
+        endpoint.connectRetry(serverHost, serverService, util::SocketType::SCTP, 10, std::chrono::milliseconds(100)));
+
+    if (receive) {
+        std::array<std::byte, sizeof_sendBuffer> recvBuffer{};
+        auto ret = endpoint.recv(recvBuffer);
+        REQUIRE(ret.has_value());
+        util::logDebug("Client received {} bytes", ret.value());
+        REQUIRE(ret == sendBuffer.size());
+
+        // Check received data is correct
+        REQUIRE(recvBuffer == sendBuffer);
+    }
+
+    return EXIT_SUCCESS; // Dummy return value for future
+}
+
+static void endpoint_sctp_connection_test(const bool authenticateClient, const bool sendReceive)
+{
+    util::Logger::setLoggingLevel(util::LOGGING_LEVEL_DEBUG);
+
+    auto server = std::async(std::launch::async, test_server_sctp, authenticateClient, sendReceive);
+    auto client = std::async(std::launch::async, test_client_sctp, sendReceive);
+
+    try {
+        client.get();
+    }
+    catch (const std::exception& e) {
+        util::logError("Client exception: {}", e.what());
+        REQUIRE(1 == 0);
+    }
+
+    try {
+        server.get();
+    }
+    catch (const std::exception& e) {
+        util::logError("Server exception: {}", e.what());
+        REQUIRE(1 == 0);
+    }
+}
+
+TEST_CASE("Endpoint SCTP connection (no authentication)", "[util]")
+{
+    endpoint_sctp_connection_test(false, false);
+}
+
+TEST_CASE("Endpoint SCTP connection (with authentication)", "[util]")
+{
+    endpoint_sctp_connection_test(true, false);
+}
+
+TEST_CASE("Endpoint SCTP send-receive", "[util]")
+{
+    endpoint_sctp_connection_test(false, true);
+}
+
 constexpr size_t maxSendRecvAttempts = 100;
 
 enum class UDPTestState {
