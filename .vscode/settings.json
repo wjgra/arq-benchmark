@@ -1,5 +1,5 @@
 {
-    "C_Cpp.default.compilerPath": "/usr/bin/g++",
+    "C_Cpp.default.compilerPath": "/usr/local/gcc-14.1.0/bin/g++-14.1.0",
     "files.associations": {
         "*.pyx": "python",
         "*.mpp": "cpp",
