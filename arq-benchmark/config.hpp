@@ -16,7 +16,7 @@ struct config_AddressInfo {
     std::string serviceName;
 };
 
-enum class ArqProtocol { DUMMY_TCP, STOP_AND_WAIT, SLIDING_WINDOW, SELECTIVE_REPEAT };
+enum class ArqProtocol { DUMMY_SCTP, STOP_AND_WAIT, SLIDING_WINDOW, SELECTIVE_REPEAT };
 
 struct config_common {
     config_AddressInfo serverNames;

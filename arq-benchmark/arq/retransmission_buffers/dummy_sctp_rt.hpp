@@ -1,14 +1,14 @@
-#ifndef _ARQ_RT_BUFFERS_DUMMY_TCP_HPP_
-#define _ARQ_RT_BUFFERS_DUMMY_TCP_HPP_
+#ifndef _ARQ_RT_BUFFERS_DUMMY_SCTP_HPP_
+#define _ARQ_RT_BUFFERS_DUMMY_SCTP_HPP_
 
 #include "arq/retransmission_buffer.hpp"
 
 namespace arq {
 namespace rt {
 
-class DummyTCP : public RetransmissionBuffer<DummyTCP> {
+class DummySCTP : public RetransmissionBuffer<DummySCTP> {
 public:
-    DummyTCP();
+    DummySCTP();
 
     // Standard functions required by RetransmissionBuffer CRTP interface
     void do_addPacket(TransmitBufferObject&& packet);

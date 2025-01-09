@@ -1,4 +1,5 @@
 #include <netinet/in.h>
+#include <signal.h>
 #include <array>
 #include <boost/program_options.hpp>
 #include <chrono>
@@ -15,9 +16,9 @@
 
 #include "arq/input_buffer.hpp"
 #include "arq/receiver.hpp"
-#include "arq/resequencing_buffers/dummy_tcp_rs.hpp"
+#include "arq/resequencing_buffers/dummy_sctp_rs.hpp"
 #include "arq/resequencing_buffers/stop_and_wait_rs.hpp"
-#include "arq/retransmission_buffers/dummy_tcp_rt.hpp"
+#include "arq/retransmission_buffers/dummy_sctp_rt.hpp"
 #include "arq/retransmission_buffers/stop_and_wait_rt.hpp"
 #include "arq/transmitter.hpp"
 #include "util/endpoint.hpp"
@@ -47,7 +48,7 @@ auto programOptions = std::to_array<ProgramOption>({
     {"tx-pkt-num",      uint16_t{10},                                   "number of packets to transmit"},
     {"tx-pkt-interval", uint16_t{10},                                   "ms between transmitted packets"},
     {"arq-timeout",     uint16_t{50},                                   "ARQ timeout in ms"},
-    {"arq-protocol",    "dummy-tcp"s,                                   "ARQ protocol to use"}
+    {"arq-protocol",    "dummy-sctp"s,                                   "ARQ protocol to use"}
 });
 // clang-format on
 
@@ -94,8 +95,8 @@ struct HelpException : public std::invalid_argument {
 
 static arq::ArqProtocol getArqProtocolFromStr(const std::string& input)
 {
-    if (input == "dummy-tcp") {
-        return arq::ArqProtocol::DUMMY_TCP;
+    if (input == "dummy-sctp") {
+        return arq::ArqProtocol::DUMMY_SCTP;
     }
     else if (input == "stop-and-wait") {
         return arq::ArqProtocol::STOP_AND_WAIT;
@@ -296,32 +297,19 @@ static void transmitPackets(std::function<void(arq::DataPacket&&)> txerSendPacke
                             const uint16_t msPacketInterval)
 {
     // Send a few packets with random data
-    // std::random_device rd;
-    // std::mt19937 mt(rd());
-    // std::uniform_int_distribution<uint8_t> dist(0, UINT8_MAX);
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    std::uniform_int_distribution<uint8_t> dist(0, UINT8_MAX);
 
     for (size_t i = 0; i < numPackets; ++i) {
         arq::DataPacket inputPacket{};
 
         // Populate packet
-        inputPacket.updateDataLength(arq::packet_length);
+        inputPacket.updateDataLength(arq::packet_payload_length);
         inputPacket.updateConversationID(1); // WJG temp - should be based on conversation ID
         auto dataSpan = inputPacket.getPayloadSpan();
-        // for (auto& el : dataSpan) {
-        //     el = std::byte{dist(mt)};
-        //     if (el == 0) {
-        //         ++el; // For TCP...
-        //     }
-        // }
         for (auto& el : dataSpan) {
-            el = std::byte(2); // Populate packets with 2s (different from conv ID)
-        }
-        assert(arq::packet_length % 2 == 0);
-        // Popuate packet with repeated SN
-        uint16_t sn = arq::firstSequenceNumber + i;
-        for (size_t j = 0 ; j < arq::packet_length/2 ; ++j) {
-            dataSpan[2 * j] = std::byte(sn & 0xFF00);
-            dataSpan[2 * j + 1] = std::byte(sn & 0x00FF);
+            el = std::byte{dist(mt)};
         }
 
         // Add packet to transmitter's input buffer
@@ -348,7 +336,7 @@ static void startTransmitter(arq::config_Launcher& config /* why not const? */)
     util::Endpoint dataChannel(
         txerAddress.hostName,
         txerAddress.serviceName,
-        config.common.arqProtocol == arq::ArqProtocol::DUMMY_TCP ? util::SocketType::TCP : util::SocketType::UDP);
+        config.common.arqProtocol == arq::ArqProtocol::DUMMY_SCTP ? util::SocketType::SCTP : util::SocketType::UDP);
 
     // Use first address info found, if possible
     // auto rxerAddrInfo = [&rxerAddress]() {
@@ -361,7 +349,7 @@ static void startTransmitter(arq::config_Launcher& config /* why not const? */)
     // WJG: For some reason, the address info changes during transmission, leading to failed sendTo calls. As such, we
     // can't use return dataChannel.sendTo(buffer, rxerAddrInfo); in the below lambda.
 
-    if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_TCP) {
+    if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_SCTP) {
         if (!dataChannel.listen(1)) {
             throw std::runtime_error("failed to listen on data channel");
         }
@@ -372,7 +360,7 @@ static void startTransmitter(arq::config_Launcher& config /* why not const? */)
     }
 
     arq::TransmitFn txToClient;
-    if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_TCP) {
+    if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_SCTP) {
         txToClient = [&dataChannel](std::span<const std::byte> buffer) { return dataChannel.send(buffer); };
     }
     else {
@@ -382,7 +370,7 @@ static void startTransmitter(arq::config_Launcher& config /* why not const? */)
     }
 
     arq::ReceiveFn rxFromClient;
-    if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_TCP) {
+    if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_SCTP) {
         rxFromClient = [&dataChannel](std::span<std::byte> buffer) { return dataChannel.recv(buffer); };
     }
     else {
@@ -390,8 +378,8 @@ static void startTransmitter(arq::config_Launcher& config /* why not const? */)
     }
 
     // WJG to clean up branches - possible template function?
-    if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_TCP) {
-        arq::Transmitter txer(convID, txToClient, rxFromClient, std::make_unique<arq::rt::DummyTCP>());
+    if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_SCTP) {
+        arq::Transmitter txer(convID, txToClient, rxFromClient, std::make_unique<arq::rt::DummySCTP>());
 
         auto txerSend = [&txer](arq::DataPacket&& pkt) { txer.sendPacket(std::move(pkt)); };
 
@@ -422,16 +410,16 @@ static void startReceiver(arq::config_Launcher& config /* why not const? */)
     util::Endpoint dataChannel(
         rxerAddress.hostName,
         rxerAddress.serviceName,
-        config.common.arqProtocol == arq::ArqProtocol::DUMMY_TCP ? util::SocketType::TCP : util::SocketType::UDP);
+        config.common.arqProtocol == arq::ArqProtocol::DUMMY_SCTP ? util::SocketType::SCTP : util::SocketType::UDP);
 
-    if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_TCP) {
+    if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_SCTP) {
         dataChannel.connectRetry(
-            txerAddress.hostName, txerAddress.serviceName, util::SocketType::TCP, 20, std::chrono::milliseconds(500));
+            txerAddress.hostName, txerAddress.serviceName, util::SocketType::SCTP, 20, std::chrono::milliseconds(500));
     }
 
     // WJG: same considerations apply here as in Transmitter
     arq::TransmitFn txToServer;
-    if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_TCP) {
+    if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_SCTP) {
         txToServer = [&dataChannel](std::span<const std::byte> buffer) { return dataChannel.send(buffer); };
     }
     else {
@@ -441,7 +429,7 @@ static void startReceiver(arq::config_Launcher& config /* why not const? */)
     }
 
     arq::ReceiveFn rxFromServer;
-    if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_TCP) {
+    if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_SCTP) {
         rxFromServer = [&dataChannel](std::span<std::byte> buffer) { return dataChannel.recv(buffer); };
     }
     else {
@@ -449,8 +437,8 @@ static void startReceiver(arq::config_Launcher& config /* why not const? */)
     }
 
     // Use rxer.getPacket to get all sent packets...
-    if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_TCP) {
-        arq::Receiver rxer(convID, txToServer, rxFromServer, std::make_unique<arq::rs::DummyTCP>());
+    if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_SCTP) {
+        arq::Receiver rxer(convID, txToServer, rxFromServer, std::make_unique<arq::rs::DummySCTP>());
     }
     else if (config.common.arqProtocol == arq::ArqProtocol::STOP_AND_WAIT) {
         arq::Receiver rxer(convID, txToServer, rxFromServer, std::make_unique<arq::rs::StopAndWait>());
@@ -459,6 +447,10 @@ static void startReceiver(arq::config_Launcher& config /* why not const? */)
 
 int main(int argc, char** argv)
 {
+    /* Handle SIGPIPE for SCTP connection termination. This is something of a hack, but is fine for the purposes of this
+     * project. */
+    signal(SIGPIPE, SIG_IGN);
+
     arq::config_Launcher cfg;
     try {
         cfg = generateConfiguration(argc, argv);
