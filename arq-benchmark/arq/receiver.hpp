@@ -47,7 +47,7 @@ private:
     void receiveThread()
     {
         while (resequencingBuffer_->packetsPending() == true || endOfTxSeqNum_.has_value() == false) {
-            std::array<std::byte, arq::DATA_PKT_MAX_PAYLOAD_SIZE> recvBuffer;
+            std::array<std::byte, MAX_TRANSMISSION_UNIT> recvBuffer;
             util::logDebug("Waiting for a data packet");
             auto bytesRxed = rxFn_(recvBuffer);
 
@@ -55,6 +55,7 @@ private:
                 // No data received
                 continue;
             }
+            assert(bytesRxed <= MAX_TRANSMISSION_UNIT);
 
             util::logDebug("Received {} bytes of data", bytesRxed.value());
 
