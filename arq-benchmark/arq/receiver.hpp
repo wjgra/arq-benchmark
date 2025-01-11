@@ -91,6 +91,8 @@ private:
     // an EoT packet has been delivered to the output buffer.
     void resequencingThread()
     {
+        // WJG: I think this starves the other thread? Consider using a CV rather than a loop...
+        // Also consider getting a seqeunce of packets
         while (resequencingBuffer_->packetsPending() || endOfTxSeqNum_.has_value() == false) {
             outputBuffer_.addPacket(
                 resequencingBuffer_->getNextPacket()); // WJG: consider checking return value and logging

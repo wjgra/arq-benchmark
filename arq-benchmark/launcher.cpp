@@ -464,8 +464,8 @@ int main(int argc, char** argv)
         rxThread = std::thread(startReceiver, std::ref(cfg));
     }
 
-    bool txJoined = false;
-    bool rxJoined = false;
+    bool txJoined = !cfg.server.has_value();
+    bool rxJoined = !cfg.client.has_value();
     while (!(txJoined && rxJoined)) {
         if (txThread.joinable()) {
             txThread.join();

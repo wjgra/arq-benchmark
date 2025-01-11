@@ -30,9 +30,11 @@ logging_level="4"
 log_dir="/home/wjgra/repos/arq-benchmark/logs"
 log_file="arqlog.txt"
 
-usage() { echo "Usage: $0 [-d <tc delay arg string>] [-l <tc loss arg string>] [-n <number of pkts to tx>] [-i <interval between tx pkts> ] [-w <logging level>] [-f <log file>] [-t <ARQ timeout>] [-h]" 1>&2; }
+remain_on_exit="false"
 
-while getopts "d:l:n:i:w:f:t:p:h" opt; do
+usage() { echo "Usage: $0 [-d <tc delay arg string>] [-l <tc loss arg string>] [-n <number of pkts to tx>] [-i <interval between tx pkts> ] [-w <logging level>] [-f <log file>] [-t <ARQ timeout>] [-r <remain on exit>] [-h]" 1>&2; }
+
+while getopts "d:l:n:i:w:f:t:p:rh" opt; do
     case ${opt} in
         d)
             tx_delay=${OPTARG}
@@ -59,6 +61,9 @@ while getopts "d:l:n:i:w:f:t:p:h" opt; do
             ;;
         p)
             arq_protocol=${OPTARG}
+            ;;
+        r)
+            remain_on_exit="true"
             ;;
         h) 
             usage
@@ -111,6 +116,12 @@ tmux new-session -d -s "arq" -n "server" "stdbuf -o0 ip netns exec ${server_ns} 
 # Start client
 tmux new-window -t "arq" -n "client" "stdbuf -o0 ip netns exec ${client_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher \
 --launch-client ${common_opts} | tee ${client_log}"
+
+if [[ "${remain_on_exit}" == "true" ]]; then
+    tmux set-option -g remain-on-exit on
+else
+    tmux set-option -g remain-on-exit off
+fi
 
 tmux set-option -t "arq" -g mouse
 tmux attach-session -t "arq"

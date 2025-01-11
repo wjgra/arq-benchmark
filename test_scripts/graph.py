@@ -75,29 +75,39 @@ def validate_time_series_data(server_time_series, client_time_series):
     
     return 0
 
-def display_time_series_data(server_time_series, client_time_series):
-    fig, ax = plt.subplots()
-
+def display_time_series_data(fig, ax, server_time_series, client_time_series):
+    
     sequence_nums = [elt[0] for elt in server_time_series]
 
     delays = [(cli[1] - srv[1]) / timedelta(milliseconds=1) for cli, srv in zip(client_time_series, server_time_series)]
 
     # Q. Do we want a line chart or histogram?
-    # fig, = ax.plot( sequence_nums, delays)
-    n,bins,p = plt.hist(delays, bins=50)
-    plt.show()
-    return fig, ax
+    fig, = ax.plot( sequence_nums, delays)
+    # n,bins,p = plt.hist(delays, bins=50)
 
 def main():
-    # Extract ARQ time series data
-    server_time_series = parse_server_logfile("/home/wjgra/repos/arq-benchmark/logs/server_snw_log")
-    client_time_series = parse_client_logfile("/home/wjgra/repos/arq-benchmark/logs/client_snw_log")
+    logs_dir = "../logs"
+    names = sys.argv[1:]
 
-    if validate_time_series_data(server_time_series, client_time_series) != 0:
-        print("Failed to validate time series data")
-        return 1
-    
-    display_time_series_data(server_time_series, client_time_series)
+    if len(names) == 0:
+        print("Please supply at least one logfile")
+        return -1
+
+    fig, ax = plt.subplots()
+
+    for name in names:
+        # Extract ARQ time series data
+        server_time_series = parse_server_logfile(logs_dir + "/server_" + name)
+        client_time_series = parse_client_logfile(logs_dir + "/client_" + name)
+
+        if validate_time_series_data(server_time_series, client_time_series) != 0:
+            print("Failed to validate time series data")
+            return 1
+
+        display_time_series_data(fig, ax, server_time_series, client_time_series)
+
+    plt.xticks(range(0, len(server_time_series), len(server_time_series) // 10))
+    plt.show()
 
 if __name__ == "__main__":
     sys.exit(main())

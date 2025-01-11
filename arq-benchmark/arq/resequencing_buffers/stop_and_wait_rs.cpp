@@ -8,6 +8,7 @@ std::optional<arq::SequenceNumber> arq::rs::StopAndWait::do_addPacket(DataPacket
 {
     std::unique_lock<std::mutex> lock(rsPacketMutex_);
 
+    // WJG: this slows things down - consider single-threaded implementation?
     util::logDebug("Waiting to add packet to RS");
     while (packetForDelivery_.has_value() == true && endOfTxPushed == false) {
         rsPacketCv_.wait(lock);
