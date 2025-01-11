@@ -434,6 +434,9 @@ static void startReceiver(arq::config_Launcher& config /* why not const? */)
     else if (config.common.arqProtocol == arq::ArqProtocol::STOP_AND_WAIT) {
         arq::Receiver rxer(convID, txToServer, rxFromServer, std::make_unique<arq::rs::StopAndWait>());
     }
+    else {
+        util::logError("Unsupported ARQ protocol: {}", arqProtocolToString(config.common.arqProtocol));
+    };
 }
 
 int main(int argc, char** argv)
