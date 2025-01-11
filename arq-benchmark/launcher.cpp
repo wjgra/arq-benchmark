@@ -32,23 +32,35 @@ struct ProgramOption {
     std::string helpText;
 };
 
-using namespace std::string_literals;
+// Program option strings
+#define PROG_OPTION_HELP "help"
+#define PROG_OPTION_LOGGING "logging"
+#define PROG_OPTION_SERVER_ADDR "server-addr"
+#define PROG_OPTION_SERVER_PORT "server-port"
+#define PROG_OPTION_CLIENT_ADDR "client-addr"
+#define PROG_OPTION_CLIENT_PORT "client-port"
+#define PROG_OPTION_LAUNCH_SERVER "launch-server"
+#define PROG_OPTION_LAUNCH_CLIENT "launch-client"
+#define PROG_OPTION_TX_PKT_NUM "tx-pkt-num"
+#define PROG_OPTION_TX_PKT_INTERVAL "tx-pkt-interval"
+#define PROG_OPTION_ARQ_TIMEOUT "arq-timeout"
+#define PROG_OPTION_ARQ_PROTOCOL "arq-protocol"
 
-// Possible program options
+using namespace std::string_literals;
 // clang-format off
-auto programOptions = std::to_array<ProgramOption>({
-    {"help",            std::monostate{},                               "display help message"},
-    {"logging",         std::to_underlying(util::LOGGING_LEVEL_INFO),   util::Logger::helpText()},
-    {"server-addr",     "127.0.0.1"s,                                   "server IPv4 address"},
-    {"server-port",     "65534"s,                                       "server port"},
-    {"client-addr",     "127.0.0.1"s,                                   "client IPv4 address"},
-    {"client-port",     "65535"s,                                       "client port"},
-    {"launch-server",   std::monostate{},                               "start server thread"},
-    {"launch-client",   std::monostate{},                               "start client thread"},
-    {"tx-pkt-num",      uint16_t{10},                                   "number of packets to transmit"},
-    {"tx-pkt-interval", uint16_t{10},                                   "ms between transmitted packets"},
-    {"arq-timeout",     uint16_t{50},                                   "ARQ timeout in ms"},
-    {"arq-protocol",    "dummy-sctp"s,                                   "ARQ protocol to use"}
+auto programOptionData = std::to_array<ProgramOption>({
+    {PROG_OPTION_HELP,            std::monostate{},                                  "display help message"},
+    {PROG_OPTION_LOGGING,         std::to_underlying(util::LOGGING_LEVEL_INFO),      util::Logger::helpText()},
+    {PROG_OPTION_SERVER_ADDR,     "127.0.0.1"s,                                      "server IPv4 address"},
+    {PROG_OPTION_SERVER_PORT,     "65534"s,                                          "server port"},
+    {PROG_OPTION_CLIENT_ADDR,     "127.0.0.1"s,                                      "client IPv4 address"},
+    {PROG_OPTION_CLIENT_PORT,     "65535"s,                                          "client port"},
+    {PROG_OPTION_LAUNCH_SERVER,   std::monostate{},                                  "start server thread"},
+    {PROG_OPTION_LAUNCH_CLIENT,   std::monostate{},                                  "start client thread"},
+    {PROG_OPTION_TX_PKT_NUM,      uint16_t{10},                                      "number of packets to transmit"},
+    {PROG_OPTION_TX_PKT_INTERVAL, uint16_t{10},                                      "ms between transmitted packets"},
+    {PROG_OPTION_ARQ_TIMEOUT,     uint16_t{50},                                      "ARQ timeout in ms"},
+    {PROG_OPTION_ARQ_PROTOCOL,    arqProtocolToString(arq::ArqProtocol::DUMMY_SCTP), "ARQ protocol to use"}
 });
 // clang-format on
 
@@ -58,7 +70,7 @@ static auto generateOptionsDescription()
     po::options_description description{"Usage"};
 
     // Add each possible option to the description object
-    for (const auto& option : programOptions) {
+    for (const auto& option : programOptionData) {
         util::logDebug("parsing option: {}", option.name.c_str());
 
         // Add options with no arguments
@@ -82,7 +94,7 @@ static auto generateOptionsDescription()
         }
         else {
             util::logError("default value incorrectly specified for option {}", option.name);
-            throw std::logic_error("default value incorrectly specified in programOptions");
+            throw std::logic_error("default value incorrectly specified in programOptionData");
         }
     }
 
@@ -95,16 +107,16 @@ struct HelpException : public std::invalid_argument {
 
 static arq::ArqProtocol getArqProtocolFromStr(const std::string& input)
 {
-    if (input == "dummy-sctp") {
+    if (input == arqProtocolToString(arq::ArqProtocol::DUMMY_SCTP)) {
         return arq::ArqProtocol::DUMMY_SCTP;
     }
-    else if (input == "stop-and-wait") {
+    else if (input == arqProtocolToString(arq::ArqProtocol::STOP_AND_WAIT)) {
         return arq::ArqProtocol::STOP_AND_WAIT;
     }
-    else if (input == "sliding-window") {
+    else if (input == arqProtocolToString(arq::ArqProtocol::SLIDING_WINDOW)) {
         return arq::ArqProtocol::SLIDING_WINDOW;
     }
-    else if (input == "selective-repeat") {
+    else if (input == arqProtocolToString(arq::ArqProtocol::SELECTIVE_REPEAT)) {
         return arq::ArqProtocol::SELECTIVE_REPEAT;
     }
 
@@ -120,103 +132,82 @@ static auto parseOptions(int argc, char** argv, boost::program_options::options_
     po::store(po::parse_command_line(argc, argv, description), vm);
     po::notify(vm);
 
-    // Parse each possible option in turn, and verify all have been parsed
+    // Parse each possible option in turn
     try {
-        [[maybe_unused]] size_t idx{0};
-        // Help
-        assert(programOptions[idx++].name == "help");
-        if (vm.contains("help")) {
+        if (vm.contains(PROG_OPTION_HELP)) {
             throw HelpException("help requested");
         }
 
-        // Logging
-        assert(programOptions[idx++].name == "logging");
-        if (vm.contains("logging")) {
-            const auto newLevel{static_cast<util::LoggingLevel>(vm["logging"].as<uint16_t>())};
+        if (vm.contains(PROG_OPTION_LOGGING)) {
+            const auto newLevel{static_cast<util::LoggingLevel>(vm[PROG_OPTION_LOGGING].as<uint16_t>())};
             util::Logger::setLoggingLevel(newLevel);
+            util::logInfo("logging level set to {}", util::Logger::loggingLevelStr());
         }
-        util::logInfo("logging level set to {}", util::Logger::loggingLevelStr());
 
-        // Server address
-        assert(programOptions[idx++].name == "server-addr");
-        if (vm.contains("server-addr")) {
-            config.common.serverNames.hostName = vm["server-addr"].as<std::string>();
+        if (vm.contains(PROG_OPTION_SERVER_ADDR)) {
+            config.common.serverNames.hostName = vm[PROG_OPTION_SERVER_ADDR].as<std::string>();
+            util::logInfo("server address set to {}", config.common.serverNames.hostName);
         }
         else {
             throw HelpException("server-addr not provided");
         }
 
-        // Server port
-        assert(programOptions[idx++].name == "server-port");
-        if (vm.contains("server-port")) {
-            config.common.serverNames.serviceName = vm["server-port"].as<std::string>();
+        if (vm.contains(PROG_OPTION_SERVER_PORT)) {
+            config.common.serverNames.serviceName = vm[PROG_OPTION_SERVER_PORT].as<std::string>();
+            util::logInfo("server port set to {}", config.common.serverNames.serviceName);
         }
         else {
             throw HelpException("server-port not provided");
         }
 
-        // Client address
-        assert(programOptions[idx++].name == "client-addr");
-        if (vm.contains("client-addr")) {
-            config.common.clientNames.hostName = vm["client-addr"].as<std::string>();
+        if (vm.contains(PROG_OPTION_CLIENT_ADDR)) {
+            config.common.clientNames.hostName = vm[PROG_OPTION_CLIENT_ADDR].as<std::string>();
+            util::logInfo("client address set to {}", config.common.clientNames.hostName);
         }
         else {
             throw HelpException("client-addr not provided");
         }
 
-        // Client port
-        assert(programOptions[idx++].name == "client-port");
-        if (vm.contains("client-port")) {
-            config.common.clientNames.serviceName = vm["client-port"].as<std::string>();
+        if (vm.contains(PROG_OPTION_CLIENT_PORT)) {
+            config.common.clientNames.serviceName = vm[PROG_OPTION_CLIENT_PORT].as<std::string>();
+            util::logInfo("client port set to {}", config.common.clientNames.serviceName);
         }
         else {
-            throw HelpException("client-port not provided");
+            throw HelpException("client-addr not provided");
         }
 
-        // Launch server
-        assert(programOptions[idx++].name == "launch-server");
-        if (vm.contains("launch-server")) {
+        if (vm.contains(PROG_OPTION_LAUNCH_SERVER)) {
             config.server = arq::config_Server{}; // No content currently
         }
 
-        // Launch client
-        assert(programOptions[idx++].name == "launch-client");
-        if (vm.contains("launch-client")) {
+        if (vm.contains(PROG_OPTION_LAUNCH_CLIENT)) {
             config.client = arq::config_Client{}; // No content currently
         }
 
-        // Number of packets to transmit
-        assert(programOptions[idx++].name == "tx-pkt-num");
-        if (vm.contains("tx-pkt-num") && config.server.has_value()) {
-            config.server->txPkts.num = vm["tx-pkt-num"].as<uint16_t>();
+        if (vm.contains(PROG_OPTION_TX_PKT_NUM) && config.server.has_value()) {
+            config.server->txPkts.num = vm[PROG_OPTION_TX_PKT_NUM].as<uint16_t>();
         }
 
-        // Interval between packet transmissions in ms
-        assert(programOptions[idx++].name == "tx-pkt-interval");
-        if (vm.contains("tx-pkt-interval") && config.server.has_value()) {
-            config.server->txPkts.msInterval = vm["tx-pkt-interval"].as<uint16_t>();
+        if (vm.contains(PROG_OPTION_TX_PKT_INTERVAL) && config.server.has_value()) {
+            config.server->txPkts.msInterval = vm[PROG_OPTION_TX_PKT_INTERVAL].as<uint16_t>();
         }
 
-        // ARQ timeout (may change if adaptive timeout enabled)
-        assert(programOptions[idx++].name == "arq-timeout");
-        if (vm.contains("arq-timeout") && config.server.has_value()) {
-            config.server->arqTimeout = vm["arq-timeout"].as<uint16_t>();
+        if (vm.contains(PROG_OPTION_ARQ_TIMEOUT) && config.server.has_value()) {
+            config.server->arqTimeout = vm[PROG_OPTION_ARQ_TIMEOUT].as<uint16_t>();
         }
 
-        // ARQ protocol
-        assert(programOptions[idx++].name == "arq-protocol");
-        if (vm.contains("arq-protocol")) {
-            config.common.arqProtocol = getArqProtocolFromStr(vm["arq-protocol"].as<std::string>());
+        if (vm.contains(PROG_OPTION_ARQ_PROTOCOL)) {
+            config.common.arqProtocol = getArqProtocolFromStr(vm[PROG_OPTION_ARQ_PROTOCOL].as<std::string>());
         }
 
         if (config.server.has_value()) {
-            util::logInfo("server configured to transmit {} packets with interval {} ms",
-                          config.server->txPkts.num,
-                          config.server->txPkts.msInterval);
+            util::logInfo(
+                "server configured to transmit {} packets with interval {} ms using ARQ protocol {} with initial timeout {} ms",
+                config.server->txPkts.num,
+                config.server->txPkts.msInterval,
+                arqProtocolToString(config.common.arqProtocol),
+                config.server->arqTimeout);
         }
-
-        // Check that all options have been processed
-        assert(idx == programOptions.size());
     }
     catch (const HelpException& e) {
         std::println("Displaying usage information ({})", e.what());

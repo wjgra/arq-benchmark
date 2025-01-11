@@ -42,20 +42,21 @@ struct Logger {
     }
 
     // Get a help string listing the different logging levels
-    static constexpr auto helpText()
+    static constexpr std::string helpText()
     {
-        std::string help_str = "set logging level (";
+        std::string helpStr = "set logging level (";
         for (size_t log_idx = 0; log_idx < labels.size(); ++log_idx) {
             static_assert(labels.size() <= 10); // Verify log level fits into one character
-            help_str += std::string(1, '0' + log_idx);
-            help_str += " = ";
-            help_str += labels[log_idx];
+            helpStr += std::string(1, '0' + log_idx);
+
+            helpStr += " = ";
+            helpStr += labels[log_idx];
             if (log_idx != labels.size() - 1) {
-                help_str += ", ";
+                helpStr += ", ";
             }
         }
-        help_str += ")";
-        return help_str
+        helpStr += ")";
+        return helpStr;
     }
 
 private:

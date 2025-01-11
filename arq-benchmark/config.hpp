@@ -1,6 +1,7 @@
 #ifndef _ARQ_BENCHMARK_CONFIG_HPP_
 #define _ARQ_BENCHMARK_CONFIG_HPP_
 
+#include <array>
 #include <optional>
 #include <stdexcept>
 #include <string_view>
@@ -17,6 +18,22 @@ struct config_AddressInfo {
 };
 
 enum class ArqProtocol { DUMMY_SCTP, STOP_AND_WAIT, SLIDING_WINDOW, SELECTIVE_REPEAT };
+
+static constexpr auto arqProtocolToString(ArqProtocol protocol)
+{
+    switch (protocol) {
+        case ArqProtocol::DUMMY_SCTP:
+            return "dummy-sctp";
+        case ArqProtocol::STOP_AND_WAIT:
+            return "stop-and-wait";
+        case ArqProtocol::SLIDING_WINDOW:
+            return "sliding-window";
+        case ArqProtocol::SELECTIVE_REPEAT:
+            return "selective-repeat";
+        default:
+            return "";
+    };
+}
 
 struct config_common {
     config_AddressInfo serverNames;
