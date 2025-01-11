@@ -41,22 +41,28 @@ struct Logger {
         }
     }
 
-    static auto helpText()
+    // Get a help string listing the different logging levels
+    static constexpr auto helpText()
     {
-        std::string out = "set logging level (";
-        for (size_t i = 0; i < labels.size(); ++i) {
-            out += std::to_string(i) + " = " + std::string{labels[i]};
-            if (i != labels.size() - 1) {
-                out += ", ";
+        std::string help_str = "set logging level (";
+        for (size_t log_idx = 0; log_idx < labels.size(); ++log_idx) {
+            static_assert(labels.size() <= 10); // Verify log level fits into one character
+            help_str += std::string(1, '0' + log_idx);
+            help_str += " = ";
+            help_str += labels[log_idx];
+            if (log_idx != labels.size() - 1) {
+                help_str += ", ";
             }
         }
-        return (out += ")");
+        help_str += ")";
+        return help_str
     }
 
 private:
     static inline LoggingLevel loggingLevel{LOGGING_LEVEL_INFO};
     static constexpr auto labels = std::to_array<std::string_view>({"NONE", "ERROR", "WARNING", "INFO", "DEBUG"});
-    // Length of the longest label used to print log labels with a fixed with, ensuring that messages align
+
+    // Length of the longest label is used to print log labels with a fixed width
     static constexpr auto len_longestLabel =
         std::ranges::max(labels | std::views::transform([](auto&& str) { return str.size(); }));
 };
