@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <print>
 #include <ranges>
 #include <string>
@@ -36,8 +37,11 @@ struct Logger {
     {
         if (loggingLevel >= level) {
             // Print label at fixed width, followed by formatted message
-            std::println(
-                "[{:^{}}]: {}", labels[level], len_longestLabel, std::format(message, std::forward<Args>(args)...));
+            std::println("{}[{:^{}}]: {}",
+                         includeTimestamp ? std::format("{} ", std::chrono::high_resolution_clock::now()) : "",
+                         labels[level],
+                         len_longestLabel,
+                         std::format(message, std::forward<Args>(args)...));
         }
     }
 
@@ -59,6 +63,10 @@ struct Logger {
         return helpStr;
     }
 
+    static void enableTimestamps() { includeTimestamp = true; }
+
+    static void disableTimestamps() { includeTimestamp = false; }
+
 private:
     static inline LoggingLevel loggingLevel{LOGGING_LEVEL_INFO};
     static constexpr auto labels = std::to_array<std::string_view>({"NONE", "ERROR", "WARNING", "INFO", "DEBUG"});
@@ -66,6 +74,8 @@ private:
     // Length of the longest label is used to print log labels with a fixed width
     static constexpr auto len_longestLabel =
         std::ranges::max(labels | std::views::transform([](auto&& str) { return str.size(); }));
+
+    static inline bool includeTimestamp = false;
 };
 
 // Log functions for specific logging levels:
