@@ -34,6 +34,39 @@ remain_on_exit="false"
 
 usage() { echo "Usage: $0 [-d <tc delay arg string>] [-l <tc loss arg string>] [-n <number of pkts to tx>] [-i <interval between tx pkts> ] [-w <logging level>] [-f <log file>] [-t <ARQ timeout>] [-r <remain on exit>] [-h]" 1>&2; }
 
+setup_connections() {
+    # Clean up old namespaces
+    ip netns delete ${server_ns} || true
+    ip netns delete ${client_ns} || true
+
+    # Create namespaces and veth pair
+    ip netns add ${server_ns}
+    ip netns add ${client_ns}
+    ip link add name ${server_veth} netns ${server_ns} type veth peer name ${client_veth} netns ${client_ns} mtu 1500
+
+    ip netns exec ${server_ns} ip addr add ${server_addr} dev ${server_veth}
+    ip netns exec ${client_ns} ip addr add ${client_addr} dev ${client_veth}
+
+    # ip netns exec ${server_ns} ip link set lo up
+    # ip netns exec ${client_ns} ip link set lo up
+    ip netns exec ${server_ns} ip link set ${server_veth} up
+    ip netns exec ${client_ns} ip link set ${client_veth} up
+
+    ip netns exec ${server_ns} ip route add ${client_addr} dev ${server_veth}
+    ip netns exec ${client_ns} ip route add ${server_addr} dev ${client_veth}
+}
+
+clean_up_delays() {
+    ip netns exec ${server_ns} tc qdisc del dev ${server_veth} root netem delay ${tx_delay}
+    ip netns exec ${client_ns} tc qdisc del dev ${client_veth} root netem delay ${tx_delay}
+}
+
+setup_delays() {
+    clean_up_delays
+    ip netns exec ${server_ns} tc qdisc add dev ${server_veth} root netem delay ${tx_delay} loss ${tx_loss}
+    ip netns exec ${client_ns} tc qdisc add dev ${client_veth} root netem delay ${tx_delay} loss ${tx_loss}
+}
+
 while getopts "d:l:n:i:w:f:t:p:rh" opt; do
     case ${opt} in
         d)
@@ -83,29 +116,25 @@ server_log="${log_dir}/server_${log_file}"
 rm -f ${client_log} || true
 rm -f ${server_log} || true
 
-# Clean up old namespaces
-ip netns delete ${server_ns} || true
-ip netns delete ${client_ns} || true
+setup_connections
 
-# Create namespaces and veth pair
-ip netns add ${server_ns}
-ip netns add ${client_ns}
-ip link add name ${server_veth} netns ${server_ns} type veth peer name ${client_veth} netns ${client_ns} mtu 1500
+# Check connections - this also ensures ARP cache is populated
+if ip netns exec ${server_ns} ping ${client_addr} -c1 -q; then
+    echo "Server ping successful"
+else
+    echo "Server ping failed"
+    exit 1
+fi
 
-ip netns exec ${server_ns} ip addr add ${server_addr} dev ${server_veth}
-ip netns exec ${client_ns} ip addr add ${client_addr} dev ${client_veth}
-
-# ip netns exec ${server_ns} ip link set lo up
-# ip netns exec ${client_ns} ip link set lo up
-ip netns exec ${server_ns} ip link set ${server_veth} up
-ip netns exec ${client_ns} ip link set ${client_veth} up
-
-ip netns exec ${server_ns} ip route add ${client_addr} dev ${server_veth}
-ip netns exec ${client_ns} ip route add ${server_addr} dev ${client_veth}
+if ip netns exec ${client_ns} ping ${server_addr} -c1 -q; then
+    echo "Client ping successful"
+else
+    echo "Client ping failed"
+    exit 1
+fi
 
 # Simulate network conditions
-ip netns exec ${server_ns} tc qdisc add dev ${server_veth} root netem delay ${tx_delay} loss ${tx_loss}
-ip netns exec ${client_ns} tc qdisc add dev ${client_veth} root netem delay ${tx_delay} loss ${tx_loss}
+setup_delays
 
 common_opts="--logging ${logging_level} --client-addr ${client_addr} --server-addr ${server_addr} --arq-protocol ${arq_protocol} "
 
@@ -126,4 +155,4 @@ fi
 tmux set-option -t "arq" -g mouse
 tmux attach-session -t "arq"
 
-ip netns exec ${server_ns} tc qdisc del dev ${server_veth} root netem delay ${tx_delay}
+clean_up_delays

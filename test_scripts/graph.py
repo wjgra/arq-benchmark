@@ -75,14 +75,14 @@ def validate_time_series_data(server_time_series, client_time_series):
     
     return 0
 
-def display_time_series_data(fig, ax, server_time_series, client_time_series):
+def display_time_series_data(fig, ax, server_time_series, client_time_series, label):
     
     sequence_nums = [elt[0] for elt in server_time_series]
 
     delays = [(cli[1] - srv[1]) / timedelta(milliseconds=1) for cli, srv in zip(client_time_series, server_time_series)]
 
     # Q. Do we want a line chart or histogram?
-    fig, = ax.plot( sequence_nums, delays)
+    fig, = ax.plot( sequence_nums, delays, label = label)
     # n,bins,p = plt.hist(delays, bins=50)
 
 def main():
@@ -104,9 +104,13 @@ def main():
             print("Failed to validate time series data")
             return 1
 
-        display_time_series_data(fig, ax, server_time_series, client_time_series)
+        display_time_series_data(fig, ax, server_time_series, client_time_series, name)
 
-    plt.xticks(range(0, len(server_time_series), len(server_time_series) // 10))
+    if len(server_time_series) > 10:
+        plt.xticks(range(0, len(server_time_series), len(server_time_series) // 10))
+    plt.xlabel("Sequence Number")
+    plt.ylabel("Delay (ms)")
+    plt.legend(loc = "upper left")
     plt.show()
 
 if __name__ == "__main__":
