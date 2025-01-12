@@ -10,12 +10,12 @@ std::optional<arq::SequenceNumber> arq::rs::StopAndWait::do_addPacket(DataPacket
 
     // WJG: this slows things down - consider single-threaded implementation?
     util::logDebug("Waiting to add packet to RS");
-    while (packetForDelivery_.has_value() == true && endOfTxPushed == false) {
+    while (packetForDelivery_.has_value() && !endOfTxPushed) {
         rsPacketCv_.wait(lock);
     }
 
     // If EoT already pushed to OB, empty RS and indicate that no ACK should be Tx'd
-    if (endOfTxPushed == true) {
+    if (endOfTxPushed) {
         packetForDelivery_ = std::nullopt;
         return std::nullopt; // WJG: consider allowing further EoT ACKs to be sent
     }
@@ -54,7 +54,7 @@ arq::DataPacket arq::rs::StopAndWait::do_getNextPacket()
     std::unique_lock<std::mutex> lock(rsPacketMutex_);
 
     util::logDebug("Waiting to get next packet from RS");
-    while (packetForDelivery_.has_value() == false) {
+    while (!packetForDelivery_.has_value()) {
         rsPacketCv_.wait(lock);
     }
 

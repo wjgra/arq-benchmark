@@ -40,7 +40,7 @@ bool arq::rt::StopAndWait::do_packetsPending() const
 void arq::rt::StopAndWait::do_acknowledgePacket(const SequenceNumber seqNum)
 {
     std::scoped_lock<std::mutex> lock(rtPacketMutex_);
-    if (retransmitPacket_.has_value() == false) {
+    if (!retransmitPacket_.has_value()) {
         util::logDebug("Ack received for SN {} but no packet stored for retransmission", seqNum);
         return;
     }
