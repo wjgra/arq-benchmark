@@ -17,7 +17,7 @@ struct config_AddressInfo {
     std::string serviceName;
 };
 
-enum class ArqProtocol { DUMMY_SCTP, STOP_AND_WAIT, SLIDING_WINDOW, SELECTIVE_REPEAT };
+enum class ArqProtocol { DUMMY_SCTP, STOP_AND_WAIT, GO_BACK_N, SELECTIVE_REPEAT };
 
 static constexpr auto arqProtocolToString(ArqProtocol protocol)
 {
@@ -26,8 +26,8 @@ static constexpr auto arqProtocolToString(ArqProtocol protocol)
             return "dummy-sctp";
         case ArqProtocol::STOP_AND_WAIT:
             return "stop-and-wait";
-        case ArqProtocol::SLIDING_WINDOW:
-            return "sliding-window";
+        case ArqProtocol::GO_BACK_N:
+            return "go-back-n";
         case ArqProtocol::SELECTIVE_REPEAT:
             return "selective-repeat";
         default:

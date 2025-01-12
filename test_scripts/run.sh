@@ -18,7 +18,7 @@ server_addr="10.0.0.1"
 client_addr="10.0.0.2"
 
 arq_timeout="50" # ms
-arq_protocol="dummy-sctp" # Options: "dummy-sctp", "stop-and-wait", "sliding-window" and "selective-repeat"
+arq_protocol="dummy-sctp" # Options: "dummy-sctp", "stop-and-wait", "go-back-n" and "selective-repeat"
 
 tx_delay="100ms 10ms distribution normal"
 tx_loss="random 1%"

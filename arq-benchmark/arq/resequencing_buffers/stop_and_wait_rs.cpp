@@ -2,7 +2,7 @@
 
 #include "util/logging.hpp"
 
-arq::rs::StopAndWait::StopAndWait() : expectedPacketSeqNum_{firstSequenceNumber}, packetForDelivery_{std::nullopt} {}
+arq::rs::StopAndWait::StopAndWait() : expectedPacketSeqNum_{FIRST_SEQUENCE_NUMBER}, packetForDelivery_{std::nullopt} {}
 
 std::optional<arq::SequenceNumber> arq::rs::StopAndWait::do_addPacket(DataPacket&& packet)
 {

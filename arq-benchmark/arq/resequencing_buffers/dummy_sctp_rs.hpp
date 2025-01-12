@@ -24,7 +24,7 @@ private:
     util::SafeQueue<arq::DataPacket> shadowBuffer_;
 
     // The next sequence number expected by the RS buffer.
-    arq::SequenceNumber nextSequenceNumber_ = arq::firstSequenceNumber;
+    arq::SequenceNumber nextSequenceNumber_ = arq::FIRST_SEQUENCE_NUMBER;
 };
 
 } // namespace rs

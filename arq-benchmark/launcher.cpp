@@ -18,8 +18,10 @@
 #include "arq/receiver.hpp"
 #include "arq/resequencing_buffers/dummy_sctp_rs.hpp"
 #include "arq/resequencing_buffers/stop_and_wait_rs.hpp"
+#include "arq/resequencing_buffers/go_back_n_rs.hpp"
 #include "arq/retransmission_buffers/dummy_sctp_rt.hpp"
 #include "arq/retransmission_buffers/stop_and_wait_rt.hpp"
+#include "arq/retransmission_buffers/go_back_n_rt.hpp"
 #include "arq/transmitter.hpp"
 #include "util/endpoint.hpp"
 #include "util/logging.hpp"
@@ -113,8 +115,8 @@ static arq::ArqProtocol getArqProtocolFromStr(const std::string& input)
     else if (input == arqProtocolToString(arq::ArqProtocol::STOP_AND_WAIT)) {
         return arq::ArqProtocol::STOP_AND_WAIT;
     }
-    else if (input == arqProtocolToString(arq::ArqProtocol::SLIDING_WINDOW)) {
-        return arq::ArqProtocol::SLIDING_WINDOW;
+    else if (input == arqProtocolToString(arq::ArqProtocol::GO_BACK_N)) {
+        return arq::ArqProtocol::GO_BACK_N;
     }
     else if (input == arqProtocolToString(arq::ArqProtocol::SELECTIVE_REPEAT)) {
         return arq::ArqProtocol::SELECTIVE_REPEAT;
@@ -312,7 +314,7 @@ static void transmitPackets(std::function<void(arq::DataPacket&&)> txerSendPacke
     txerSendPacket(arq::DataPacket{});
 }
 
-static void startTransmitter(arq::config_Launcher& config /* why not const? */)
+static void startTransmitter(const arq::config_Launcher& config)
 {
     // Generate a new conversation ID and share with receiver
     arq::ConversationIDAllocator allocator{};
@@ -387,9 +389,23 @@ static void startTransmitter(arq::config_Launcher& config /* why not const? */)
 
         transmitPackets(txerSend, config.server->txPkts.num, config.server->txPkts.msInterval);
     }
+    else if (config.common.arqProtocol == arq::ArqProtocol::GO_BACK_N) {
+        arq::Transmitter txer(
+            convID,
+            txToClient,
+            rxFromClient,
+            std::make_unique<arq::rt::GoBackN>(100, std::chrono::milliseconds(config.server->arqTimeout), false));
+
+        auto txerSend = [&txer](arq::DataPacket&& pkt) { txer.sendPacket(std::move(pkt)); };
+
+        transmitPackets(txerSend, config.server->txPkts.num, config.server->txPkts.msInterval);
+    }
+    else {
+        util::logError("Unsupported ARQ protocol: {}", arqProtocolToString(config.common.arqProtocol));
+    }
 }
 
-static void startReceiver(arq::config_Launcher& config /* why not const? */)
+static void startReceiver(const arq::config_Launcher& config)
 {
     // Obtain conversation ID from tranmitter
     auto convID = receiveConversationID(config.common.clientNames, config.common.serverNames);
@@ -433,6 +449,9 @@ static void startReceiver(arq::config_Launcher& config /* why not const? */)
     }
     else if (config.common.arqProtocol == arq::ArqProtocol::STOP_AND_WAIT) {
         arq::Receiver rxer(convID, txToServer, rxFromServer, std::make_unique<arq::rs::StopAndWait>());
+    }
+    else if (config.common.arqProtocol == arq::ArqProtocol::GO_BACK_N) {
+        arq::Receiver rxer(convID, txToServer, rxFromServer, std::make_unique<arq::rs::GoBackN>(100));
     }
     else {
         util::logError("Unsupported ARQ protocol: {}", arqProtocolToString(config.common.arqProtocol));

@@ -7,7 +7,10 @@
 namespace arq {
 using SequenceNumber = uint16_t;
 
-constexpr SequenceNumber firstSequenceNumber = 1;
+constexpr SequenceNumber FIRST_SEQUENCE_NUMBER = 0;
+
+// WJG: to allow roll-over SNs
+constexpr SequenceNumber MAX_SEQUENCE_NUMBER = __UINT16_MAX__;
 
 // Serialises sequenceNumber to the buffer
 bool serialiseSeqNum(const SequenceNumber sequenceNumber, std::span<std::byte> buffer) noexcept;

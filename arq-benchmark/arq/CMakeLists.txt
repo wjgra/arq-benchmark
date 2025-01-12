@@ -8,11 +8,13 @@ set(ARQ_SRCS
 
 set(ARQ_RT_BUFFER_SRCS
     retransmission_buffers/stop_and_wait_rt.cpp
-    retransmission_buffers/dummy_sctp_rt.cpp)  
+    retransmission_buffers/dummy_sctp_rt.cpp
+    retransmission_buffers/go_back_n_rt.cpp)  
 
 set(ARQ_RS_BUFFER_SRCS
     resequencing_buffers/stop_and_wait_rs.cpp
-    resequencing_buffers/dummy_sctp_rs.cpp)
+    resequencing_buffers/dummy_sctp_rs.cpp
+    retransmission_buffers/go_back_n_rt.cpp)
 
 add_library(lib_arq ${ARQ_SRCS} ${ARQ_RT_BUFFER_SRCS} ${ARQ_RS_BUFFER_SRCS})
 
