@@ -46,7 +46,7 @@ private:
     void receiveThread()
     {
         bool receivedEndOfTx = false;
-        while (resequencingBuffer_->packetsPending()|| !receivedEndOfTx) {
+        while (resequencingBuffer_->packetsPending() || !receivedEndOfTx) {
             std::array<std::byte, MAX_TRANSMISSION_UNIT> recvBuffer;
             util::logDebug("Waiting for a data packet");
             auto bytesRxed = rxFn_(recvBuffer);
