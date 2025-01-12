@@ -35,7 +35,7 @@ std::optional<arq::SequenceNumber> arq::rs::DummySCTP::do_addPacket(DataPacket&&
 
 bool arq::rs::DummySCTP::do_packetsPending() const noexcept
 {
-    return shadowBuffer_.empty() == false;
+    return !shadowBuffer_.empty();
 }
 
 arq::DataPacket arq::rs::DummySCTP::do_getNextPacket()

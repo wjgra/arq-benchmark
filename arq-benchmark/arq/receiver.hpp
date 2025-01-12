@@ -25,8 +25,7 @@ public:
         rxFn_{rxFn},
         resequencingBuffer_{std::move(rsBuffer_p)},
         receiveThread_{[this]() { return this->receiveThread(); }},
-        resequencingThread_{[this]() { return this->resequencingThread(); }},
-        endOfTxSeqNum_{std::nullopt} {};
+        resequencingThread_{[this]() { return this->resequencingThread(); }} {};
 
     ~Receiver()
     {
@@ -46,12 +45,13 @@ private:
     // both an EoT packet has been received and no packets are present in the RS buffer.
     void receiveThread()
     {
-        while (resequencingBuffer_->packetsPending() == true || endOfTxSeqNum_.has_value() == false) {
+        bool receivedEndOfTx = false;
+        while (resequencingBuffer_->packetsPending() || !receivedEndOfTx) {
             std::array<std::byte, MAX_TRANSMISSION_UNIT> recvBuffer;
             util::logDebug("Waiting for a data packet");
             auto bytesRxed = rxFn_(recvBuffer);
 
-            if (bytesRxed.has_value() == false || bytesRxed == 0) {
+            if (!bytesRxed.has_value() || bytesRxed == 0) {
                 // No data received
                 continue;
             }
@@ -64,7 +64,7 @@ private:
             util::logInfo("Received data packet with length {} and SN {}", pktHdr.length_, pktHdr.sequenceNumber_);
 
             if (packet.isEndOfTx()) {
-                endOfTxSeqNum_ = pktHdr.sequenceNumber_;
+                receivedEndOfTx = true;
             }
 
             // Add packet to RS and send an ACK if needed
@@ -91,11 +91,13 @@ private:
     // an EoT packet has been delivered to the output buffer.
     void resequencingThread()
     {
-        // WJG: I think this starves the other thread? Consider using a CV rather than a loop...
-        // Also consider getting a seqeunce of packets
-        while (resequencingBuffer_->packetsPending() || endOfTxSeqNum_.has_value() == false) {
-            outputBuffer_.addPacket(
-                resequencingBuffer_->getNextPacket()); // WJG: consider checking return value and logging
+        bool receivedEndOfTx = false;
+        while (!receivedEndOfTx) {
+            auto pkt = resequencingBuffer_->getNextPacket();
+            if (pkt.isEndOfTx()) {
+                receivedEndOfTx = true;
+            }
+            outputBuffer_.addPacket(std::move(pkt));
         }
         util::logInfo("Receiver resequencing thread exited"); // output thread?
     }
@@ -114,8 +116,8 @@ private:
     std::thread receiveThread_;
     // Thread handling pushing data packets to the output buffer
     std::thread resequencingThread_;
-    // If an EoT has been received, store the SN here
-    std::optional<SequenceNumber> endOfTxSeqNum_;
+    // // If an EoT has been received, store the SN here
+    // std::optional<SequenceNumber> endOfTxSeqNum_;
     // If an EoT has been received, store time of last packet reception
 };
 

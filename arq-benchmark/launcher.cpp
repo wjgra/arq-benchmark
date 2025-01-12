@@ -454,6 +454,8 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
+    util::Logger::enableTimestamps();
+
     std::thread txThread, rxThread;
 
     if (cfg.server.has_value()) {
