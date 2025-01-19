@@ -23,9 +23,7 @@ struct TransmitBufferObject {
     // Information for managing the state of the packet within the InputBuffer
     PacketInfo info_;
 
-    void updateLastTxTime() {
-        info_.lastTxTime_ = ClockType::now();
-    }
+    void updateLastTxTime() { info_.lastTxTime_ = ClockType::now(); }
 };
 
 } // namespace arq

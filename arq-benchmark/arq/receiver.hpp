@@ -1,8 +1,8 @@
 #ifndef _ARQ_RECEIVER_HPP_
 #define _ARQ_RECEIVER_HPP_
 
-#include <memory>
 #include <atomic>
+#include <memory>
 #include <thread>
 
 #include "arq/arq_common.hpp"
@@ -48,7 +48,7 @@ private:
     void receiveThread()
     {
         // bool receivedEndOfTx = false; // should really only end when we've pushed EoT
-        while (pushedEndOfTx_ == false/* resequencingBuffer_->packetsPending() || !receivedEndOfTx */) {
+        while (pushedEndOfTx_ == false /* resequencingBuffer_->packetsPending() || !receivedEndOfTx */) {
             std::array<std::byte, MAX_TRANSMISSION_UNIT> recvBuffer;
             util::logDebug("Waiting for a data packet");
             auto bytesRxed = rxFn_(recvBuffer);

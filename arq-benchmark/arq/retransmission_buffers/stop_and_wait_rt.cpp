@@ -2,10 +2,7 @@
 
 #include "util/logging.hpp"
 
-arq::rt::StopAndWait::StopAndWait(const std::chrono::microseconds timeout) :
-    RetransmissionBuffer{timeout}
-{
-}
+arq::rt::StopAndWait::StopAndWait(const std::chrono::microseconds timeout) : RetransmissionBuffer{timeout} {}
 
 void arq::rt::StopAndWait::do_addPacket(arq::TransmitBufferObject&& packet)
 {
@@ -20,7 +17,6 @@ std::optional<std::span<const std::byte>> arq::rt::StopAndWait::do_getPacketData
 {
     std::unique_lock<std::mutex> lock(rtPacketMutex_);
     if (retransmitPacket_.has_value() && isPacketTimedOut(retransmitPacket_.value())) {
-        
         retransmitPacket_->updateLastTxTime();
         return retransmitPacket_->packet_.getReadSpan();
     }

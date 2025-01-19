@@ -71,7 +71,8 @@ public:
 
 protected:
     // Has the timeout interval elapsed since this packet was last transmitted?
-    bool isPacketTimedOut(const TransmitBufferObject& packet) const {
+    bool isPacketTimedOut(const TransmitBufferObject& packet) const
+    {
         const auto now = arq::ClockType::now();
         const auto then = packet.info_.lastTxTime_;
         const auto timeSinceLastTx = std::chrono::duration_cast<std::chrono::microseconds>(now - then);

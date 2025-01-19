@@ -3,8 +3,8 @@
 
 #include <chrono>
 #include <cstdint>
-#include <functional>
 #include <exception>
+#include <functional>
 #include <span>
 
 namespace arq {

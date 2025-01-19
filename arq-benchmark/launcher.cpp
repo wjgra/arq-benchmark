@@ -399,14 +399,14 @@ static void startTransmitter(const arq::config_Launcher& config)
         auto windowSize = config.common.windowSize;
         if (!config.common.windowSize.has_value()) {
             windowSize = 100;
-            util::logWarning("Unspecified window size - using default of {}", windowSize.value());    
+            util::logWarning("Unspecified window size - using default of {}", windowSize.value());
         }
 
-        arq::Transmitter txer(
-            convID,
-            txToClient,
-            rxFromClient,
-            std::make_unique<arq::rt::GoBackN>(windowSize.value(), std::chrono::milliseconds(config.server->arqTimeout)));
+        arq::Transmitter txer(convID,
+                              txToClient,
+                              rxFromClient,
+                              std::make_unique<arq::rt::GoBackN>(windowSize.value(),
+                                                                 std::chrono::milliseconds(config.server->arqTimeout)));
 
         auto txerSend = [&txer](arq::DataPacket&& pkt) { txer.sendPacket(std::move(pkt)); };
 
