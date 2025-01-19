@@ -77,7 +77,7 @@ private:
             }
             else if (!endOfTxSeqNum_.has_value() && retransmissionBuffer_->readyForNewPacket()) {
                 auto nextPkt = inputBuffer_.getPacket();
-                if (nextPkt.packet_.isEndOfTx()) { // consider making isEndOfTx a fn of the buffer object
+                if (nextPkt.isEndOfTx()) {
                     util::logInfo("Transmitter received end of EndofTx");
                     endOfTxSeqNum_ = nextPkt.info_.sequenceNumber_;
                 }

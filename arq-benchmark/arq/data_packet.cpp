@@ -121,7 +121,7 @@ void arq::DataPacket::updateConversationID(const ConversationID convID)
     assert(ret);
 }
 
-bool arq::DataPacket::isEndOfTx() const
+bool arq::DataPacket::isEndOfTx() const noexcept
 {
     return header_.length_ == 0;
 }
