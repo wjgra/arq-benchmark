@@ -58,7 +58,10 @@ public:
     void addPacket(TransmitBufferObject&& packet) { static_cast<T*>(this)->do_addPacket(std::move(packet)); }
 
     // Get a span of the next packet for retransmission
-    std::optional<std::span<const std::byte>> getPacketDataSpan() { return static_cast<T*>(this)->do_getPacketDataSpan(); }
+    std::optional<std::span<const std::byte>> getPacketDataSpan()
+    {
+        return static_cast<T*>(this)->do_getPacketDataSpan();
+    }
 
     // Can another packet be added to the retransmission buffer?
     bool readyForNewPacket() const { return static_cast<const T*>(this)->do_readyForNewPacket(); }
