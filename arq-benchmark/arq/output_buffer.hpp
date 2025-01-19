@@ -23,7 +23,7 @@ private:
     // Packets for output from the receiver
     util::SafeQueue<ReceiveBufferObject> outputPackets_;
     // The next SN to be accepted for addition to the output buffer
-    arq::SequenceNumber nextSequenceNumber_ = firstSequenceNumber;
+    arq::SequenceNumber nextSequenceNumber_ = FIRST_SEQUENCE_NUMBER;
 };
 
 } // namespace arq

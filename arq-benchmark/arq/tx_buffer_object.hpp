@@ -22,6 +22,10 @@ struct TransmitBufferObject {
     DataPacket packet_;
     // Information for managing the state of the packet within the InputBuffer
     PacketInfo info_;
+
+    void updateLastTxTime() { info_.lastTxTime_ = ClockType::now(); }
+
+    bool isEndOfTx() const noexcept { return packet_.isEndOfTx(); }
 };
 
 } // namespace arq

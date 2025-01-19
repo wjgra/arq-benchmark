@@ -65,7 +65,7 @@ private:
         while (!endOfTxSeqNum_.has_value() || retransmissionBuffer_->packetsPending()) {
             // WJG: If an ACK is received for a packet during retransmission, the packet can
             // be freed whilst transmission is in progress. Consider ownership (shared_ptr?).
-            auto pkt = retransmissionBuffer_->getPacketData();
+            auto pkt = retransmissionBuffer_->getPacketDataSpan();
 
             if (pkt.has_value()) {
                 DataPacketHeader hdr;
@@ -76,8 +76,9 @@ private:
                 validateTx(ret);
             }
             else if (!endOfTxSeqNum_.has_value() && retransmissionBuffer_->readyForNewPacket()) {
+                // Need to mutex protect this so we're still ready for a new packet by the time we add one
                 auto nextPkt = inputBuffer_.getPacket();
-                if (nextPkt.packet_.isEndOfTx()) { // consider making isEndOfTx a fn of the buffer object
+                if (nextPkt.isEndOfTx()) {
                     util::logInfo("Transmitter received end of EndofTx");
                     endOfTxSeqNum_ = nextPkt.info_.sequenceNumber_;
                 }

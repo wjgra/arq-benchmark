@@ -63,7 +63,7 @@ public:
     void updateConversationID(const ConversationID convID);
 
     // Indicates whether the packet is an EndOfTx packet
-    bool isEndOfTx() const;
+    bool isEndOfTx() const noexcept;
 
     // Update the length of the payload
     void updateDataLength(const size_t len);

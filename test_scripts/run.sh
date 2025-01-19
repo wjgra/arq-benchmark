@@ -18,7 +18,8 @@ server_addr="10.0.0.1"
 client_addr="10.0.0.2"
 
 arq_timeout="50" # ms
-arq_protocol="dummy-sctp" # Options: "dummy-sctp", "stop-and-wait", "sliding-window" and "selective-repeat"
+arq_protocol="dummy-sctp" # Options: "dummy-sctp", "stop-and-wait", "go-back-n" and "selective-repeat"
+window_size="100"
 
 tx_delay="100ms 10ms distribution normal"
 tx_loss="random 1%"
@@ -67,7 +68,7 @@ setup_delays() {
     ip netns exec ${client_ns} tc qdisc add dev ${client_veth} root netem delay ${tx_delay} loss ${tx_loss}
 }
 
-while getopts "d:l:n:i:w:f:t:p:rh" opt; do
+while getopts "d:l:n:i:w:f:t:p:s:rh" opt; do
     case ${opt} in
         d)
             tx_delay=${OPTARG}
@@ -94,6 +95,9 @@ while getopts "d:l:n:i:w:f:t:p:rh" opt; do
             ;;
         p)
             arq_protocol=${OPTARG}
+            ;;
+        s)
+            window_size=${OPTARG}
             ;;
         r)
             remain_on_exit="true"
@@ -140,7 +144,7 @@ common_opts="--logging ${logging_level} --client-addr ${client_addr} --server-ad
 
 # Start server
 tmux new-session -d -s "arq" -n "server" "stdbuf -o0 ip netns exec ${server_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher \
---launch-server ${common_opts} --tx-pkt-num ${pkt_num} --tx-pkt-interval ${pkt_interval} --arq-timeout ${arq_timeout} | tee ${server_log}"
+--launch-server ${common_opts} --tx-pkt-num ${pkt_num} --tx-pkt-interval ${pkt_interval} --arq-timeout ${arq_timeout} --window-size ${window_size}| tee ${server_log}"
 
 # Start client
 tmux new-window -t "arq" -n "client" "stdbuf -o0 ip netns exec ${client_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher \

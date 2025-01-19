@@ -15,7 +15,7 @@ concept has_addPacket = requires(T t, TransmitBufferObject&& packet) {
 
 template <typename T>
 concept has_getPacketData = requires(T t) {
-    { t.do_getPacketData() } -> std::same_as<std::optional<std::span<const std::byte>>>;
+    { t.do_getPacketDataSpan() } -> std::same_as<std::optional<std::span<const std::byte>>>;
 };
 
 template <typename T>
@@ -44,7 +44,7 @@ concept has_acknowledgePacket = requires(T t, const SequenceNumber seqNum) {
 template <typename T>
 class RetransmissionBuffer {
 public:
-    RetransmissionBuffer()
+    RetransmissionBuffer(std::chrono::microseconds timeoutInterval) : timeoutInterval_{timeoutInterval}
     {
         static_assert(std::derived_from<T, RetransmissionBuffer>);
         static_assert(rt::has_addPacket<T>);
@@ -58,7 +58,10 @@ public:
     void addPacket(TransmitBufferObject&& packet) { static_cast<T*>(this)->do_addPacket(std::move(packet)); }
 
     // Get a span of the next packet for retransmission
-    std::optional<std::span<const std::byte>> getPacketData() { return static_cast<T*>(this)->do_getPacketData(); }
+    std::optional<std::span<const std::byte>> getPacketDataSpan()
+    {
+        return static_cast<T*>(this)->do_getPacketDataSpan();
+    }
 
     // Can another packet be added to the retransmission buffer?
     bool readyForNewPacket() const { return static_cast<const T*>(this)->do_readyForNewPacket(); }
@@ -68,6 +71,17 @@ public:
 
     // Update tracking information for a packet which has just been acknowledged
     void acknowledgePacket(const SequenceNumber seqNum) { static_cast<T*>(this)->do_acknowledgePacket(seqNum); }
+
+protected:
+    // Has the timeout interval elapsed since this packet was last transmitted?
+    bool isPacketTimedOut(const TransmitBufferObject& packet) const
+    {
+        const auto now = arq::ClockType::now();
+        const auto then = packet.info_.lastTxTime_;
+        const auto timeSinceLastTx = std::chrono::duration_cast<std::chrono::microseconds>(now - then);
+        return timeSinceLastTx.count() > timeoutInterval_.count();
+    }
+    const std::chrono::microseconds timeoutInterval_;
 };
 
 } // namespace arq

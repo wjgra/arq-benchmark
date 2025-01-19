@@ -17,8 +17,10 @@
 #include "arq/input_buffer.hpp"
 #include "arq/receiver.hpp"
 #include "arq/resequencing_buffers/dummy_sctp_rs.hpp"
+#include "arq/resequencing_buffers/go_back_n_rs.hpp"
 #include "arq/resequencing_buffers/stop_and_wait_rs.hpp"
 #include "arq/retransmission_buffers/dummy_sctp_rt.hpp"
+#include "arq/retransmission_buffers/go_back_n_rt.hpp"
 #include "arq/retransmission_buffers/stop_and_wait_rt.hpp"
 #include "arq/transmitter.hpp"
 #include "util/endpoint.hpp"
@@ -45,6 +47,7 @@ struct ProgramOption {
 #define PROG_OPTION_TX_PKT_INTERVAL "tx-pkt-interval"
 #define PROG_OPTION_ARQ_TIMEOUT "arq-timeout"
 #define PROG_OPTION_ARQ_PROTOCOL "arq-protocol"
+#define PROG_OPTION_ARQ_WINDOW_SZ "window-size"
 
 using namespace std::string_literals;
 // clang-format off
@@ -60,7 +63,8 @@ auto programOptionData = std::to_array<ProgramOption>({
     {PROG_OPTION_TX_PKT_NUM,      uint16_t{10},                                      "number of packets to transmit"},
     {PROG_OPTION_TX_PKT_INTERVAL, uint16_t{10},                                      "ms between transmitted packets"},
     {PROG_OPTION_ARQ_TIMEOUT,     uint16_t{50},                                      "ARQ timeout in ms"},
-    {PROG_OPTION_ARQ_PROTOCOL,    arqProtocolToString(arq::ArqProtocol::DUMMY_SCTP), "ARQ protocol to use"}
+    {PROG_OPTION_ARQ_PROTOCOL,    arqProtocolToString(arq::ArqProtocol::DUMMY_SCTP), "ARQ protocol to use"},
+    {PROG_OPTION_ARQ_WINDOW_SZ,   uint16_t{100},                                       "window size for GBN and SR ARQ"}
 });
 // clang-format on
 
@@ -113,8 +117,8 @@ static arq::ArqProtocol getArqProtocolFromStr(const std::string& input)
     else if (input == arqProtocolToString(arq::ArqProtocol::STOP_AND_WAIT)) {
         return arq::ArqProtocol::STOP_AND_WAIT;
     }
-    else if (input == arqProtocolToString(arq::ArqProtocol::SLIDING_WINDOW)) {
-        return arq::ArqProtocol::SLIDING_WINDOW;
+    else if (input == arqProtocolToString(arq::ArqProtocol::GO_BACK_N)) {
+        return arq::ArqProtocol::GO_BACK_N;
     }
     else if (input == arqProtocolToString(arq::ArqProtocol::SELECTIVE_REPEAT)) {
         return arq::ArqProtocol::SELECTIVE_REPEAT;
@@ -198,6 +202,10 @@ static auto parseOptions(int argc, char** argv, boost::program_options::options_
 
         if (vm.contains(PROG_OPTION_ARQ_PROTOCOL)) {
             config.common.arqProtocol = getArqProtocolFromStr(vm[PROG_OPTION_ARQ_PROTOCOL].as<std::string>());
+        }
+
+        if (vm.contains(PROG_OPTION_ARQ_WINDOW_SZ)) {
+            config.common.windowSize = vm[PROG_OPTION_ARQ_WINDOW_SZ].as<uint16_t>();
         }
 
         if (config.server.has_value()) {
@@ -312,7 +320,7 @@ static void transmitPackets(std::function<void(arq::DataPacket&&)> txerSendPacke
     txerSendPacket(arq::DataPacket{});
 }
 
-static void startTransmitter(arq::config_Launcher& config /* why not const? */)
+static void startTransmitter(const arq::config_Launcher& config)
 {
     // Generate a new conversation ID and share with receiver
     arq::ConversationIDAllocator allocator{};
@@ -381,15 +389,35 @@ static void startTransmitter(arq::config_Launcher& config /* why not const? */)
             convID,
             txToClient,
             rxFromClient,
-            std::make_unique<arq::rt::StopAndWait>(std::chrono::milliseconds(config.server->arqTimeout), false));
+            std::make_unique<arq::rt::StopAndWait>(std::chrono::milliseconds(config.server->arqTimeout)));
 
         auto txerSend = [&txer](arq::DataPacket&& pkt) { txer.sendPacket(std::move(pkt)); };
 
         transmitPackets(txerSend, config.server->txPkts.num, config.server->txPkts.msInterval);
     }
+    else if (config.common.arqProtocol == arq::ArqProtocol::GO_BACK_N) {
+        auto windowSize = config.common.windowSize;
+        if (!config.common.windowSize.has_value()) {
+            windowSize = 100;
+            util::logWarning("Unspecified window size - using default of {}", windowSize.value());
+        }
+
+        arq::Transmitter txer(convID,
+                              txToClient,
+                              rxFromClient,
+                              std::make_unique<arq::rt::GoBackN>(windowSize.value(),
+                                                                 std::chrono::milliseconds(config.server->arqTimeout)));
+
+        auto txerSend = [&txer](arq::DataPacket&& pkt) { txer.sendPacket(std::move(pkt)); };
+
+        transmitPackets(txerSend, config.server->txPkts.num, config.server->txPkts.msInterval);
+    }
+    else {
+        util::logError("Unsupported ARQ protocol: {}", arqProtocolToString(config.common.arqProtocol));
+    }
 }
 
-static void startReceiver(arq::config_Launcher& config /* why not const? */)
+static void startReceiver(const arq::config_Launcher& config)
 {
     // Obtain conversation ID from tranmitter
     auto convID = receiveConversationID(config.common.clientNames, config.common.serverNames);
@@ -433,6 +461,9 @@ static void startReceiver(arq::config_Launcher& config /* why not const? */)
     }
     else if (config.common.arqProtocol == arq::ArqProtocol::STOP_AND_WAIT) {
         arq::Receiver rxer(convID, txToServer, rxFromServer, std::make_unique<arq::rs::StopAndWait>());
+    }
+    else if (config.common.arqProtocol == arq::ArqProtocol::GO_BACK_N) {
+        arq::Receiver rxer(convID, txToServer, rxFromServer, std::make_unique<arq::rs::GoBackN>());
     }
     else {
         util::logError("Unsupported ARQ protocol: {}", arqProtocolToString(config.common.arqProtocol));
