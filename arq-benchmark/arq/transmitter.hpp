@@ -76,6 +76,7 @@ private:
                 validateTx(ret);
             }
             else if (!endOfTxSeqNum_.has_value() && retransmissionBuffer_->readyForNewPacket()) {
+                // Need to mutex protect this so we're still ready for a new packet by the time we add one
                 auto nextPkt = inputBuffer_.getPacket();
                 if (nextPkt.isEndOfTx()) {
                     util::logInfo("Transmitter received end of EndofTx");
