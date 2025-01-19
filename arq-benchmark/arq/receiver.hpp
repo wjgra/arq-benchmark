@@ -2,6 +2,7 @@
 #define _ARQ_RECEIVER_HPP_
 
 #include <memory>
+#include <atomic>
 #include <thread>
 
 #include "arq/arq_common.hpp"
@@ -25,7 +26,8 @@ public:
         rxFn_{rxFn},
         resequencingBuffer_{std::move(rsBuffer_p)},
         receiveThread_{[this]() { return this->receiveThread(); }},
-        resequencingThread_{[this]() { return this->resequencingThread(); }} {};
+        resequencingThread_{[this]() { return this->resequencingThread(); }},
+        pushedEndOfTx_{false} {};
 
     ~Receiver()
     {
@@ -45,8 +47,8 @@ private:
     // both an EoT packet has been received and no packets are present in the RS buffer.
     void receiveThread()
     {
-        bool receivedEndOfTx = false;
-        while (resequencingBuffer_->packetsPending() || !receivedEndOfTx) {
+        // bool receivedEndOfTx = false; // should really only end when we've pushed EoT
+        while (pushedEndOfTx_ == false/* resequencingBuffer_->packetsPending() || !receivedEndOfTx */) {
             std::array<std::byte, MAX_TRANSMISSION_UNIT> recvBuffer;
             util::logDebug("Waiting for a data packet");
             auto bytesRxed = rxFn_(recvBuffer);
@@ -63,9 +65,9 @@ private:
             auto pktHdr = packet.getHeader();
             util::logInfo("Received data packet with length {} and SN {}", pktHdr.length_, pktHdr.sequenceNumber_);
 
-            if (packet.isEndOfTx()) {
-                receivedEndOfTx = true;
-            }
+            // if (packet.isEndOfTx()) {
+            //     receivedEndOfTx = true;
+            // }
 
             // Add packet to RS and send an ACK if needed
             auto ack = resequencingBuffer_->addPacket(std::move(packet));
@@ -91,11 +93,12 @@ private:
     // an EoT packet has been delivered to the output buffer.
     void resequencingThread()
     {
-        bool receivedEndOfTx = false;
-        while (!receivedEndOfTx) {
+        // bool receivedEndOfTx = false;
+        while (pushedEndOfTx_ == false /* || resequencingBuffer_->packetsPending() */) {
             auto pkt = resequencingBuffer_->getNextPacket();
             if (pkt.isEndOfTx()) {
-                receivedEndOfTx = true;
+                // receivedEndOfTx = true;
+                pushedEndOfTx_ = true;
             }
             outputBuffer_.addPacket(std::move(pkt));
         }
@@ -119,6 +122,7 @@ private:
     // // If an EoT has been received, store the SN here
     // std::optional<SequenceNumber> endOfTxSeqNum_;
     // If an EoT has been received, store time of last packet reception
+    std::atomic<bool> pushedEndOfTx_;
 };
 
 } // namespace arq

@@ -39,6 +39,7 @@ struct config_common {
     config_AddressInfo serverNames;
     config_AddressInfo clientNames;
     ArqProtocol arqProtocol;
+    std::optional<uint16_t> windowSize;
 };
 
 struct config_txPkts {

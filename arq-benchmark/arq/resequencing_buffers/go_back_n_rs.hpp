@@ -2,6 +2,7 @@
 #define _ARQ_RS_BUFFERS_GO_BACK_N_HPP_
 
 #include "arq/resequencing_buffer.hpp"
+#include "util/safe_queue.hpp"
 
 #include <condition_variable>
 #include <cstdint>
@@ -12,9 +13,7 @@ namespace rs {
 
 class GoBackN : public ResequencingBuffer<GoBackN> {
 public:
-    GoBackN([[maybe_unused]] uint16_t windowSize) {
-
-    };
+    GoBackN();
 
     // Standard functions required by ResequencingBuffer CRTP interface
     std::optional<SequenceNumber> do_addPacket(DataPacket&& packet);
@@ -32,7 +31,10 @@ private:
     // // If no packet is ready for delivery, wait on this CV until one is.
     // std::condition_variable rsPacketCv_;
     // // Has an EoT packet been pushed to the OB?
-    // bool endOfTxPushed = false;
+    bool endOfTxPushed = false;
+    std::mutex rsMutex_;
+    util::SafeQueue<arq::DataPacket> shadowBuffer_;
+    SequenceNumber expectedSN_ = FIRST_SEQUENCE_NUMBER;
 };
 
 } // namespace rs

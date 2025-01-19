@@ -10,7 +10,7 @@ arq::rt::StopAndWait::StopAndWait(const std::chrono::microseconds timeout, const
 void arq::rt::StopAndWait::do_addPacket(arq::TransmitBufferObject&& packet)
 {
     std::scoped_lock<std::mutex> lock(rtPacketMutex_);
-    retransmitPacket_ = std::move(packet);
+    retransmitPacket_ = std::move(packet); // wjg: move?
 }
 
 std::optional<std::span<const std::byte>> arq::rt::StopAndWait::do_getPacketData()

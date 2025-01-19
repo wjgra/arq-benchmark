@@ -1,8 +1,10 @@
 #ifndef _ARQ_RT_BUFFERS_GO_BACK_N_HPP_
 #define _ARQ_RT_BUFFERS_GO_BACK_N_HPP_
 
+#include <cstdint>
 #include <mutex>
 #include <optional>
+#include <vector>
 
 #include "arq/retransmission_buffer.hpp"
 
@@ -11,7 +13,7 @@ namespace rt {
 
 class GoBackN : public RetransmissionBuffer<GoBackN> {
 public:
-    GoBackN([[maybe_unused]] uint16_t windowSize, [[maybe_unused]] const std::chrono::microseconds timeout, [[maybe_unused]] const bool adaptiveTimeout) {};
+    GoBackN(uint16_t windowSize, const std::chrono::microseconds timeout);
 
     // Standard functions required by RetransmissionBuffer CRTP interface
     void do_addPacket(TransmitBufferObject&& packet);
@@ -21,17 +23,24 @@ public:
     void do_acknowledgePacket(const SequenceNumber seqNum);
 
 private:
-    // bool currentPacketReadyForRT() const;
+    // WJG should these things be in the CRTP interface?
+    // A packet is retransmitted only when the timeout has expired without
+    // reception of an ACK.
+    const std::chrono::microseconds timeout_;
 
-    // // In Stop and Wait, only one packet is stored for retransmission at a time.
-    // std::optional<TransmitBufferObject> retransmitPacket_ = std::nullopt;
-    // // Control access to the retransmit packet
-    // mutable std::mutex rtPacketMutex_;
-    // // A packet is retransmitted only when the timeout has expired without
-    // // reception of an ACK.
-    // std::chrono::microseconds timeout_;
-    // // Update the timeout based on the measured round trip time.
-    // const bool adaptiveTimeout_;
+    const uint16_t windowSize_;
+
+    struct CircularBuffer {
+        // A buffer to hold packets for retransmission
+        std::vector<std::optional<TransmitBufferObject>> buffer_;
+        // Index into buffer_ corresponding to the start of the circular buffer
+        size_t startIdx_;
+        //
+        SequenceNumber nextSequenceNumberToAck_;
+    } slidingWindow_;
+
+    // Control access to the buffer
+    mutable std::mutex rtBufferMutex_;
 };
 
 } // namespace rt

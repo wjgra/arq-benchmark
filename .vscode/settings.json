@@ -1,5 +1,5 @@
 {
-    "C_Cpp.default.compilerPath": "/usr/bin/g++",
+    "C_Cpp.default.compilerPath": "/usr/bin/g++-11",
     "files.associations": {
         "*.pyx": "python",
         "*.mpp": "cpp",
@@ -110,6 +110,6 @@
         "text_encoding": "cpp",
         "*.ipp": "cpp"
     },
-    "C_Cpp.errorSquiggles": "enabledIfIncludesResolve",
+    "C_Cpp.errorSquiggles": "disabled",
     "cmake.configureOnOpen": false
 }

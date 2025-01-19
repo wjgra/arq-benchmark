@@ -17,11 +17,11 @@
 #include "arq/input_buffer.hpp"
 #include "arq/receiver.hpp"
 #include "arq/resequencing_buffers/dummy_sctp_rs.hpp"
-#include "arq/resequencing_buffers/stop_and_wait_rs.hpp"
 #include "arq/resequencing_buffers/go_back_n_rs.hpp"
+#include "arq/resequencing_buffers/stop_and_wait_rs.hpp"
 #include "arq/retransmission_buffers/dummy_sctp_rt.hpp"
-#include "arq/retransmission_buffers/stop_and_wait_rt.hpp"
 #include "arq/retransmission_buffers/go_back_n_rt.hpp"
+#include "arq/retransmission_buffers/stop_and_wait_rt.hpp"
 #include "arq/transmitter.hpp"
 #include "util/endpoint.hpp"
 #include "util/logging.hpp"
@@ -47,6 +47,7 @@ struct ProgramOption {
 #define PROG_OPTION_TX_PKT_INTERVAL "tx-pkt-interval"
 #define PROG_OPTION_ARQ_TIMEOUT "arq-timeout"
 #define PROG_OPTION_ARQ_PROTOCOL "arq-protocol"
+#define PROG_OPTION_ARQ_WINDOW_SZ "window-size"
 
 using namespace std::string_literals;
 // clang-format off
@@ -62,7 +63,8 @@ auto programOptionData = std::to_array<ProgramOption>({
     {PROG_OPTION_TX_PKT_NUM,      uint16_t{10},                                      "number of packets to transmit"},
     {PROG_OPTION_TX_PKT_INTERVAL, uint16_t{10},                                      "ms between transmitted packets"},
     {PROG_OPTION_ARQ_TIMEOUT,     uint16_t{50},                                      "ARQ timeout in ms"},
-    {PROG_OPTION_ARQ_PROTOCOL,    arqProtocolToString(arq::ArqProtocol::DUMMY_SCTP), "ARQ protocol to use"}
+    {PROG_OPTION_ARQ_PROTOCOL,    arqProtocolToString(arq::ArqProtocol::DUMMY_SCTP), "ARQ protocol to use"},
+    {PROG_OPTION_ARQ_WINDOW_SZ,   uint16_t{100},                                       "window size for GBN and SR ARQ"}
 });
 // clang-format on
 
@@ -200,6 +202,10 @@ static auto parseOptions(int argc, char** argv, boost::program_options::options_
 
         if (vm.contains(PROG_OPTION_ARQ_PROTOCOL)) {
             config.common.arqProtocol = getArqProtocolFromStr(vm[PROG_OPTION_ARQ_PROTOCOL].as<std::string>());
+        }
+
+        if (vm.contains(PROG_OPTION_ARQ_WINDOW_SZ)) {
+            config.common.windowSize = vm[PROG_OPTION_ARQ_WINDOW_SZ].as<uint16_t>();
         }
 
         if (config.server.has_value()) {
@@ -390,11 +396,17 @@ static void startTransmitter(const arq::config_Launcher& config)
         transmitPackets(txerSend, config.server->txPkts.num, config.server->txPkts.msInterval);
     }
     else if (config.common.arqProtocol == arq::ArqProtocol::GO_BACK_N) {
+        auto windowSize = config.common.windowSize;
+        if (!config.common.windowSize.has_value()) {
+            windowSize = 100;
+            util::logWarning("Unspecified window size - using default of {}", windowSize.value());    
+        }
+
         arq::Transmitter txer(
             convID,
             txToClient,
             rxFromClient,
-            std::make_unique<arq::rt::GoBackN>(100, std::chrono::milliseconds(config.server->arqTimeout), false));
+            std::make_unique<arq::rt::GoBackN>(windowSize.value(), std::chrono::milliseconds(config.server->arqTimeout)));
 
         auto txerSend = [&txer](arq::DataPacket&& pkt) { txer.sendPacket(std::move(pkt)); };
 
@@ -451,7 +463,7 @@ static void startReceiver(const arq::config_Launcher& config)
         arq::Receiver rxer(convID, txToServer, rxFromServer, std::make_unique<arq::rs::StopAndWait>());
     }
     else if (config.common.arqProtocol == arq::ArqProtocol::GO_BACK_N) {
-        arq::Receiver rxer(convID, txToServer, rxFromServer, std::make_unique<arq::rs::GoBackN>(100));
+        arq::Receiver rxer(convID, txToServer, rxFromServer, std::make_unique<arq::rs::GoBackN>());
     }
     else {
         util::logError("Unsupported ARQ protocol: {}", arqProtocolToString(config.common.arqProtocol));
