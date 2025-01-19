@@ -13,7 +13,7 @@ void arq::rt::StopAndWait::do_addPacket(arq::TransmitBufferObject&& packet)
     retransmitPacket_ = packet;
 }
 
-std::optional<std::span<const std::byte>> arq::rt::StopAndWait::do_getPacketData()
+std::optional<std::span<const std::byte>> arq::rt::StopAndWait::do_getPacketDataSpan()
 {
     std::unique_lock<std::mutex> lock(rtPacketMutex_);
     if (retransmitPacket_.has_value() && isPacketTimedOut(retransmitPacket_.value())) {

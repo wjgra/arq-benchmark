@@ -65,7 +65,7 @@ private:
         while (!endOfTxSeqNum_.has_value() || retransmissionBuffer_->packetsPending()) {
             // WJG: If an ACK is received for a packet during retransmission, the packet can
             // be freed whilst transmission is in progress. Consider ownership (shared_ptr?).
-            auto pkt = retransmissionBuffer_->getPacketData();
+            auto pkt = retransmissionBuffer_->getPacketDataSpan();
 
             if (pkt.has_value()) {
                 DataPacketHeader hdr;

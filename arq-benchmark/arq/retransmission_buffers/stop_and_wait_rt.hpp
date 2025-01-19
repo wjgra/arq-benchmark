@@ -15,7 +15,7 @@ public:
 
     // Standard functions required by RetransmissionBuffer CRTP interface
     void do_addPacket(TransmitBufferObject&& packet);
-    std::optional<std::span<const std::byte>> do_getPacketData();
+    std::optional<std::span<const std::byte>> do_getPacketDataSpan();
     bool do_readyForNewPacket() const;
     bool do_packetsPending() const;
     void do_acknowledgePacket(const SequenceNumber ackSequenceNumber);
