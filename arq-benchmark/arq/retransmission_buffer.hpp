@@ -44,7 +44,7 @@ concept has_acknowledgePacket = requires(T t, const SequenceNumber seqNum) {
 template <typename T>
 class RetransmissionBuffer {
 public:
-    RetransmissionBuffer()
+    RetransmissionBuffer(std::chrono::microseconds timeoutInterval) : timeoutInterval_{timeoutInterval}
     {
         static_assert(std::derived_from<T, RetransmissionBuffer>);
         static_assert(rt::has_addPacket<T>);
@@ -68,6 +68,16 @@ public:
 
     // Update tracking information for a packet which has just been acknowledged
     void acknowledgePacket(const SequenceNumber seqNum) { static_cast<T*>(this)->do_acknowledgePacket(seqNum); }
+
+protected:
+    // Has the timeout interval elapsed since this packet was last transmitted?
+    bool isPacketTimedOut(const TransmitBufferObject& packet) const {
+        const auto now = arq::ClockType::now();
+        const auto then = packet.info_.lastTxTime_;
+        const auto timeSinceLastTx = std::chrono::duration_cast<std::chrono::microseconds>(now - then);
+        return timeSinceLastTx.count() > timeoutInterval_.count();
+    }
+    const std::chrono::microseconds timeoutInterval_;
 };
 
 } // namespace arq

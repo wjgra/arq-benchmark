@@ -389,7 +389,7 @@ static void startTransmitter(const arq::config_Launcher& config)
             convID,
             txToClient,
             rxFromClient,
-            std::make_unique<arq::rt::StopAndWait>(std::chrono::milliseconds(config.server->arqTimeout), false));
+            std::make_unique<arq::rt::StopAndWait>(std::chrono::milliseconds(config.server->arqTimeout)));
 
         auto txerSend = [&txer](arq::DataPacket&& pkt) { txer.sendPacket(std::move(pkt)); };
 

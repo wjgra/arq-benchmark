@@ -2,6 +2,7 @@
 #include "util/logging.hpp"
 
 arq::rt::GoBackN::GoBackN(uint16_t windowSize, const std::chrono::microseconds timeout) :
+RetransmissionBuffer{timeout},
     timeout_{timeout},
     windowSize_{windowSize},
     slidingWindow_{.buffer_ = std::vector<std::optional<TransmitBufferObject>>(windowSize, std::nullopt),
@@ -39,17 +40,13 @@ std::optional<std::span<const std::byte>> arq::rt::GoBackN::do_getPacketData() {
     size_t pkt_idx = slidingWindow_.startIdx_;
     do {
         auto &this_pkt = slidingWindow_.buffer_[pkt_idx]; // this is also bad as it moves the pkt out? use a reference here instead
-        if (this_pkt.has_value()) {
-            // Return lost pkt
-            const auto now = arq::ClockType::now();
-            const auto then = this_pkt->info_.lastTxTime_;
-            const auto timeSinceLastTx = std::chrono::duration_cast<std::chrono::microseconds>(now - then);
-            if (timeSinceLastTx.count() > timeout_.count()) {
-                util::logDebug("Retransmit packet at idx {}", pkt_idx);
-                this_pkt->info_.lastTxTime_ = arq::ClockType::now();
-                return this_pkt->packet_.getReadSpan();
-            }
+
+        if (this_pkt.has_value() && isPacketTimedOut(this_pkt.value())) {
+            util::logDebug("Retransmit packet at idx {}", pkt_idx);
+            this_pkt->info_.lastTxTime_ = arq::ClockType::now();
+            return this_pkt->packet_.getReadSpan();
         }
+
 
         pkt_idx = (pkt_idx + 1) % windowSize_;
     }
