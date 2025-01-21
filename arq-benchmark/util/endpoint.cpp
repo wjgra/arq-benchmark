@@ -90,7 +90,8 @@ bool util::Endpoint::accept(std::optional<std::string_view> expectedHost)
     }
 }
 
-bool util::Endpoint::setRecvTimeout(const uint64_t timeoutSeconds, const uint64_t timeoutMicroseconds) const {
+bool util::Endpoint::setRecvTimeout(const uint64_t timeoutSeconds, const uint64_t timeoutMicroseconds) const
+{
     return socket_.setRecvTimeout(timeoutSeconds, timeoutMicroseconds);
 }
 

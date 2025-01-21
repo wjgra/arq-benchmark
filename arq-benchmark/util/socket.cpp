@@ -119,7 +119,8 @@ static std::optional<std::string> sockaddr2Str(sockaddr* addr)
     return Socket{newSocketID};
 }
 
-bool util::Socket::setRecvTimeout(const uint64_t timeoutSeconds, const uint64_t timeoutMicroseconds) const {
+bool util::Socket::setRecvTimeout(const uint64_t timeoutSeconds, const uint64_t timeoutMicroseconds) const
+{
     struct timeval tv;
     tv.tv_sec = timeoutSeconds;
     tv.tv_usec = timeoutMicroseconds;
