@@ -33,6 +33,7 @@ public:
     // Accept a connection at the endpoint. If host/service is provided, the connecting socket must match
     // the provided argument(s).
     bool accept(std::optional<std::string_view> expectedHost = std::nullopt);
+    bool setRecvTimeout(const uint64_t timeoutSeconds, const uint64_t timeoutMicroseconds) const;
 
     std::optional<size_t> send(std::span<const std::byte> buffer) const noexcept;
     std::optional<size_t> recv(std::span<std::byte> buffer) const noexcept;

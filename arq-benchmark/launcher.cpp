@@ -358,6 +358,11 @@ static void startTransmitter(const arq::config_Launcher& config)
         }
     }
 
+    // Add Rx timeout in case last ACK is lost
+    if (!dataChannel.setRecvTimeout(10, 0)) {
+        throw std::runtime_error("failed to set data channel Rx timeout");
+    }
+
     arq::TransmitFn txToClient;
     if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_SCTP) {
         txToClient = [&dataChannel](std::span<const std::byte> buffer) { return dataChannel.send(buffer); };

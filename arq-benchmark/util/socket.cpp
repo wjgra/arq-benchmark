@@ -119,6 +119,14 @@ static std::optional<std::string> sockaddr2Str(sockaddr* addr)
     return Socket{newSocketID};
 }
 
+bool util::Socket::setRecvTimeout(const uint64_t timeoutSeconds, const uint64_t timeoutMicroseconds) const {
+    struct timeval tv;
+    tv.tv_sec = timeoutSeconds;
+    tv.tv_usec = timeoutMicroseconds;
+    auto ret = ::setsockopt(socketID_, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv));
+    return ret != SOCKET_ERROR;
+}
+
 static inline std::optional<size_t> returnIfNotError(const ssize_t ret)
 {
     return ret == SOCKET_ERROR ? std::nullopt : std::make_optional<size_t>(ret);

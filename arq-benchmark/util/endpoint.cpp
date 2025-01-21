@@ -90,6 +90,10 @@ bool util::Endpoint::accept(std::optional<std::string_view> expectedHost)
     }
 }
 
+bool util::Endpoint::setRecvTimeout(const uint64_t timeoutSeconds, const uint64_t timeoutMicroseconds) const {
+    return socket_.setRecvTimeout(timeoutSeconds, timeoutMicroseconds);
+}
+
 std::optional<size_t> util::Endpoint::send(std::span<const std::byte> buffer) const noexcept
 {
     return socket_.send(buffer);

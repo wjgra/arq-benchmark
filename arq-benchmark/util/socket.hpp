@@ -36,6 +36,7 @@ public:
     // Accepts a connection, returning a new Socket corresponding to the accepted connection. If
     // expectedHost is provided, only accept a connection from that host. Returns nullopt on failure.
     [[nodiscard]] std::optional<Socket> accept(std::optional<std::string_view> expectedHost = std::nullopt) const;
+    bool setRecvTimeout(const uint64_t timeoutSeconds, const uint64_t timeoutMicroseconds) const;
 
     std::optional<size_t> send(std::span<const std::byte> buffer) const noexcept;
     std::optional<size_t> recv(std::span<std::byte> buffer) const noexcept;
