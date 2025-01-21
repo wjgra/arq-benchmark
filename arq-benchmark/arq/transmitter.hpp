@@ -76,9 +76,13 @@ private:
         return packetAvailable;
     }
 
-    // Attempts to transmit a new packet from the input buffer, returns true if the IB is non-empty.
+    // Attempts to transmit a new packet from the input buffer, returns true if a new packet is transmitted.
     bool attemptNewPacketTransmission()
     {
+        if (!retransmissionBuffer_->readyForNewPacket()) {
+            return false;
+        }
+
         auto newPkt = inputBuffer_.tryGetPacket();
         bool packetAvailable = newPkt.has_value();
         if (packetAvailable) {

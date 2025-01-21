@@ -58,6 +58,7 @@ public:
     void addPacket(TransmitBufferObject&& packet) { static_cast<T*>(this)->do_addPacket(std::move(packet)); }
 
     // Get a span of the next packet for retransmission
+    // wjg: consider renaming to try_getPacketDataSpan()
     std::optional<std::span<const std::byte>> getPacketDataSpan()
     {
         return static_cast<T*>(this)->do_getPacketDataSpan();
