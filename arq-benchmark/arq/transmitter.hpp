@@ -1,6 +1,7 @@
 #ifndef _ARQ_TRANSMITTER_HPP_
 #define _ARQ_TRANSMITTER_HPP_
 
+#include <atomic>
 #include <concepts>
 #include <functional>
 #include <memory>
@@ -29,7 +30,8 @@ public:
         retransmissionBuffer_{std::move(rtBuffer_p)},
         transmitThread_{[this]() { return this->transmitThread(); }},
         ackThread_{[this]() { return this->ackThread(); }},
-        endOfTxSeqNum_{std::nullopt}
+        endOfTxSeqNum_{std::nullopt},
+        endOfTxAcked_{false}
     {
     }
 
@@ -41,56 +43,93 @@ public:
         if (ackThread_.joinable()) {
             ackThread_.join();
         }
+        util::logDebug("Transmitter exiting");
     }
 
     void sendPacket(arq::DataPacket&& packet) { inputBuffer_.addPacket(std::move(packet)); }
 
 private:
+    // Transmits data using the transmit function.
+    void transmitPacketData(auto dataToTx) const
+    {
+        auto result = txFn_(dataToTx);
+        if (result.has_value()) {
+            util::logDebug("Successfully transmitted {} bytes", result.value());
+        }
+        else {
+            util::logError("Transmit function failed!");
+        }
+    }
+
+    // Attempts to transmit a packet from the RT buffer, returns true if the RT is non-empty.
+    bool attemptPacketRetransmission()
+    {
+        auto packetSpanToReTx = retransmissionBuffer_->getPacketDataSpan();
+        bool packetAvailable = packetSpanToReTx.has_value();
+        if (packetAvailable) {
+            DataPacketHeader hdr;
+            hdr.deserialise(packetSpanToReTx.value());
+
+            util::logInfo("Retransmitting packet with SN {} and length {}", hdr.sequenceNumber_, hdr.length_);
+            transmitPacketData(packetSpanToReTx.value());
+        }
+        return packetAvailable;
+    }
+
+    // Attempts to transmit a new packet from the input buffer, returns true if a new packet is transmitted.
+    bool attemptNewPacketTransmission()
+    {
+        if (!retransmissionBuffer_->readyForNewPacket()) {
+            return false;
+        }
+
+        auto newPkt = inputBuffer_.tryGetPacket();
+        bool packetAvailable = newPkt.has_value();
+        if (packetAvailable) {
+            if (newPkt->isEndOfTx()) {
+                util::logInfo("Transmitter received end of EndofTx from input buffer");
+                endOfTxSeqNum_ = newPkt->info_.sequenceNumber_;
+            }
+
+            util::logInfo("Transmitting packet with SN {} and adding to retransmission buffer",
+                          newPkt->info_.sequenceNumber_);
+            transmitPacketData(newPkt->packet_.getReadSpan());
+
+            retransmissionBuffer_->addPacket(std::move(newPkt.value()));
+        }
+        return packetAvailable;
+    }
+
+    // Passes every sequence number from the ACK queue to the RT buffer for acknowledgement.
+    void processAckQueue()
+    {
+        for (std::optional<SequenceNumber> snToAck;
+             !endOfTxAcked_ && ((snToAck = ackQueue_.try_pop()) != std::nullopt);) {
+            if (snToAck == endOfTxSeqNum_) {
+                endOfTxAcked_ = true;
+            }
+            else {
+                retransmissionBuffer_->acknowledgePacket(snToAck.value());
+            }
+        }
+    }
+
     // The transmit thread handles transmission and retransmission of all packets. It continues
-    // running until an end of transmission (EoT) packet has been transmitted and acknowledged.
+    // running until an ACK corresponding to an end of transmission (EoT) packet has been received.
     void transmitThread()
     {
         util::logInfo("Transmitter Tx thread started");
 
-        // Lambda to check check output of the transmit function
-        auto validateTx = [](decltype(std::function{txFn_})::result_type result) {
-            if (result.has_value()) {
-                util::logDebug("Successfully transmitted {} bytes", result.value());
+        while (!endOfTxAcked_) {
+            if (!attemptPacketRetransmission()) {
+                attemptNewPacketTransmission();
             }
-            else {
-                util::logError("Transmit function failed!");
-            }
-        };
 
-        while (!endOfTxSeqNum_.has_value() || retransmissionBuffer_->packetsPending()) {
-            // WJG: If an ACK is received for a packet during retransmission, the packet can
-            // be freed whilst transmission is in progress. Consider ownership (shared_ptr?).
-            auto pkt = retransmissionBuffer_->getPacketDataSpan();
-
-            if (pkt.has_value()) {
-                DataPacketHeader hdr;
-                hdr.deserialise(pkt.value());
-
-                util::logInfo("Retransmitting packet with SN {} and length {}", hdr.sequenceNumber_, hdr.length_);
-                auto ret = txFn_(pkt.value());
-                validateTx(ret);
-            }
-            else if (!endOfTxSeqNum_.has_value() && retransmissionBuffer_->readyForNewPacket()) {
-                // Need to mutex protect this so we're still ready for a new packet by the time we add one
-                auto nextPkt = inputBuffer_.getPacket();
-                if (nextPkt.isEndOfTx()) {
-                    util::logInfo("Transmitter received end of EndofTx");
-                    endOfTxSeqNum_ = nextPkt.info_.sequenceNumber_;
-                }
-
-                util::logInfo("Transmitting packet with SN {} and adding to retransmission buffer",
-                              nextPkt.info_.sequenceNumber_);
-                auto ret = txFn_(nextPkt.packet_.getReadSpan());
-                validateTx(ret);
-
-                retransmissionBuffer_->addPacket(std::move(nextPkt));
-            }
+            // Every ACK is processed as quickly as possible to reduce unneccessary transmissions.
+            processAckQueue();
         }
+
+        // WJG to investigate the 'if no packet is in transmission' clause from Wikipedia
         util::logInfo("Transmitter Tx thread exited");
     }
 
@@ -100,25 +139,27 @@ private:
     {
         util::logInfo("Transmitter ACK thread started");
 
-        std::array<std::byte, arq::MAX_TRANSMISSION_UNIT> recvBuffer;
-        while (true) { // WJG: add timeout if no ACKs Rx'd in certain window after EoT has been Tx'd
-            auto ret = rxFn_(recvBuffer);
-            if (ret.has_value()) {
-                arq::SequenceNumber rxedSeqNum;
-                if (arq::deserialiseSeqNum(rxedSeqNum, recvBuffer)) {
-                    util::logInfo("Received ACK for SN {}", rxedSeqNum);
-                    retransmissionBuffer_->acknowledgePacket(rxedSeqNum);
+        while (!endOfTxAcked_) {
+            // If an ACK is recieved, add it to the ACK queue.
+            std::array<std::byte, arq::MAX_TRANSMISSION_UNIT> recvBuffer;
+            auto receivedBytes = rxFn_(recvBuffer);
+            if (receivedBytes > 0) {
+                arq::SequenceNumber receivedSequenceNumber;
+                if (arq::deserialiseSeqNum(receivedSequenceNumber, recvBuffer)) {
+                    util::logInfo("Received ACK for SN {}", receivedSequenceNumber);
 
-                    if (rxedSeqNum == endOfTxSeqNum_) {
-                        util::logInfo("Received ACK that corresponds to end of transmission");
-                        break;
-                    }
+                    // WJG: we shouldn't have to move here - check queue implementation
+                    ackQueue_.push(std::move(receivedSequenceNumber));
                 }
                 else {
                     util::logWarning("Received packet that is too short to be an ACK");
                 }
             }
+            else {
+                util::logWarning("Transmitter receive function failed");
+            }
         }
+
         util::logInfo("Transmitter ACK thread exited");
     }
 
@@ -133,12 +174,16 @@ private:
     // Store packets that have been transmitted but not acknowledged, and so may
     // require retransmission
     std::unique_ptr<RTBufferType> retransmissionBuffer_;
-    // Thread handling data packet transmission
+    // Thread handling data packet transmission and retransmission
     std::thread transmitThread_;
-    // Thread handling control packet reception
+    // Thread handling reception of ACKs for processing by the transmit thread
     std::thread ackThread_;
-    // If an EoT has been received, store the SN here
+    // Keeps track of ACKs received at the transmitter
+    util::SafeQueue<SequenceNumber> ackQueue_; // wjg: arguably, this should be a priority queue
+    // If an EoT has been received, store the sequence number
     std::optional<SequenceNumber> endOfTxSeqNum_;
+    // Has an EoT packet been transmitted and acknowledged?
+    std::atomic<bool> endOfTxAcked_;
 };
 
 } // namespace arq

@@ -7,7 +7,7 @@ arq::rt::StopAndWait::StopAndWait(const std::chrono::microseconds timeout) : Ret
 void arq::rt::StopAndWait::do_addPacket(arq::TransmitBufferObject&& packet)
 {
     std::unique_lock<std::mutex> lock(rtPacketMutex_);
-    if (!retransmitPacket_.has_value()) {
+    if (retransmitPacket_.has_value()) {
         throw ArqProtocolException("tried to add packet to S&W RT buffer but packet was already present");
     }
     retransmitPacket_ = packet;
