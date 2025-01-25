@@ -40,7 +40,9 @@ util::Socket::Socket(const addrinfo& ai) : socketID_{createSocket(ai)}
 
 util::Socket::~Socket() noexcept
 {
-    ::close(socketID_);
+    if (socketID_ != SOCKET_ERROR) {
+        ::close(socketID_);
+    }
 }
 
 util::Socket::Socket(Socket&& other) noexcept : socketID_{std::exchange(other.socketID_, SOCKET_ERROR)} {}
