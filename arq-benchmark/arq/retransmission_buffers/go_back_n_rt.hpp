@@ -2,7 +2,6 @@
 #define _ARQ_RT_BUFFERS_GO_BACK_N_HPP_
 
 #include <cstdint>
-#include <mutex>
 #include <optional>
 #include <vector>
 
@@ -30,6 +29,7 @@ private:
 
     const uint16_t windowSize_;
 
+    // WJG: This should be moved out of the class
     struct CircularBuffer {
         // A buffer to hold packets for retransmission
         std::vector<std::optional<TransmitBufferObject>> buffer_;
@@ -38,9 +38,6 @@ private:
         //
         SequenceNumber nextSequenceNumberToAck_;
     } slidingWindow_;
-
-    // Control access to the buffer
-    mutable std::mutex rtBufferMutex_;
 };
 
 } // namespace rt

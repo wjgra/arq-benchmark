@@ -15,8 +15,6 @@ arq::rt::GoBackN::GoBackN(uint16_t windowSize, const std::chrono::microseconds t
 // WJG to make mutex more precise. Consider mutating/non-mutating lock
 void arq::rt::GoBackN::do_addPacket(TransmitBufferObject&& packet)
 {
-    std::scoped_lock<std::mutex> lock(rtBufferMutex_);
-
     size_t pkt_idx = slidingWindow_.startIdx_;
     do {
         // Fill first empty slot with packet
@@ -34,7 +32,6 @@ std::optional<std::span<const std::byte>> arq::rt::GoBackN::do_getPacketDataSpan
 {
     // Transmit untransmitted pkts in window
     // Transmit lost packets in window
-    std::scoped_lock<std::mutex> lock(rtBufferMutex_);
 
     // Loop over packets in window - consider an iterator
     size_t pkt_idx = slidingWindow_.startIdx_;
@@ -57,16 +54,12 @@ std::optional<std::span<const std::byte>> arq::rt::GoBackN::do_getPacketDataSpan
 bool arq::rt::GoBackN::do_readyForNewPacket() const
 {
     // If the last packet in the window is empty, then there is space for at least one new packet
-    std::scoped_lock<std::mutex> lock(
-        rtBufferMutex_); // based on indices, consider how much locking is actually required
     const auto lastPacket_idx = (slidingWindow_.startIdx_ + windowSize_ - 1) % windowSize_;
     return slidingWindow_.buffer_[lastPacket_idx] == std::nullopt;
 }
 
 bool arq::rt::GoBackN::do_packetsPending() const
 {
-    std::scoped_lock<std::mutex> lock(rtBufferMutex_);
-    // return !slidingWindow_.buffer_.empty(); // this is wrong!!
     size_t pkt_idx = slidingWindow_.startIdx_;
     do {
         const auto& this_pkt = slidingWindow_.buffer_[pkt_idx];
@@ -81,7 +74,6 @@ bool arq::rt::GoBackN::do_packetsPending() const
 // The alg is actually simpler than I thought. You only send ACKs for in order packtets
 void arq::rt::GoBackN::do_acknowledgePacket(const SequenceNumber seqNum)
 { // wjg rename to acked sn
-    std::scoped_lock<std::mutex> lock(rtBufferMutex_);
 
     for (SequenceNumber sn = slidingWindow_.nextSequenceNumberToAck_; sn <= seqNum; ++sn) {
         slidingWindow_.buffer_[slidingWindow_.startIdx_++] = std::nullopt;

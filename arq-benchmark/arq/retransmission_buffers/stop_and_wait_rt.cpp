@@ -6,7 +6,6 @@ arq::rt::StopAndWait::StopAndWait(const std::chrono::microseconds timeout) : Ret
 
 void arq::rt::StopAndWait::do_addPacket(arq::TransmitBufferObject&& packet)
 {
-    std::unique_lock<std::mutex> lock(rtPacketMutex_);
     if (retransmitPacket_.has_value()) {
         throw ArqProtocolException("tried to add packet to S&W RT buffer but packet was already present");
     }
@@ -15,7 +14,6 @@ void arq::rt::StopAndWait::do_addPacket(arq::TransmitBufferObject&& packet)
 
 std::optional<std::span<const std::byte>> arq::rt::StopAndWait::do_getPacketDataSpan()
 {
-    std::unique_lock<std::mutex> lock(rtPacketMutex_);
     if (retransmitPacket_.has_value() && isPacketTimedOut(retransmitPacket_.value())) {
         retransmitPacket_->updateLastTxTime();
         return retransmitPacket_->packet_.getReadSpan();
@@ -27,19 +25,16 @@ std::optional<std::span<const std::byte>> arq::rt::StopAndWait::do_getPacketData
 
 bool arq::rt::StopAndWait::do_readyForNewPacket() const
 {
-    std::unique_lock<std::mutex> lock(rtPacketMutex_);
     return !retransmitPacket_.has_value();
 }
 
 bool arq::rt::StopAndWait::do_packetsPending() const
 {
-    std::unique_lock<std::mutex> lock(rtPacketMutex_);
     return retransmitPacket_.has_value();
 }
 
 void arq::rt::StopAndWait::do_acknowledgePacket(const SequenceNumber ackSequenceNumber)
 {
-    std::unique_lock<std::mutex> lock(rtPacketMutex_);
     if (!retransmitPacket_.has_value()) {
         util::logDebug("ACK received for SN {} but no packet stored for retransmission", ackSequenceNumber);
         return;
