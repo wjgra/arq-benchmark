@@ -3,7 +3,7 @@ name: Unit tests (debug)
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "wjg/ci-cleanup" ]
   pull_request:
     branches: [ "main" ]
 
