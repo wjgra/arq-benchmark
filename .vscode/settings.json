@@ -1,5 +1,11 @@
 {
-    "C_Cpp.default.compilerPath": "/usr/bin/g++-11",
+    "C_Cpp.default.compilerPath": "/usr/local/gcc-14.1.0/bin/g++-14.1.0",
+    "C_Cpp.default.cppStandard": "c++23",
+    "C_Cpp.default.includePath": [
+        "${workspaceFolder}/**",
+        "/usr/local/gcc-14.1.0/include",
+        "/usr/local/gcc-14.1.0/include/c++/14.1.0"
+    ],
     "files.associations": {
         "*.pyx": "python",
         "*.mpp": "cpp",
@@ -110,6 +116,6 @@
         "text_encoding": "cpp",
         "*.ipp": "cpp"
     },
-    "C_Cpp.errorSquiggles": "enabledIfIncludesResolve",
+    "C_Cpp.errorSquiggles": "disabled",
     "cmake.configureOnOpen": false
 }

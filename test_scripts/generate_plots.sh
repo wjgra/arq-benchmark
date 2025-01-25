@@ -12,19 +12,20 @@ sctp_log="sctp.log"
 
 num_pkts=100
 
-protocols=("dummy-sctp" "stop-and-wait" "go-back-n")
-logfiles=("sctp.log" "snw.log" "go-back-n.log")
+# protocols=("dummy-sctp" "stop-and-wait" "go-back-n")
+# logfiles=("sctp.log" "snw.log" "go-back-n.log")
 
-# protocols=("dummy-sctp" "go-back-n")
-# logfiles=("dummy-sctp.log" "g-back-n.log")
+protocols=("dummy-sctp" "go-back-n")
+logfiles=("dummy-sctp.log" "g-back-n.log")
 
 for (( i=0; i<${#protocols[@]}; i++ )); do
         # SNW delay grows linearly
         # ../test_scripts/run.sh -n "${num_pkts}" -d "100ms" -w 0 -l "random 0%" -t 200 -i 100 -p "${protocols[$i]}" -f "${logfiles[$i]}"
 
-        ../test_scripts/run.sh -n "${num_pkts}" -d "100ms 10ms distribution normal" -w 0 -l "random 1%" -t 200 -i 10 -p "${protocols[$i]}" -f "${logfiles[$i]}" -r
+        # Number of packets tx'd exceeds Rxer's processing capability? SCTP is better here
+        ../test_scripts/run.sh -n "${num_pkts}" -d "100ms" -w 0 -l "random 0%" -t 200 -i 10 -p "${protocols[$i]}" -f "${logfiles[$i]}"
 
-        # ../test_scripts/run.sh -n "${num_pkts}" -d "5ms" -w 0 -l "random 1%" -t 5 -i 25 -p "${protocols[$i]}" -f "${logfiles[$i]}"
+        # ../test_scripts/run.sh -n "${num_pkts}" -d "5ms" -w 0 -l "random 1%" -t 10 -i 25 -p "${protocols[$i]}" -f "${logfiles[$i]}"
 done
 
 # Graph the results

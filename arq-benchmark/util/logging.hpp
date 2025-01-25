@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cstdint>
+#include <exception>
 #include <print>
 #include <ranges>
 #include <string>

@@ -16,7 +16,7 @@ public:
     // Standard functions required by ResequencingBuffer CRTP interface
     std::optional<SequenceNumber> do_addPacket(DataPacket&& packet);
     bool do_packetsPending() const noexcept;
-    DataPacket do_getNextPacket();
+    std::optional<DataPacket> do_getNextPacket();
 
 private:
     // SCTP guarantees that packets are received in order. Store received packets in here to
