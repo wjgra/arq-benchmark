@@ -15,7 +15,7 @@ A brief overview of the files this repo is shown below.
 │   └── util
 ├── format_all.sh
 └── test_scripts
-    ├── generate_plots.sh (runs multiple ARQ schemes for comparison on one set of axes)
+    ├── generate_plots.sh (runs a benchmark for multiple ARQ schemes and plots a comparison)
     ├── graph.py (parses logs from run.sh and plots the results)
     └── run.sh (runs a tmux'd launcher session with a transmitter and receiver)
 ```
