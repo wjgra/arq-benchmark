@@ -3,7 +3,7 @@ name: Unit tests (debug)
 
 on:
   push:
-    branches: [ "wjg/ci-cleanup" ]
+    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
@@ -28,7 +28,6 @@ jobs:
       id: install-boost
       with:
         boost_version: 1.73.0
-        platform_version: 24.04
         
     - name: Install Catch2 v3 from Source
       run: |
