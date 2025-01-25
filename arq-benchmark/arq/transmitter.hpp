@@ -2,11 +2,8 @@
 #define _ARQ_TRANSMITTER_HPP_
 
 #include <atomic>
-#include <concepts>
-#include <functional>
 #include <memory>
 #include <thread>
-#include <type_traits>
 
 #include "arq/arq_common.hpp"
 #include "arq/conversation_id.hpp"
