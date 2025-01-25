@@ -38,7 +38,7 @@ bool arq::rs::DummySCTP::do_packetsPending() const noexcept
     return !shadowBuffer_.empty();
 }
 
-arq::DataPacket arq::rs::DummySCTP::do_getNextPacket()
+std::optional<arq::DataPacket> arq::rs::DummySCTP::do_getNextPacket()
 {
-    return shadowBuffer_.pop_wait();
+    return shadowBuffer_.try_pop();
 }

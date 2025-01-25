@@ -100,8 +100,7 @@ private:
     // Passes every sequence number from the ACK queue to the RT buffer for acknowledgement.
     void processAckQueue()
     {
-        for (std::optional<SequenceNumber> snToAck;
-             !endOfTxAcked_ && ((snToAck = ackQueue_.try_pop()) != std::nullopt);) {
+        for (std::optional<SequenceNumber> snToAck; !endOfTxAcked_ && ((snToAck = ackQueue_.try_pop()) != std::nullopt);) {
             if (snToAck == endOfTxSeqNum_) {
                 endOfTxAcked_ = true;
             }

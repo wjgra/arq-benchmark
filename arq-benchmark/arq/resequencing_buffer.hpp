@@ -1,8 +1,10 @@
 #ifndef _ARQ_RESEQUENCING_BUFFER_HPP_
 #define _ARQ_RESEQUENCING_BUFFER_HPP_
 
+#include <concepts>
 #include <chrono>
 #include <optional>
+#include <utility>
 
 #include "arq/data_packet.hpp"
 #include "arq/sequence_number.hpp"
@@ -24,7 +26,7 @@ concept has_packetsPending = requires(T t) {
 
 template <typename T>
 concept has_getNextPacket = requires(T t) {
-    { t.do_getNextPacket() } -> std::same_as<DataPacket>;
+    { t.do_getNextPacket() } -> std::same_as<std::optional<DataPacket>>;
 };
 // clang-format on
 } // namespace rs
@@ -56,7 +58,7 @@ public:
     bool packetsPending() const noexcept { return static_cast<const T*>(this)->do_packetsPending(); }
 
     // Retrieve the next packet from the buffer. If no packet is available, block until one is.
-    DataPacket getNextPacket() { return static_cast<T*>(this)->do_getNextPacket(); }
+    std::optional<DataPacket> getNextPacket() { return static_cast<T*>(this)->do_getNextPacket(); }
 };
 
 } // namespace arq
