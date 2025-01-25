@@ -68,6 +68,8 @@ auto programOptionData = std::to_array<ProgramOption>({
 });
 // clang-format on
 
+const uint32_t socket_rx_timeout_seconds = 10;
+
 static auto generateOptionsDescription()
 {
     namespace po = boost::program_options;
@@ -359,7 +361,7 @@ static void startTransmitter(const arq::config_Launcher& config)
     }
 
     // Add Rx timeout in case last ACK is lost
-    if (!dataChannel.setRecvTimeout(10, 0)) {
+    if (!dataChannel.setRecvTimeout(socket_rx_timeout_seconds, 0)) {
         throw std::runtime_error("failed to set data channel Rx timeout");
     }
 
@@ -435,6 +437,11 @@ static void startReceiver(const arq::config_Launcher& config)
         rxerAddress.hostName,
         rxerAddress.serviceName,
         config.common.arqProtocol == arq::ArqProtocol::DUMMY_SCTP ? util::SocketType::SCTP : util::SocketType::UDP);
+
+    // Add Rx timeout in case last packets are lost
+    if (!dataChannel.setRecvTimeout(socket_rx_timeout_seconds, 0)) {
+        throw std::runtime_error("failed to set data channel Rx timeout");
+    }
 
     if (config.common.arqProtocol == arq::ArqProtocol::DUMMY_SCTP) {
         dataChannel.connectRetry(

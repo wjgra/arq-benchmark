@@ -22,13 +22,14 @@ std::optional<arq::SequenceNumber> arq::rs::StopAndWait::do_addPacket(DataPacket
     }
     else if (receivedSequenceNumber < expectedPacketSeqNum_) {
         // If an earlier than expected packet is received, one or more ACKs have been lost.
-        util::logInfo("Packet {} received but RS buffer has already ACKed packet with SN {}", receivedSequenceNumber, expectedPacketSeqNum_ - 1);
+        util::logInfo("Packet {} received but RS buffer has already ACKed packet with SN {}",
+                      receivedSequenceNumber,
+                      expectedPacketSeqNum_ - 1);
         return receivedSequenceNumber;
-    } 
+    }
     else {
-        util::logDebug("RS buffer rejected packet with SN {} (expected {})",
-                       receivedSequenceNumber,
-                       expectedPacketSeqNum_);
+        util::logDebug(
+            "RS buffer rejected packet with SN {} (expected {})", receivedSequenceNumber, expectedPacketSeqNum_);
     }
 
     return std::nullopt;

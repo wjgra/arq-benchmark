@@ -30,7 +30,9 @@ public:
         resequencingThread_{[this]() { return this->resequencingThread(); }},
         ackThread_{[this]() { return this->ackThread(); }},
         ackedEndOfTx_{false},
-        endOfTxSn_{std::nullopt}{}
+        endOfTxSn_{std::nullopt}
+    {
+    }
 
     ~Receiver()
     {
@@ -46,102 +48,55 @@ public:
     std::optional<ReceiveBufferObject> tryGetPacket() { return outputBuffer_.tryGetPacket(); }
 
 private:
-    // The receive thread handles reception of packets from the transmitter. It continues until
-    // both an EoT packet has been received and no packets are present in the RS buffer.
-    // void receiveThread()
-    // {
-    //     // bool receivedEndOfTx = false; // should really only end when we've pushed EoT
-    //     while (pushedEndOfTx_ == false /* resequencingBuffer_->packetsPending() || !receivedEndOfTx */) {
-    //         std::array<std::byte, MAX_TRANSMISSION_UNIT> recvBuffer;
-    //         util::logDebug("Waiting for a data packet");
-    //         auto bytesRxed = rxFn_(recvBuffer);
+    std::optional<DataPacket> receivePacket() const
+    {
+        std::array<std::byte, MAX_TRANSMISSION_UNIT> recvBuffer;
 
-    //         if (!bytesRxed.has_value() || bytesRxed == 0) {
-    //             // No data received
-    //             continue;
-    //         }
-    //         assert(bytesRxed <= MAX_TRANSMISSION_UNIT);
+        auto bytesRxed = rxFn_(recvBuffer);
+        if (!bytesRxed.has_value() || bytesRxed == 0) {
+            return std::nullopt;
+        }
+        assert(bytesRxed <= MAX_TRANSMISSION_UNIT);
 
-    //         util::logDebug("Received {} bytes of data", bytesRxed.value());
+        util::logDebug("Received {} bytes of data", bytesRxed.value());
+        return arq::DataPacket(recvBuffer);
+    }
 
-    //         arq::DataPacket packet(recvBuffer);
-    //         auto pktHdr = packet.getHeader();
-    //         util::logInfo("Received data packet with length {} and SN {}", pktHdr.length_, pktHdr.sequenceNumber_);
-
-    //         // if (packet.isEndOfTx()) {
-    //         //     receivedEndOfTx = true;
-    //         // }
-
-    //         // Add packet to RS and send an ACK if needed
-    //         auto ack = resequencingBuffer_->addPacket(std::move(packet));
-
-    //         if (ack.has_value()) {
-    //             util::logInfo("Sending ACK for packet with SN {}", ack.value());
-    //             arq::ControlPacket ctrlPkt = {.sequenceNumber_ = ack.value()};
-    //             std::array<std::byte, sizeof(arq::ControlPacket)> sendBuffer;
-
-    //             if (ctrlPkt.serialise(sendBuffer)) {
-    //                 txFn_(sendBuffer);
-    //                 util::logDebug("Sent {} bytes", sendBuffer.size());
-    //             }
-    //             else {
-    //                 util::logError("Failed to serialise control packet");
-    //             }
-    //         }
-    //     }
-    //     util::logInfo("Receiver Rx thread exited");
-    // }
-
-    
-
-    // The resequencing thread delivers packets to the output buffer. It continues until
-    // an EoT packet has been delivered to the output buffer.
+    // The resequencing thread receives packets and determines whether they should be acked. Before
+    // receiving a new packet, it checks whether any packets can be delivered to the output buffer.
     void resequencingThread()
     {
-        /* while we haven't acked the last packet, try to rx a packet - if successful, 
-           add it to RS and put resulting ACK on the queue
-           
-           if the packet is an eot, store its SN */
-
         while (!ackedEndOfTx_) {
-            // Receive a packet...
-            std::array<std::byte, MAX_TRANSMISSION_UNIT> recvBuffer;
-            util::logDebug("Waiting for a data packet");
-            auto bytesRxed = rxFn_(recvBuffer);
+            auto packet = receivePacket();
 
-            if (!bytesRxed.has_value() || bytesRxed == 0) {
-                // No data received
-                continue;
-            }
-            assert(bytesRxed <= MAX_TRANSMISSION_UNIT);
+            // If a packet is received, feed it to the RS buffer and process any resulting ACKs.
+            if (packet.has_value()) {
+                auto pktHdr = packet->getHeader();
+                util::logInfo("Received data packet with length {} and SN {}", pktHdr.length_, pktHdr.sequenceNumber_);
 
-            util::logDebug("Received {} bytes of data", bytesRxed.value());
+                // Record if EoT received
+                if (packet->isEndOfTx()) {
+                    endOfTxSn_ = pktHdr.sequenceNumber_;
+                }
 
-            arq::DataPacket packet(recvBuffer);
-            auto pktHdr = packet.getHeader();
-            util::logInfo("Received data packet with length {} and SN {}", pktHdr.length_, pktHdr.sequenceNumber_);
-
-            if (packet.isEndOfTx()) {
-                endOfTxSn_ = pktHdr.sequenceNumber_;
+                auto ack = resequencingBuffer_->addPacket(std::move(packet.value()));
+                if (ack.has_value()) {
+                    ackQueue_.push(std::move(ack.value()));
+                }
             }
 
-            auto ack = resequencingBuffer_->addPacket(std::move(packet));
-
-            if (ack.has_value()) {
-                ackQueue_.push(std::move(ack.value()));
-            }
-
-            // try to pop any packets
-            util::logInfo("{}", resequencingBuffer_->packetsPending() ? "pending" : "no pending");
-            for (std::optional<DataPacket> packetForDelivery; ((packetForDelivery = resequencingBuffer_->getNextPacket()) != std::nullopt);) {
+            // Send any outstanding ACKs
+            for (std::optional<DataPacket> packetForDelivery;
+                 ((packetForDelivery = resequencingBuffer_->getNextPacket()) != std::nullopt);) {
                 outputBuffer_.addPacket(std::move(packetForDelivery.value()));
             }
         }
 
-        util::logInfo("Receiver resequencing thread exited"); // output thread?
+        util::logInfo("Receiver resequencing thread exited");
     }
 
-    void sendAck(SequenceNumber sequenceNumberToAck) {
+    void sendAck(SequenceNumber sequenceNumberToAck)
+    {
         util::logInfo("Sending ACK for packet with SN {}", sequenceNumberToAck);
         arq::ControlPacket ctrlPkt = {.sequenceNumber_ = sequenceNumberToAck};
         std::array<std::byte, sizeof(arq::ControlPacket)> sendBuffer;
@@ -155,20 +110,23 @@ private:
         }
     }
 
-    void ackThread() {
+    // The ACK thread transmits any ACKs stored in the ACK buffer.
+    // It exits once the last ACK has been sent.
+    void ackThread()
+    {
         while (!ackedEndOfTx_) {
             auto nextToAck = ackQueue_.try_pop();
             if (nextToAck.has_value()) {
                 sendAck(nextToAck.value());
 
-                // Check if we've rx'd the las tpacket
+                // Check if we've rx'd the last packet
                 if (endOfTxSn_.load().has_value() && nextToAck.value() == endOfTxSn_.load().value()) {
                     util::logInfo("Sent ACK for End of Tx packet");
                     ackedEndOfTx_ = true;
                 }
-            } 
+            }
         }
-        util::logInfo("Receiver ACK thread exited"); 
+        util::logInfo("Receiver ACK thread exited");
     }
 
     // Identifies the current conversation (TO DO: issue #24)
@@ -181,11 +139,9 @@ private:
     OutputBuffer outputBuffer_;
     // Store packets that have been received but not yet pushed to the output buffer
     std::unique_ptr<RSBufferType> resequencingBuffer_;
-    // // Thread handling data packet reception
-    // std::thread receiveThread_;
-    // Thread handling pushing data packets to the output buffer
+    // Thread handling packet reception and delivery to output buffer
     std::thread resequencingThread_;
-
+    // Thread handling sending ACKs back to the transmitter
     std::thread ackThread_;
 
     util::SafeQueue<SequenceNumber> ackQueue_;
