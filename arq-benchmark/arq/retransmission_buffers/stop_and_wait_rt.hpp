@@ -1,7 +1,6 @@
 #ifndef _ARQ_RT_BUFFERS_STOP_AND_WAIT_HPP_
 #define _ARQ_RT_BUFFERS_STOP_AND_WAIT_HPP_
 
-#include <mutex>
 #include <optional>
 
 #include "arq/retransmission_buffer.hpp"
@@ -23,8 +22,6 @@ public:
 private:
     // In Stop and Wait, only one packet is stored for retransmission at a time.
     std::optional<TransmitBufferObject> retransmitPacket_ = std::nullopt;
-    // Control access to the retransmit packet
-    mutable std::mutex rtPacketMutex_;
 };
 
 } // namespace rt
