@@ -11,11 +11,12 @@ namespace rs {
 
 class StopAndWait : public ResequencingBuffer<StopAndWait> {
 public:
-    StopAndWait();
+    StopAndWait(SequenceNumber firstSeqNum = FIRST_SEQUENCE_NUMBER);
 
     // Standard functions required by ResequencingBuffer CRTP interface
     std::optional<SequenceNumber> do_addPacket(DataPacket&& packet);
     bool do_packetsPending() const noexcept;
+    // WJG: consider renaming to tryGetNextPacket() for consistency with RT
     std::optional<DataPacket> do_getNextPacket();
 
 private:

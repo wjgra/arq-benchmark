@@ -5,8 +5,10 @@
 // A timeout that should not expire
 constexpr size_t large_timeout = 1'000'000'000;
 
+// to do: add time here, so we can verify that... use updateLastTxTime() and usleep()
+
 // Returns a Tx buffer object with the given sequence number
-arq::TransmitBufferObject get_tx_buffer_object(arq::SequenceNumber sn)
+auto get_tx_buffer_object(arq::SequenceNumber sn)
 {
     arq::DataPacket pkt{};
     pkt.updateSequenceNumber(sn);
@@ -115,3 +117,5 @@ TEST_CASE("Stop and wait RT buffer - acknowledge packets", "[arq/rt_buffers]")
     pkt_span = rt_buffer.tryGetPacketSpan();
     REQUIRE_FALSE(pkt_span.has_value());
 }
+
+// To do: functional test with sequence of packets
