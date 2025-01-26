@@ -318,8 +318,12 @@ static void transmitPackets(std::function<void(arq::DataPacket&&)> txerSendPacke
         usleep(1000 * msPacketInterval);
     }
 
-    // Send end of Tx packet
-    txerSendPacket(arq::DataPacket{});
+    // Send end of Tx packet (WJG: should have function to make one of these)
+    arq::DataPacket endOfTxPacket{};
+    endOfTxPacket.updateConversationID(1);
+    endOfTxPacket.updateDataLength(0);
+    assert(endOfTxPacket.isEndOfTx());
+    txerSendPacket(std::move(endOfTxPacket));
 }
 
 static void startTransmitter(const arq::config_Launcher& config)
@@ -361,7 +365,8 @@ static void startTransmitter(const arq::config_Launcher& config)
     }
 
     // Add Rx timeout in case last ACK is lost
-    if (!dataChannel.setRecvTimeout(socket_rx_timeout_seconds, 0)) {
+    if (config.common.arqProtocol != arq::ArqProtocol::DUMMY_SCTP &&
+        !dataChannel.setRecvTimeout(socket_rx_timeout_seconds, 0)) {
         throw std::runtime_error("failed to set data channel Rx timeout");
     }
 
@@ -439,7 +444,8 @@ static void startReceiver(const arq::config_Launcher& config)
         config.common.arqProtocol == arq::ArqProtocol::DUMMY_SCTP ? util::SocketType::SCTP : util::SocketType::UDP);
 
     // Add Rx timeout in case last packets are lost
-    if (!dataChannel.setRecvTimeout(socket_rx_timeout_seconds, 0)) {
+    if (config.common.arqProtocol != arq::ArqProtocol::DUMMY_SCTP &&
+        !dataChannel.setRecvTimeout(socket_rx_timeout_seconds, 0)) {
         throw std::runtime_error("failed to set data channel Rx timeout");
     }
 
