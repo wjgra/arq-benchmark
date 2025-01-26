@@ -13,5 +13,5 @@ find_package(Catch2 3 REQUIRED)
 include(CTest)
 include(Catch)
 
-include_directories(arq-benchmark)
-add_subdirectory(arq-benchmark)
+include_directories(src)
+add_subdirectory(src)

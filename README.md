@@ -8,11 +8,14 @@ This library implements several [Automatic Repeat Request](https://en.wikipedia.
 A brief overview of the files this repo is shown below.
 ```
 ├── README.md (this file)
-├── arq-benchmark (top-level source folder)
-│   ├── arq (packet structs; transmitter/receiver defintions; CRTP RS and RT buffers)
-│   │   ├── resequencing_buffers (RS buffer template instantiations)
-│   │   └── retransmission_buffers (RT buffer template instantiations)
-│   └── util
+├── src
+│   ├── arq
+│   │   ├── common (packet structs; CRTP RS and RT buffers)
+│   │   ├── resequencing_buffers (RS buffer template specialisations)
+│   │   ├── retransmission_buffers (RT buffer template specialisations)
+│   │   ├── receiver.hpp
+│   │   └── transmitter.hpp
+│   └── util (logging; socket abstractions)
 ├── format_all.sh
 └── test_scripts
     ├── generate_plots.sh (runs a benchmark for multiple ARQ schemes and plots a comparison)
