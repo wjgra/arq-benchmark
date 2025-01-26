@@ -14,8 +14,8 @@ concept has_addPacket = requires(T t, TransmitBufferObject&& packet) {
 };
 
 template <typename T>
-concept has_getPacketData = requires(T t) {
-    { t.do_getPacketDataSpan() } -> std::same_as<std::optional<std::span<const std::byte>>>;
+concept has_tryGetPacketSpan = requires(T t) {
+    { t.do_tryGetPacketSpan() } -> std::same_as<std::optional<std::span<const std::byte>>>;
 };
 
 template <typename T>
@@ -48,7 +48,7 @@ public:
     {
         static_assert(std::derived_from<T, RetransmissionBuffer>);
         static_assert(rt::has_addPacket<T>);
-        static_assert(rt::has_getPacketData<T>);
+        static_assert(rt::has_tryGetPacketSpan<T>);
         static_assert(rt::has_readyForNewPacket<T>);
         static_assert(rt::has_packetsPending<T>);
         static_assert(rt::has_acknowledgePacket<T>);
@@ -58,10 +58,9 @@ public:
     void addPacket(TransmitBufferObject&& packet) { static_cast<T*>(this)->do_addPacket(std::move(packet)); }
 
     // Get a span of the next packet for retransmission
-    // wjg: consider renaming to try_getPacketDataSpan()
-    std::optional<std::span<const std::byte>> getPacketDataSpan()
+    std::optional<std::span<const std::byte>> tryGetPacketSpan()
     {
-        return static_cast<T*>(this)->do_getPacketDataSpan();
+        return static_cast<T*>(this)->do_tryGetPacketSpan();
     }
 
     // Can another packet be added to the retransmission buffer?

@@ -7,7 +7,7 @@ arq::rt::DummySCTP::DummySCTP() :
 
 void arq::rt::DummySCTP::do_addPacket([[maybe_unused]] TransmitBufferObject&& packet) {}
 
-std::optional<std::span<const std::byte>> arq::rt::DummySCTP::do_getPacketDataSpan()
+std::optional<std::span<const std::byte>> arq::rt::DummySCTP::do_tryGetPacketSpan()
 {
     return std::nullopt;
 }

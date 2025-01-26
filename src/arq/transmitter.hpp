@@ -61,7 +61,7 @@ private:
     // Attempts to transmit a packet from the RT buffer, returns true if the RT is non-empty.
     bool attemptPacketRetransmission()
     {
-        auto packetSpanToReTx = retransmissionBuffer_->getPacketDataSpan();
+        auto packetSpanToReTx = retransmissionBuffer_->tryGetPacketSpan();
         bool packetAvailable = packetSpanToReTx.has_value();
         if (packetAvailable) {
             DataPacketHeader hdr;

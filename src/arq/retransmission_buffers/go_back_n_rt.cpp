@@ -28,7 +28,7 @@ void arq::rt::GoBackN::do_addPacket(TransmitBufferObject&& packet)
 }
 
 // Consider whether this should return a vector? No, because we need to update timing
-std::optional<std::span<const std::byte>> arq::rt::GoBackN::do_getPacketDataSpan()
+std::optional<std::span<const std::byte>> arq::rt::GoBackN::do_tryGetPacketSpan()
 {
     // Transmit untransmitted pkts in window
     // Transmit lost packets in window

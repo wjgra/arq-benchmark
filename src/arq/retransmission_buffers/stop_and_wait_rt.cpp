@@ -12,7 +12,7 @@ void arq::rt::StopAndWait::do_addPacket(arq::TransmitBufferObject&& packet)
     retransmitPacket_ = packet;
 }
 
-std::optional<std::span<const std::byte>> arq::rt::StopAndWait::do_getPacketDataSpan()
+std::optional<std::span<const std::byte>> arq::rt::StopAndWait::do_tryGetPacketSpan()
 {
     if (retransmitPacket_.has_value() && isPacketTimedOut(retransmitPacket_.value())) {
         retransmitPacket_->updateLastTxTime();
