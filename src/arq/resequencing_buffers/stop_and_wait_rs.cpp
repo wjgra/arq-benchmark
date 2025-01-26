@@ -6,7 +6,6 @@ arq::rs::StopAndWait::StopAndWait(SequenceNumber firstSeqNum) :
     expectedPacketSeqNum_{firstSeqNum}, packetForDelivery_{std::nullopt}
 {
 }
-// WJG: we probably should not be dependent on the first SN here.
 
 std::optional<arq::SequenceNumber> arq::rs::StopAndWait::do_addPacket(DataPacket&& packet)
 {
