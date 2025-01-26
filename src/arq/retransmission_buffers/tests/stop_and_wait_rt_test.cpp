@@ -113,5 +113,5 @@ TEST_CASE("Stop and wait RT buffer - acknowledge packets", "[arq/rt_buffers]")
     REQUIRE(rt_buffer.readyForNewPacket());
 
     pkt_span = rt_buffer.tryGetPacketSpan();
-    REQUIRE_FALSE(pkt_span.has_value());  
+    REQUIRE_FALSE(pkt_span.has_value());
 }
