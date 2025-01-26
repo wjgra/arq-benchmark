@@ -1,5 +1,5 @@
-#ifndef _ARQ_RETRANSMISSION_BUFFER_HPP_
-#define _ARQ_RETRANSMISSION_BUFFER_HPP_
+#ifndef _ARQ_COMMON_RETRANSMISSION_BUFFER_HPP_
+#define _ARQ_COMMON_RETRANSMISSION_BUFFER_HPP_
 
 #include "arq/common/tx_buffer_object.hpp"
 

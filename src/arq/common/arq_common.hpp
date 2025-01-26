@@ -1,5 +1,5 @@
-#ifndef _ARQ_COMMON_HPP_
-#define _ARQ_COMMON_HPP_
+#ifndef _ARQ_COMMON_COMMON_HPP_
+#define _ARQ_COMMON_COMMON_HPP_
 
 #include <chrono>
 #include <cstdint>

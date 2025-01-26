@@ -1,5 +1,5 @@
-#ifndef _ARQ_SEQUENCE_NUMBER_HPP_
-#define _ARQ_SEQUENCE_NUMBER_HPP_
+#ifndef _ARQ_COMMON_SEQUENCE_NUMBER_HPP_
+#define _ARQ_COMMON_SEQUENCE_NUMBER_HPP_
 
 #include <cstdint>
 #include <span>

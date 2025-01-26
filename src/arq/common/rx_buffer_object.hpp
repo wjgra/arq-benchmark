@@ -1,5 +1,5 @@
-#ifndef _ARQ_RX_BUFFER_OBJECT_HPP_
-#define _ARQ_RX_BUFFER_OBJECT_HPP_
+#ifndef _ARQ_COMMON_RX_BUFFER_OBJECT_HPP_
+#define _ARQ_COMMON_RX_BUFFER_OBJECT_HPP_
 
 #include <chrono>
 

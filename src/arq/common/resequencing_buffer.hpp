@@ -1,5 +1,5 @@
-#ifndef _ARQ_RESEQUENCING_BUFFER_HPP_
-#define _ARQ_RESEQUENCING_BUFFER_HPP_
+#ifndef _ARQ_COMMON_RESEQUENCING_BUFFER_HPP_
+#define _ARQ_COMMON_RESEQUENCING_BUFFER_HPP_
 
 #include <chrono>
 #include <concepts>

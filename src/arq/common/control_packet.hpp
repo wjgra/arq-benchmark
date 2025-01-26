@@ -1,5 +1,5 @@
-#ifndef _ARQ_CONTROL_PACKET_HPP_
-#define _ARQ_CONTROL_PACKET_HPP_
+#ifndef _ARQ_COMMON_CONTROL_PACKET_HPP_
+#define _ARQ_COMMON_CONTROL_PACKET_HPP_
 
 #include "arq/common/sequence_number.hpp"
 

@@ -1,5 +1,5 @@
-#ifndef _ARQ_BENCHMARK_CONFIG_HPP_
-#define _ARQ_BENCHMARK_CONFIG_HPP_
+#ifndef _LAUNCHER_CONFIG_HPP_
+#define _LAUNCHER_CONFIG_HPP_
 
 #include <array>
 #include <optional>

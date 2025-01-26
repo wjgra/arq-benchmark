@@ -1,5 +1,5 @@
-#ifndef _ARQ_CONVERSATION_ID_HPP_
-#define _ARQ_CONVERSATION_ID_HPP_
+#ifndef _ARQ_COMMON_CONVERSATION_ID_HPP_
+#define _ARQ_COMMON_CONVERSATION_ID_HPP_
 
 #include <cstdint>
 #include <exception>

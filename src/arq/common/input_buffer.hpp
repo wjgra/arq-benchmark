@@ -1,5 +1,5 @@
-#ifndef _ARQ_INPUT_BUFFER_HPP_
-#define _ARQ_INPUT_BUFFER_HPP_
+#ifndef _ARQ_COMMON_INPUT_BUFFER_HPP_
+#define _ARQ_COMMON_INPUT_BUFFER_HPP_
 
 #include <optional>
 

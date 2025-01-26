@@ -1,5 +1,5 @@
-#ifndef _ARQ_DATA_PACKET_HPP_
-#define _ARQ_DATA_PACKET_HPP_
+#ifndef _ARQ_COMMON_DATA_PACKET_HPP_
+#define _ARQ_COMMON_DATA_PACKET_HPP_
 
 #include <cassert>
 #include <cstddef>
