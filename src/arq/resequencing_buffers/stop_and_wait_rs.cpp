@@ -2,8 +2,10 @@
 
 #include "util/logging.hpp"
 
-arq::rs::StopAndWait::StopAndWait() : expectedPacketSeqNum_{FIRST_SEQUENCE_NUMBER}, packetForDelivery_{std::nullopt} {}
-// WJG: we probably should not be dependent on the first SN here.
+arq::rs::StopAndWait::StopAndWait(SequenceNumber firstSeqNum) :
+    expectedPacketSeqNum_{firstSeqNum}, packetForDelivery_{std::nullopt}
+{
+}
 
 std::optional<arq::SequenceNumber> arq::rs::StopAndWait::do_addPacket(DataPacket&& packet)
 {
