@@ -13,6 +13,7 @@ namespace arq {
 
 class InputBuffer {
 public:
+    InputBuffer(SequenceNumber firstSeqNum = FIRST_SEQUENCE_NUMBER);
     // Submit a packet for transmission
     void addPacket(arq::DataPacket&& packet);
     // Get next packet for transmission from the buffer. If the buffer is empty,
@@ -26,7 +27,7 @@ private:
     PacketInfo getNextInfo();
 
     util::SafeQueue<TransmitBufferObject> inputPackets_;
-    arq::SequenceNumber lastSequenceNumber_ = FIRST_SEQUENCE_NUMBER - 1;
+    arq::SequenceNumber lastSequenceNumber_;
 };
 
 } // namespace arq

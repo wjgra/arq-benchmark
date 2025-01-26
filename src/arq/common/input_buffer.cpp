@@ -2,6 +2,8 @@
 
 #include "util/logging.hpp"
 
+arq::InputBuffer::InputBuffer(SequenceNumber firstSeqNum) : lastSequenceNumber_(firstSeqNum - 1) {}
+
 void arq::InputBuffer::addPacket(arq::DataPacket&& packet)
 {
     arq::TransmitBufferObject temp{.packet_ = std::move(packet), .info_ = getNextInfo()};
