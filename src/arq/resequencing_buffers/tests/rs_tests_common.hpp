@@ -5,9 +5,12 @@
 
 #include <ranges>
 
+#include "arq/resequencing_buffers/dummy_sctp_rs.hpp"
+#include "arq/resequencing_buffers/go_back_n_rs.hpp"
+
 /* Both the SCTP RS buffer and Go-Back-N RS buffer accept packets in order, and can hold
  * an unlimited number of packets at a time. Common tests for these buffers are defined
- * here. */
+ * here. There is a slight difference with ACKs, but otherwise all is the same. */
 
 // Returns a DataPacket with the given sequence number
 auto get_data_packet(arq::SequenceNumber sn)
@@ -60,6 +63,20 @@ void add_packets_out_of_order_test(RSBuffer& rs_buffer)
 
         // Try to add the same packet again
         ack = rs_buffer.addPacket(get_data_packet(sn));
+
+        // WJG: there is an issue here that warrants further investigation. Truly, the dummy buffer should not return
+        // any ACKs.
+        if (std::is_same<RSBuffer, arq::rs::GoBackN>()) {
+            REQUIRE_FALSE(ack.has_value());
+        }
+        else if (std::is_same<RSBuffer, arq::rs::DummySCTP>()) {
+            REQUIRE_FALSE(ack.has_value());
+        }
+        else {
+            // This function should not be used with any other buffers
+            REQUIRE_FALSE(true);
+        }
+
         REQUIRE_FALSE(ack.has_value());
 
         // Try to add a packet that isn't due yet

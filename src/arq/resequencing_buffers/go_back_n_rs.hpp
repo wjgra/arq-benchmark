@@ -22,13 +22,17 @@ public:
 
 private:
     // In Go Back N, only one packet is tracked at a time on the recieve side.
-    // If a received packet is not the expected packet, it is ignored.
-    // // Has an EoT packet been pushed to the OB?
-    bool endOfTxPushed = false;
+    // If a received packet is not the expected packet, it is ignored, and an
+    // ACK is instead sent for the last correctly received packet.
+
+    // Store packets received here for delivery to the output buffer.
     util::SafeQueue<arq::DataPacket> shadowBuffer_;
 
     // The next sequence number expected by the RS buffer.
     SequenceNumber nextSequenceNumber_;
+
+    // ACKs can only be sent once at least one packet has been correctly received.
+    bool canSendAcks_ = false;
 };
 
 } // namespace rs

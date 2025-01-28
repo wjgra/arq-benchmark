@@ -6,23 +6,21 @@ arq::rs::GoBackN::GoBackN(SequenceNumber firstSeqNum) : nextSequenceNumber_{firs
 
 std::optional<arq::SequenceNumber> arq::rs::GoBackN::do_addPacket(DataPacket&& packet)
 {
-    auto pkt = packet; // consdier references...
-    auto sn = pkt.getHeader().sequenceNumber_;
+    const auto& receivedPacket = packet;
+    auto receivedSeqNum = receivedPacket.getHeader().sequenceNumber_;
 
-    if (sn == nextSequenceNumber_) {
-        util::logDebug("Pushed packet with SN {} to shadow buffer", sn);
-        if (pkt.isEndOfTx()) {
-            endOfTxPushed =
-                true; // wjg there shouldn't really be duplication of functionality between here and the receiver...
-        }
+    if (receivedSeqNum == nextSequenceNumber_) {
+        canSendAcks_ = true; // When at least one packet received, we can send ACKs
+        util::logDebug("Pushed packet with SN {} to shadow buffer", receivedSeqNum);
+
         ++nextSequenceNumber_;
-        shadowBuffer_.push(std::move(pkt));
-        return sn;
+        shadowBuffer_.push(std::move(packet));
+        return receivedSeqNum;
     }
     else {
-        // Reject packet
-        util::logDebug("Rejected packet with SN {}", sn);
-        return std::nullopt;
+        // Reject packet - ACK last correctly received packet instead
+        util::logDebug("Rejected packet with SN {}", receivedSeqNum);
+        return canSendAcks_ ? std::make_optional(nextSequenceNumber_ - 1) : std::nullopt;
     }
 }
 
