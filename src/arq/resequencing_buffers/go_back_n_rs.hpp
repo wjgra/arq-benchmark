@@ -13,7 +13,7 @@ namespace rs {
 
 class GoBackN : public ResequencingBuffer<GoBackN> {
 public:
-    GoBackN();
+    GoBackN(SequenceNumber firstSeqNum = FIRST_SEQUENCE_NUMBER);
 
     // Standard functions required by ResequencingBuffer CRTP interface
     std::optional<SequenceNumber> do_addPacket(DataPacket&& packet);
@@ -21,19 +21,14 @@ public:
     std::optional<DataPacket> do_getNextPacket();
 
 private:
-    // In Stop and Wait, only one packet is tracked at a time. If a received packet is not
-    // the expected packet, it is ignored.
-    // SequenceNumber expectedPacketSeqNum_;
-    // // The packet to deliver to the output buffer.
-    // std::optional<DataPacket> packetForDelivery_;
-    // // Protect the next Packet and next packet sequence number
-    // mutable std::mutex rsPacketMutex_;
-    // // If no packet is ready for delivery, wait on this CV until one is.
-    // std::condition_variable rsPacketCv_;
+    // In Go Back N, only one packet is tracked at a time on the recieve side.
+    // If a received packet is not the expected packet, it is ignored.
     // // Has an EoT packet been pushed to the OB?
     bool endOfTxPushed = false;
     util::SafeQueue<arq::DataPacket> shadowBuffer_;
-    SequenceNumber expectedSN_ = FIRST_SEQUENCE_NUMBER;
+
+    // The next sequence number expected by the RS buffer.
+    SequenceNumber nextSequenceNumber_;
 };
 
 } // namespace rs

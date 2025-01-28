@@ -2,20 +2,20 @@
 
 #include "util/logging.hpp"
 
-arq::rs::GoBackN::GoBackN() {}
+arq::rs::GoBackN::GoBackN(SequenceNumber firstSeqNum) : nextSequenceNumber_{firstSeqNum} {}
 
 std::optional<arq::SequenceNumber> arq::rs::GoBackN::do_addPacket(DataPacket&& packet)
 {
     auto pkt = packet; // consdier references...
     auto sn = pkt.getHeader().sequenceNumber_;
 
-    if (sn == expectedSN_) {
+    if (sn == nextSequenceNumber_) {
         util::logDebug("Pushed packet with SN {} to shadow buffer", sn);
         if (pkt.isEndOfTx()) {
             endOfTxPushed =
                 true; // wjg there shouldn't really be duplication of functionality between here and the receiver...
         }
-        ++expectedSN_;
+        ++nextSequenceNumber_;
         shadowBuffer_.push(std::move(pkt));
         return sn;
     }

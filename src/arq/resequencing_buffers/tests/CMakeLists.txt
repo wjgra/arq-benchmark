@@ -7,3 +7,8 @@ catch_discover_tests(stop_and_wait_rs_test)
 add_executable(dummy_sctp_rs_test dummy_sctp_rs_test.cpp)
 target_link_libraries(dummy_sctp_rs_test PRIVATE Catch2::Catch2WithMain rs_buffers util)
 catch_discover_tests(dummy_sctp_rs_test)
+
+# Go Back N RS buffer MUT
+add_executable(go_back_n_rs_test go_back_n_rs_test.cpp)
+target_link_libraries(go_back_n_rs_test PRIVATE Catch2::Catch2WithMain rs_buffers util)
+catch_discover_tests(go_back_n_rs_test)
