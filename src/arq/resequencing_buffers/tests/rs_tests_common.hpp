@@ -64,12 +64,13 @@ void add_packets_out_of_order_test(RSBuffer& rs_buffer)
         // Try to add the same packet again
         ack = rs_buffer.addPacket(get_data_packet(sn));
 
-        // WJG: there is an issue here that warrants further investigation. Truly, the dummy buffer should not return
-        // any ACKs.
         if (std::is_same<RSBuffer, arq::rs::GoBackN>()) {
-            REQUIRE_FALSE(ack.has_value());
+            REQUIRE(ack.has_value());
+            REQUIRE(ack.value() == sn);
         }
         else if (std::is_same<RSBuffer, arq::rs::DummySCTP>()) {
+            // WJG: there is an issue here that warrants further investigation. Truly, the
+            // dummy buffer should not return any ACKs.
             REQUIRE_FALSE(ack.has_value());
         }
         else {
@@ -77,15 +78,39 @@ void add_packets_out_of_order_test(RSBuffer& rs_buffer)
             REQUIRE_FALSE(true);
         }
 
-        REQUIRE_FALSE(ack.has_value());
-
         // Try to add a packet that isn't due yet
         ack = rs_buffer.addPacket(get_data_packet(sn + 2));
-        REQUIRE_FALSE(ack.has_value());
+
+        if (std::is_same<RSBuffer, arq::rs::GoBackN>()) {
+            REQUIRE(ack.has_value());
+            REQUIRE(ack.value() == sn);
+        }
+        else if (std::is_same<RSBuffer, arq::rs::DummySCTP>()) {
+            // WJG: there is an issue here that warrants further investigation. Truly, the
+            // dummy buffer should not return any ACKs.
+            REQUIRE_FALSE(ack.has_value());
+        }
+        else {
+            // This function should not be used with any other buffers
+            REQUIRE_FALSE(true);
+        }
 
         // Try to add a packet that has already been due
         ack = rs_buffer.addPacket(get_data_packet(sn - 1));
-        REQUIRE_FALSE(ack.has_value());
+
+        if (std::is_same<RSBuffer, arq::rs::GoBackN>()) {
+            REQUIRE(ack.has_value());
+            REQUIRE(ack.value() == sn);
+        }
+        else if (std::is_same<RSBuffer, arq::rs::DummySCTP>()) {
+            // WJG: there is an issue here that warrants further investigation. Truly, the
+            // dummy buffer should not return any ACKs.
+            REQUIRE_FALSE(ack.has_value());
+        }
+        else {
+            // This function should not be used with any other buffers
+            REQUIRE_FALSE(true);
+        }
     }
 }
 
