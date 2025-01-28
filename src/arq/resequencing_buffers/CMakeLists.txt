@@ -7,3 +7,5 @@ add_library(rs_buffers ${ARQ_RS_BUFFER_SRCS})
 
 target_link_libraries(rs_buffers arq_common)
 target_link_libraries(arq_main INTERFACE rs_buffers)
+
+add_subdirectory(tests)
