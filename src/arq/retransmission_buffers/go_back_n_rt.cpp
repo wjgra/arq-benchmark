@@ -1,13 +1,15 @@
 #include "arq/retransmission_buffers/go_back_n_rt.hpp"
 #include "util/logging.hpp"
 
-arq::rt::GoBackN::GoBackN(uint16_t windowSize, const std::chrono::microseconds timeout) :
+arq::rt::GoBackN::GoBackN(const uint16_t windowSize,
+                          const std::chrono::microseconds timeout,
+                          const SequenceNumber firstSeqNum) :
     RetransmissionBuffer{timeout},
     timeout_{timeout},
     windowSize_{windowSize},
     slidingWindow_{.buffer_ = std::vector<std::optional<TransmitBufferObject>>(windowSize, std::nullopt),
                    .startIdx_ = 0,
-                   .nextSequenceNumberToAck_ = FIRST_SEQUENCE_NUMBER}
+                   .nextSequenceNumberToAck_ = firstSeqNum}
 {
 }
 
@@ -25,6 +27,7 @@ void arq::rt::GoBackN::do_addPacket(TransmitBufferObject&& packet)
 
         pkt_idx = (pkt_idx + 1) % windowSize_;
     } while (pkt_idx != slidingWindow_.startIdx_);
+    throw ArqProtocolException("tried to add packet to Go-Back-N RT buffer, but buffer was full");
 }
 
 // Consider whether this should return a vector? No, because we need to update timing
@@ -63,6 +66,7 @@ bool arq::rt::GoBackN::do_packetsPending() const
     do {
         const auto& this_pkt = slidingWindow_.buffer_[pkt_idx];
         if (this_pkt.has_value()) {
+            util::logError("wjg: {}", this_pkt.value().info_.sequenceNumber_);
             return true;
         }
         pkt_idx = (pkt_idx + 1) % windowSize_; // simplify with iterator
@@ -74,12 +78,40 @@ bool arq::rt::GoBackN::do_packetsPending() const
 void arq::rt::GoBackN::do_acknowledgePacket(const SequenceNumber seqNum)
 { // wjg rename to acked sn
 
-    for (SequenceNumber sn = slidingWindow_.nextSequenceNumberToAck_; sn <= seqNum; ++sn) {
-        slidingWindow_.buffer_[slidingWindow_.startIdx_++] = std::nullopt;
-        slidingWindow_.startIdx_ = slidingWindow_.startIdx_ % windowSize_; // %= ?
+    if (seqNum >= slidingWindow_.nextSequenceNumberToAck_ + windowSize_) {
+        util::logError("Tried to ACK packet outside of possible range for GBN RT buffer");
+        return;
     }
 
+    if (slidingWindow_.buffer_[slidingWindow_.startIdx_].has_value() == false) {
+        util::logError("No packets to ACK in GBN RT buffer");
+        return;
+    }
+
+    // Since packets are only ACK'd in order, any packet before the ACK is also ACK'd
+
+    for (int i = 0; i < windowSize_; ++i) {
+        const auto pkt_idx = (slidingWindow_.startIdx_ + i) % windowSize_;
+
+        // WJG: Here we assume non-wrapping SNs
+        if (slidingWindow_.nextSequenceNumberToAck_ + i <= seqNum) {
+            util::logError("wjg: acking {}",
+                           slidingWindow_.buffer_[pkt_idx].has_value() ?
+                               slidingWindow_.buffer_[pkt_idx]->info_.sequenceNumber_ :
+                               -1);
+            slidingWindow_.buffer_[pkt_idx] = std::nullopt;
+        }
+    }
+
+    // for (SequenceNumber sn = slidingWindow_.nextSequenceNumberToAck_; sn <= seqNum; ++sn) {
+    //     slidingWindow_.startIdx_ = (slidingWindow_.startIdx_ + 1) % windowSize_;
+    //     slidingWindow_.buffer_[slidingWindow_.startIdx_] = std::nullopt;
+    //     // slidingWindow_.startIdx_ = slidingWindow_.startIdx_ % windowSize_; // %= ?
+    // }
+
     if (seqNum >= slidingWindow_.nextSequenceNumberToAck_) {
+        slidingWindow_.startIdx_ += seqNum + 1 - slidingWindow_.nextSequenceNumberToAck_;
+        slidingWindow_.startIdx_ = slidingWindow_.startIdx_ % windowSize_;
         slidingWindow_.nextSequenceNumberToAck_ = seqNum + 1;
     }
 

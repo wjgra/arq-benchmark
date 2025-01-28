@@ -70,7 +70,7 @@ void add_packets_out_of_order_test(RSBuffer& rs_buffer)
         }
         else if (std::is_same<RSBuffer, arq::rs::DummySCTP>()) {
             // WJG: there is an issue here that warrants further investigation. Truly, the
-            // dummy buffer should not return any ACKs.
+            // dummy buffer should not return any ACKs. See issue #49.
             REQUIRE_FALSE(ack.has_value());
         }
         else {
@@ -87,7 +87,7 @@ void add_packets_out_of_order_test(RSBuffer& rs_buffer)
         }
         else if (std::is_same<RSBuffer, arq::rs::DummySCTP>()) {
             // WJG: there is an issue here that warrants further investigation. Truly, the
-            // dummy buffer should not return any ACKs.
+            // dummy buffer should not return any ACKs. See issue #49.
             REQUIRE_FALSE(ack.has_value());
         }
         else {
@@ -104,7 +104,7 @@ void add_packets_out_of_order_test(RSBuffer& rs_buffer)
         }
         else if (std::is_same<RSBuffer, arq::rs::DummySCTP>()) {
             // WJG: there is an issue here that warrants further investigation. Truly, the
-            // dummy buffer should not return any ACKs.
+            // dummy buffer should not return any ACKs. See issue #49.
             REQUIRE_FALSE(ack.has_value());
         }
         else {

@@ -12,7 +12,9 @@ namespace rt {
 
 class GoBackN : public RetransmissionBuffer<GoBackN> {
 public:
-    GoBackN(uint16_t windowSize, const std::chrono::microseconds timeout);
+    GoBackN(const uint16_t windowSize,
+            const std::chrono::microseconds timeout,
+            const SequenceNumber firstSeqNum = FIRST_SEQUENCE_NUMBER);
 
     // Standard functions required by RetransmissionBuffer CRTP interface
     void do_addPacket(TransmitBufferObject&& packet);
