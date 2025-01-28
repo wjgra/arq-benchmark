@@ -53,6 +53,12 @@ public:
         return queue_.empty();
     }
 
+    auto size() const
+    {
+        std::unique_lock<std::mutex> lock(mut_);
+        return queue_.size();
+    }
+
 private:
     // Underlying queue data
     std::queue<T> queue_;
