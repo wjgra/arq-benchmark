@@ -106,7 +106,3 @@ TEST_CASE("Dummy SCTP RS buffer - remove packets", "[arq/rs_buffers]")
     REQUIRE_FALSE(rs_buffer.packetsPending());
     REQUIRE_FALSE(rs_buffer.getNextPacket().has_value());
 }
-
-// To do: functional test with a sequence of packets
-
-// To do: loss of ack test - check ACK is generated again
