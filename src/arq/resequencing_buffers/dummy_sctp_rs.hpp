@@ -11,7 +11,7 @@ namespace rs {
 
 class DummySCTP : public ResequencingBuffer<DummySCTP> {
 public:
-    DummySCTP();
+    DummySCTP(SequenceNumber firstSeqNum = FIRST_SEQUENCE_NUMBER);
 
     // Standard functions required by ResequencingBuffer CRTP interface
     std::optional<SequenceNumber> do_addPacket(DataPacket&& packet);
@@ -24,7 +24,7 @@ private:
     util::SafeQueue<arq::DataPacket> shadowBuffer_;
 
     // The next sequence number expected by the RS buffer.
-    arq::SequenceNumber nextSequenceNumber_ = arq::FIRST_SEQUENCE_NUMBER;
+    arq::SequenceNumber nextSequenceNumber_;
 };
 
 } // namespace rs

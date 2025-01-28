@@ -2,7 +2,7 @@
 
 #include "util/logging.hpp"
 
-arq::rs::DummySCTP::DummySCTP() {}
+arq::rs::DummySCTP::DummySCTP(SequenceNumber firstSeqNum) : nextSequenceNumber_{firstSeqNum} {}
 
 std::optional<arq::SequenceNumber> arq::rs::DummySCTP::do_addPacket(DataPacket&& packet)
 {

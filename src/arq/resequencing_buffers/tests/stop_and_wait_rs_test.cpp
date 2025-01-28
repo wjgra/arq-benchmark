@@ -12,7 +12,7 @@ auto get_data_packet(arq::SequenceNumber sn)
 
 TEST_CASE("Stop and wait RS buffer - add packets", "[arq/rs_buffers]")
 {
-    arq::SequenceNumber first_seq_num_to_add = 100;
+    constexpr arq::SequenceNumber first_seq_num_to_add = 100;
 
     arq::rs::StopAndWait rs_buffer{first_seq_num_to_add}; // Ensure first SN is expected by RS
 
@@ -30,7 +30,7 @@ TEST_CASE("Stop and wait RS buffer - add packets", "[arq/rs_buffers]")
     REQUIRE(rs_buffer.packetsPending());
 
     // Check another packet can't be added whilst buffer is full
-    arq::SequenceNumber second_seq_num_to_add = 200;
+    constexpr arq::SequenceNumber second_seq_num_to_add = 200;
     ack = rs_buffer.addPacket(get_data_packet(second_seq_num_to_add));
     REQUIRE_FALSE(ack.has_value());
 
@@ -40,7 +40,7 @@ TEST_CASE("Stop and wait RS buffer - add packets", "[arq/rs_buffers]")
 
 TEST_CASE("Stop and wait RS buffer - remove packets", "[arq/rs_buffers]")
 {
-    arq::SequenceNumber first_seq_num_to_add = 100;
+    constexpr arq::SequenceNumber first_seq_num_to_add = 100;
 
     arq::rs::StopAndWait rs_buffer{first_seq_num_to_add}; // Ensure first SN is expected by RS
 
@@ -68,7 +68,7 @@ TEST_CASE("Stop and wait RS buffer - remove packets", "[arq/rs_buffers]")
     REQUIRE_FALSE(pkt.has_value());
 
     // Try to add the next packet
-    arq::SequenceNumber second_seq_num_to_add = first_seq_num_to_add + 1;
+    constexpr arq::SequenceNumber second_seq_num_to_add = first_seq_num_to_add + 1;
     ack = rs_buffer.addPacket(get_data_packet(second_seq_num_to_add));
     REQUIRE(ack.has_value());
     REQUIRE(ack.value() == second_seq_num_to_add);
