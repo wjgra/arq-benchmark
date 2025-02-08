@@ -12,32 +12,29 @@ namespace rt {
 
 class GoBackN : public RetransmissionBuffer<GoBackN> {
 public:
-    GoBackN(uint16_t windowSize, const std::chrono::microseconds timeout);
+    GoBackN(const uint16_t windowSize,
+            const std::chrono::microseconds timeout,
+            const SequenceNumber firstSeqNum = FIRST_SEQUENCE_NUMBER);
 
     // Standard functions required by RetransmissionBuffer CRTP interface
     void do_addPacket(TransmitBufferObject&& packet);
     std::optional<std::span<const std::byte>> do_tryGetPacketSpan();
-    bool do_readyForNewPacket() const;
-    bool do_packetsPending() const;
-    void do_acknowledgePacket(const SequenceNumber seqNum);
+    bool do_readyForNewPacket() const noexcept;
+    bool do_packetsPending() const noexcept;
+    void do_acknowledgePacket(const SequenceNumber ackedSeqNum);
 
 private:
-    // WJG should these things be in the CRTP interface?
-    // A packet is retransmitted only when the timeout has expired without
-    // reception of an ACK.
-    const std::chrono::microseconds timeout_;
-
+    // The window defines the maximum number of packets that can be in the RT buffer.
     const uint16_t windowSize_;
-
-    // WJG: This should be moved out of the class
-    struct CircularBuffer {
-        // A buffer to hold packets for retransmission
-        std::vector<std::optional<TransmitBufferObject>> buffer_;
-        // Index into buffer_ corresponding to the start of the circular buffer
-        size_t startIdx_;
-        //
-        SequenceNumber nextSequenceNumberToAck_;
-    } slidingWindow_;
+    // A circular buffer holding the packets for retransmission.
+    std::vector<std::optional<TransmitBufferObject>> buffer_;
+    // The index within the buffer of the earliest packet.
+    size_t startIdx_;
+    // The next SN to acknowledge - this corresponds to the earliest packet in the buffer.
+    SequenceNumber nextToAck_;
+    // The current number of packets in the buffer. By keeping track of this, we can cut down on
+    // unneccessary buffer iteration.
+    size_t packetsInBuffer_;
 };
 
 } // namespace rt
