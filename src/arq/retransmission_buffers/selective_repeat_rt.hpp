@@ -1,5 +1,5 @@
-#ifndef _ARQ_RT_BUFFERS_GO_BACK_N_HPP_
-#define _ARQ_RT_BUFFERS_GO_BACK_N_HPP_
+#ifndef _ARQ_RT_BUFFERS_SELECTIVE_REPEAT_HPP_
+#define _ARQ_RT_BUFFERS_SELECTIVE_REPEAT_HPP_
 
 #include <cstdint>
 #include <optional>
@@ -10,12 +10,11 @@
 namespace arq {
 namespace rt {
 
-/* In Go-Back-N ARQ, the retransmission buffer is a sliding window. */
-class GoBackN : public RetransmissionBuffer<GoBackN> {
+class SelectiveRepeat : public RetransmissionBuffer<SelectiveRepeat> {
 public:
-    GoBackN(const uint16_t windowSize,
-            const std::chrono::microseconds timeout,
-            const SequenceNumber firstSeqNum = FIRST_SEQUENCE_NUMBER);
+    SelectiveRepeat(const uint16_t windowSize,
+                    const std::chrono::microseconds timeout,
+                    const SequenceNumber firstSeqNum = FIRST_SEQUENCE_NUMBER);
 
     // Standard functions required by RetransmissionBuffer CRTP interface
     void do_addPacket(TransmitBufferObject&& packet);
