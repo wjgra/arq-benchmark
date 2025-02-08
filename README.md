@@ -23,7 +23,7 @@ A brief overview of the files this repo is shown below.
     └── run.sh (runs a tmux'd launcher session with a transmitter and receiver)
 ```
 ## Dependencies and compilation
-This project uses various features from C++20 and 23 (at time of writing, `<span>`, `<format>`, `<print>`, `<concepts>` and `<ranges>` are all used). It also uses the BSD sockets API for implementing `util::Socket`, so runs on Linux/WSL only. The launcher uses to handle the CLI arguments. The run script uses `tmux` to handle transmitter and receiver instances, and `tc` to simulate a lossy network connection between them. Unit tests depend on Catch2.
+This project uses various features from C++20 and 23 (at time of writing, `<span>`, `<format>`, `<print>`, `<concepts>` and `<ranges>` are all used). It also uses the BSD sockets API for implementing `util::Socket`, so runs on Linux/WSL only. The launcher uses `boost::program_options` to handle the CLI arguments. The run script uses `tmux` to handle transmitter and receiver instances, and `tc` to simulate a lossy network connection between them. Unit tests depend on Catch2.
 
 N.B. In order to use `tc`, you must ensure your Linux kernel has been compiled with the network emulator enabled.
 
