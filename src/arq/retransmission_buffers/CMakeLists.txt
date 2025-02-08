@@ -1,7 +1,8 @@
 set(ARQ_RT_BUFFER_SRCS
     stop_and_wait_rt.cpp
     dummy_sctp_rt.cpp
-    go_back_n_rt.cpp)
+    go_back_n_rt.cpp
+    selective_repeat_rt.cpp)
 
 add_library(rt_buffers ${ARQ_RT_BUFFER_SRCS})
 

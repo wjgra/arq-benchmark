@@ -1,5 +1,5 @@
-#ifndef _ARQ_RS_BUFFERS_GO_BACK_N_HPP_
-#define _ARQ_RS_BUFFERS_GO_BACK_N_HPP_
+#ifndef _ARQ_RS_BUFFERS_SELECTIVE_REPEAT_HPP_
+#define _ARQ_RS_BUFFERS_SELECTIVE_REPEAT_HPP_
 
 #include "arq/common/resequencing_buffer.hpp"
 #include "util/safe_queue.hpp"
@@ -11,12 +11,12 @@
 namespace arq {
 namespace rs {
 
-/* In Go-Back-N ARQ, the resequencing buffer is a sliding window of size one. Fundamentally, it has similar function to
- * the Stop-and-Wait RS buffer. As compared to Selective Repeat ARQ, whilst this scheme is slightly less effective, it
- * has the benefit of reducing receiver complexity. */
-class GoBackN : public ResequencingBuffer<GoBackN> {
+/* In Selective Repeat ARQ, the resequencing buffer is a sliding window, similar to the
+ * one used for retransmission. Unlike GBN and SNW ARQ, packets recieved out of order
+ * are buffered until needed.  */
+class SelectiveRepeat : public ResequencingBuffer<SelectiveRepeat> {
 public:
-    GoBackN(SequenceNumber firstSeqNum = FIRST_SEQUENCE_NUMBER);
+    SelectiveRepeat(SequenceNumber firstSeqNum = FIRST_SEQUENCE_NUMBER);
 
     // Standard functions required by ResequencingBuffer CRTP interface
     std::optional<SequenceNumber> do_addPacket(DataPacket&& packet);
