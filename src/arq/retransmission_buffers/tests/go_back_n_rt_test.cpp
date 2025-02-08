@@ -4,7 +4,7 @@
 
 #include "arq/retransmission_buffers/go_back_n_rt.hpp"
 
-// WJG: common this up with snw test?
+// WJG: there is overlap here with the SNW test - consider extracting common functionality.
 
 // A timeout that should not expire
 constexpr size_t large_timeout = 1'000'000'000;
@@ -29,7 +29,7 @@ bool try_add_packet(arq::rt::GoBackN& rt_buf, arq::SequenceNumber sn)
     return success;
 }
 
-TEST_CASE("Go-Back-N - add packets", "[arq/rt_buffers]")
+TEST_CASE("Go-Back-N RT buffer - add packets", "[arq/rt_buffers]")
 {
     constexpr uint16_t window_size = 20;
     constexpr arq::SequenceNumber first_seq_num_to_add = 100;
@@ -58,7 +58,7 @@ TEST_CASE("Go-Back-N - add packets", "[arq/rt_buffers]")
     REQUIRE_FALSE(try_add_packet(rt_buffer, first_seq_num_to_add + window_size));
 }
 
-TEST_CASE("Go-Back-N - remove packets", "[arq/rt_buffers]")
+TEST_CASE("Go-Back-N RT buffer - remove packets", "[arq/rt_buffers]")
 {
     constexpr uint16_t window_size = 20;
     constexpr arq::SequenceNumber first_seq_num_to_add = 100;
@@ -89,4 +89,4 @@ TEST_CASE("Go-Back-N - remove packets", "[arq/rt_buffers]")
     REQUIRE_FALSE(rt_buffer.packetsPending());
 }
 
-// Include an add/remove test
+// To do: include an add/remove test
