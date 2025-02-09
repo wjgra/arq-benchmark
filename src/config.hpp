@@ -19,7 +19,7 @@ struct config_AddressInfo {
 
 enum class ArqProtocol { DUMMY_SCTP, STOP_AND_WAIT, GO_BACK_N, SELECTIVE_REPEAT };
 
-static constexpr auto arqProtocolToString(ArqProtocol protocol)
+static constexpr auto arqProtocolToString(const ArqProtocol protocol) noexcept
 {
     switch (protocol) {
         case ArqProtocol::DUMMY_SCTP:

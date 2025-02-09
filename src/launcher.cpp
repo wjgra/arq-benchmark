@@ -66,7 +66,7 @@ auto programOptionData = std::to_array<ProgramOption>({
     {PROG_OPTION_TX_PKT_INTERVAL, uint16_t{10},                                      "ms between transmitted packets"},
     {PROG_OPTION_ARQ_TIMEOUT,     uint16_t{50},                                      "ARQ timeout in ms"},
     {PROG_OPTION_ARQ_PROTOCOL,    arqProtocolToString(arq::ArqProtocol::DUMMY_SCTP), "ARQ protocol to use"},
-    {PROG_OPTION_ARQ_WINDOW_SZ,   uint16_t{100},                                       "window size for GBN and SR ARQ"}
+    {PROG_OPTION_ARQ_WINDOW_SZ,   uint16_t{100},                                     "window size for GBN and SR ARQ"}
 });
 // clang-format on
 
