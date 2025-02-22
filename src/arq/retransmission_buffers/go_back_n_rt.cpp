@@ -66,7 +66,11 @@ bool arq::rt::GoBackN::do_packetsPending() const noexcept
 void arq::rt::GoBackN::do_acknowledgePacket(const SequenceNumber ackedSeqNum)
 {
     if (ackedSeqNum >= nextToAck_ + windowSize_) {
-        util::logError("Tried to ACK packet outside of possible range for GBN RT buffer");
+        util::logError(
+            "Tried to ACK packet with SN {}, which is outside of possible range for GBN RT buffer starting at {} of size {}",
+            ackedSeqNum,
+            nextToAck_,
+            windowSize_);
         return;
     }
 

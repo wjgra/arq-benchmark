@@ -89,4 +89,41 @@ TEST_CASE("Go-Back-N RT buffer - remove packets", "[arq/rt_buffers]")
     REQUIRE_FALSE(rt_buffer.packetsPending());
 }
 
-// To do: include an add/remove test
+TEST_CASE("Go-Back-N RT buffer - add and remove packets", "[arq/rt_buffers]")
+{
+    constexpr uint16_t window_size = 20;
+    constexpr arq::SequenceNumber first_seq_num_to_add = 100;
+    arq::rt::GoBackN rt_buffer{window_size, std::chrono::milliseconds(large_timeout), first_seq_num_to_add};
+
+    REQUIRE_FALSE(rt_buffer.packetsPending());
+
+    // Add packets until the buffer is full
+    for (const auto sn : std::views::iota(first_seq_num_to_add) | std::views::take(window_size)) {
+        REQUIRE(try_add_packet(rt_buffer, sn));
+    }
+
+    // Verify buffer is full by trying to add another packet
+    REQUIRE_FALSE(try_add_packet(rt_buffer, first_seq_num_to_add + window_size));
+
+    // Acknowledge half of the packets
+    for (const auto sn : std::views::iota(first_seq_num_to_add) | std::views::take(window_size / 2)) {
+        REQUIRE(rt_buffer.packetsPending());
+        rt_buffer.acknowledgePacket(sn);
+    }
+
+    // Add another half a window's worth of packets
+    for (const auto sn : std::views::iota(first_seq_num_to_add + window_size) | std::views::take(window_size / 2)) {
+        REQUIRE(try_add_packet(rt_buffer, sn));
+    }
+
+    // Verify buffer is full again
+    REQUIRE_FALSE(try_add_packet(rt_buffer, first_seq_num_to_add + window_size / 2));
+
+    // Acknowledge remaining packets
+    for (const auto sn : std::views::iota(first_seq_num_to_add + window_size / 2) | std::views::take(window_size)) {
+        REQUIRE(rt_buffer.packetsPending());
+        rt_buffer.acknowledgePacket(sn);
+    }
+
+    REQUIRE_FALSE(rt_buffer.packetsPending());
+}
