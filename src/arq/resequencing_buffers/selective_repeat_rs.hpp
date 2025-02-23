@@ -4,9 +4,7 @@
 #include "arq/common/resequencing_buffer.hpp"
 #include "util/safe_queue.hpp"
 
-#include <condition_variable>
 #include <cstdint>
-#include <mutex>
 
 namespace arq {
 namespace rs {
@@ -16,7 +14,7 @@ namespace rs {
  * are buffered until needed.  */
 class SelectiveRepeat : public ResequencingBuffer<SelectiveRepeat> {
 public:
-    SelectiveRepeat(SequenceNumber firstSeqNum = FIRST_SEQUENCE_NUMBER);
+    SelectiveRepeat(const uint16_t windowSize, SequenceNumber firstSeqNum = FIRST_SEQUENCE_NUMBER);
 
     // Standard functions required by ResequencingBuffer CRTP interface
     std::optional<SequenceNumber> do_addPacket(DataPacket&& packet);
@@ -24,15 +22,25 @@ public:
     std::optional<DataPacket> do_getNextPacket();
 
 private:
-    // In Go Back N, only one packet is tracked at a time on the recieve side.
-    // If a received packet is not the expected packet, it is ignored, and an
-    // ACK is instead sent for the last correctly received packet.
+    void updateBufferIndices();
+
+    // The window defines the maximum number of packets that can be in the RS buffer.
+    const uint16_t windowSize_;
+
+    // A circular buffer holding the packets for resequencing.
+    std::vector<std::optional<arq::DataPacket>> buffer_;
+
+    // The index within the buffer of the earliest packet.
+    size_t startIdx_ = 0;
+
+    // The SN corresponding to the earliest packet in the RS buffer.
+    SequenceNumber earliestExpected_;
+
+    // Packets in the circular buffer.
+    size_t packetsInBuffer_ = 0;
 
     // Store packets received here for delivery to the output buffer.
     util::SafeQueue<arq::DataPacket> shadowBuffer_;
-
-    // The next sequence number expected by the RS buffer.
-    SequenceNumber nextSequenceNumber_;
 
     // ACKs can only be sent once at least one packet has been correctly received.
     bool canSendAcks_ = false;

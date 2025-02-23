@@ -300,9 +300,9 @@ static void transmitPackets(std::function<void(arq::DataPacket&&)> txerSendPacke
                             const uint16_t msPacketInterval)
 {
     // Send a few packets with random data
-    std::random_device rd;
-    std::mt19937 mt(rd());
-    std::uniform_int_distribution<uint8_t> dist(0, UINT8_MAX);
+    // std::random_device rd;
+    // std::mt19937 mt(rd());
+    // std::uniform_int_distribution<uint8_t> dist(0, UINT8_MAX);
 
     for (size_t i = 0; i < numPackets; ++i) {
         arq::DataPacket inputPacket{};
@@ -312,7 +312,7 @@ static void transmitPackets(std::function<void(arq::DataPacket&&)> txerSendPacke
         inputPacket.updateConversationID(1); // WJG temp - should be based on conversation ID
         auto dataSpan = inputPacket.getPayloadSpan();
         for (auto& el : dataSpan) {
-            el = std::byte{dist(mt)};
+            el = std::byte{11}; // std::byte{dist(mt)};
         }
 
         // Add packet to transmitter's input buffer
@@ -503,7 +503,8 @@ static void startReceiver(const arq::config_Launcher& config)
         arq::Receiver rxer(convID, txToServer, rxFromServer, std::make_unique<arq::rs::GoBackN>());
     }
     else if (config.common.arqProtocol == arq::ArqProtocol::SELECTIVE_REPEAT) {
-        arq::Receiver rxer(convID, txToServer, rxFromServer, std::make_unique<arq::rs::SelectiveRepeat>());
+        // temp add window config
+        arq::Receiver rxer(convID, txToServer, rxFromServer, std::make_unique<arq::rs::SelectiveRepeat>(100));
     }
     else {
         util::logError("Unsupported ARQ protocol: {}", arqProtocolToString(config.common.arqProtocol));

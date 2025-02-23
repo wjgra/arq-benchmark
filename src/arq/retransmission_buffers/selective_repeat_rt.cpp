@@ -44,7 +44,7 @@ std::optional<std::span<const std::byte>> arq::rt::SelectiveRepeat::do_tryGetPac
         auto& this_pkt = buffer_[pkt_idx];
 
         if (this_pkt.has_value() && isPacketTimedOut(this_pkt.value())) {
-            util::logDebug("Retransmit packet at idx {}", pkt_idx);
+            util::logDebug("Retransmit packet at idx {} (start_idx {})", pkt_idx, startIdx_);
             this_pkt->info_.lastTxTime_ = arq::ClockType::now();
             return this_pkt->packet_.getReadSpan();
         }
@@ -91,7 +91,8 @@ void arq::rt::SelectiveRepeat::do_acknowledgePacket(const SequenceNumber ackedSe
 
     // Update the circular buffer info based on the new 'next packet to ACK'
     if (ackedSeqNum >= nextToAck_) {
-        startIdx_ += (ackedSeqNum + 1 - nextToAck_) % windowSize_;
+        startIdx_ += (ackedSeqNum + 1 - nextToAck_);
+        startIdx_ %= windowSize_;
         nextToAck_ = ackedSeqNum + 1;
     }
 }

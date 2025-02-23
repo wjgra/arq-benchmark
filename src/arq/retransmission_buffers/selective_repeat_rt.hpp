@@ -24,14 +24,20 @@ public:
     void do_acknowledgePacket(const SequenceNumber ackedSeqNum);
 
 private:
+    // WJG: Consider abstracting this functionality to a CircularBuffer class.
+
     // The window defines the maximum number of packets that can be in the RT buffer.
     const uint16_t windowSize_;
+
     // A circular buffer holding the packets for retransmission.
     std::vector<std::optional<TransmitBufferObject>> buffer_;
+
     // The index within the buffer of the earliest packet.
     size_t startIdx_;
+
     // The next SN to acknowledge - this corresponds to the earliest packet in the buffer.
     SequenceNumber nextToAck_;
+
     // The current number of packets in the buffer. By keeping track of this, we can cut down on
     // unneccessary buffer iteration.
     size_t packetsInBuffer_;

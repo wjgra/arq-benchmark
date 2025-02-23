@@ -23,13 +23,10 @@ std::optional<arq::SequenceNumber> arq::rs::DummySCTP::do_addPacket(DataPacket&&
     else {
         /* Unlike UDP, SCTP does not use datagrams, instead delivering a stream of bytes with
          * length equal to the MTU of the interface. Although the data is guaranteed to arrive
-         * as in-order packets, trailing zeroes are included. Assert that these are present
-         * then trim them before passing to the shadow buffer.*/
+         * as in-order packets, we need to trim the extra bytes before passing the packet to
+         * the RS buffer.*/
         const size_t packetLen = arq::packet_payload_length + arq::DataPacketHeader::size();
-        for (size_t i = packetLen; i < MAX_TRANSMISSION_UNIT && i < pktSpan.size(); ++i) {
-            assert(std::to_integer<int>(pktSpan[i]) == 0);
-        }
-        pktSpan = pktSpan.subspan(0, std::max(MAX_TRANSMISSION_UNIT, pktSpan.size()));
+        pktSpan = pktSpan.subspan(0, packetLen);
     }
 
     auto receivedSequenceNumber = DataPacket(pktSpan).getHeader().sequenceNumber_;

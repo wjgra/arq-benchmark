@@ -10,6 +10,7 @@ bool arq::OutputBuffer::addPacket(arq::DataPacket&& packet)
     }
     else {
         util::logDebug("OB rejected packet with SN {} (expected {})", hdr.sequenceNumber_, nextSequenceNumber_);
+        assert(false);
         return false;
     }
     arq::ReceiveBufferObject temp{.packet_ = std::move(packet), .rxTime_ = ClockType::now()};
