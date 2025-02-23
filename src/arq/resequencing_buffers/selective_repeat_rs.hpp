@@ -22,7 +22,8 @@ public:
     std::optional<DataPacket> do_getNextPacket();
 
 private:
-    void updateBufferIndices();
+    // If possible, move packets from the circular buffer to the shadow buffer.
+    void updateBuffer();
 
     // The window defines the maximum number of packets that can be in the RS buffer.
     const uint16_t windowSize_;
