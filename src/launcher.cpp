@@ -300,9 +300,9 @@ static void transmitPackets(std::function<void(arq::DataPacket&&)> txerSendPacke
                             const uint16_t msPacketInterval)
 {
     // Send a few packets with random data
-    // std::random_device rd;
-    // std::mt19937 mt(rd());
-    // std::uniform_int_distribution<uint8_t> dist(0, UINT8_MAX);
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    std::uniform_int_distribution<uint8_t> dist(0, UINT8_MAX);
 
     for (size_t i = 0; i < numPackets; ++i) {
         arq::DataPacket inputPacket{};
@@ -312,7 +312,7 @@ static void transmitPackets(std::function<void(arq::DataPacket&&)> txerSendPacke
         inputPacket.updateConversationID(1); // WJG temp - should be based on conversation ID
         auto dataSpan = inputPacket.getPayloadSpan();
         for (auto& el : dataSpan) {
-            el = std::byte{11}; // std::byte{dist(mt)};
+            el = std::byte{dist(mt)};
         }
 
         // Add packet to transmitter's input buffer
