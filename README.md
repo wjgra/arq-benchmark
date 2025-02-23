@@ -46,10 +46,10 @@ The aim of this benchmark is to demonstrate that all four schemes successfully d
 
 **Parameters:** netem delay - `50ms`, netem loss - `random 0%`, packet transmission interval - `200 ms`, packets transmitted - `100`
 ```
-sctp.log delays: mean 50.20031683168317 ms, median 50.197 ms, stdev 0.021823808417904263, min 50.144 ms, max 50.338 ms
-snw.log delays: mean 50.194722772277224 ms, median 50.186 ms, stdev 0.043148608045192105, min 50.12 ms, max 50.513 ms
-gbn.log delays: mean 50.19888118811881 ms, median 50.188 ms, stdev 0.05019607297960931, min 50.156 ms, max 50.592 ms
-sr.log delays: mean 50.199415841584155 ms, median 50.19 ms, stdev 0.04483174485266694, min 50.147 ms, max 50.522 ms
+sctp.log delays: mean 50.20031683168317 ms, median 50.197 ms, stdev 0.0218, min 50.144 ms, max 50.338 ms
+snw.log delays: mean 50.195 ms, median 50.186 ms, stdev 0.043 ms, min 50.12 ms, max 50.513 ms
+gbn.log delays: mean 50.199 ms, median 50.188 ms, stdev 0.050 ms, min 50.156 ms, max 50.592 ms
+sr.log delays: mean 50.199 ms, median 50.19 ms, stdev 0.045 ms, min 50.147 ms, max 50.522 ms
 ```
 ![all_four_delay_50_loss_0_int_200_timeout_100](https://github.com/user-attachments/assets/bea6e508-5096-443a-a90e-23e62e31257b)
 
@@ -59,10 +59,10 @@ The aim of this (mildly amusing) benchmark is to demonstrate why the basic ARQ s
 
 **Parameters:** netem delay - `50ms 10ms distribution normal`, netem loss - `random 1%`, packet transmission interval - `25 ms`, packets transmitted - `1000`
 ```
-sctp.log delays: mean 69.93055744255744 ms, median 65.061 ms, stdev 37.364786894761586, min 25.97 ms, max 370.466 ms
-snw.log delays: mean 33522.937182817186 ms, median 33466.984 ms, stdev 19326.603099442123, min 63.664 ms, max 67128.774 ms
-gbn.log delays: mean 2815.560078921079 ms, median 2348.146 ms, stdev 2043.2077656408815, min 40.005 ms, max 8703.66 ms
-sr.log delays: mean 52.71377422577422 ms, median 50.742 ms, stdev 17.25176044127019, min 19.94 ms, max 167.729 ms
+sctp.log delays: mean 69.931 ms, median 65.061 ms, stdev 37.365 ms, min 25.97 ms, max 370.466 ms
+snw.log delays: mean 33522.937 ms, median 33466.984 ms, stdev 19326.603 ms, min 63.664 ms, max 67128.774 ms
+gbn.log delays: mean 2815.560 ms, median 2348.146 ms, stdev 2043.208 ms, min 40.005 ms, max 8703.66 ms
+sr.log delays: mean 52.714 ms, median 50.742 ms, stdev 17.252 ms, min 19.94 ms, max 167.729 ms
 ```
 ![all_four_delay_50_10_loss_1_int_25_timeout_100](https://github.com/user-attachments/assets/42ab8494-ab98-4fb4-969f-1d2b3673f3e8)
 
@@ -72,8 +72,8 @@ The grand final! The aim of this benchmark is to compare the performance of Sele
 
 **Parameters:** netem delay - `50ms 10ms distribution normal`, netem loss - `random 1%`, packet transmission interval - `25 ms`, packets transmitted - `1000`
 ```
-sctp.log delays: mean 67.9813876123876 ms, median 64.382 ms, stdev 32.15723768671069, min 22.775 ms, max 399.091 ms
-sr.log delays: mean 53.28563936063936 ms, median 50.556 ms, stdev 19.232810570449896, min 15.614 ms, max 253.945 ms
+sctp.log delays: mean 67.981 ms, median 64.382 ms, stdev 32.157 ms, min 22.775 ms, max 399.091 ms
+sr.log delays: mean 53.286 ms, median 50.556 ms, stdev 19.233 ms, min 15.614 ms, max 253.945 ms
 ```
 ![sctp_src_delay_50_10_loss_1_int_25_timeout_100](https://github.com/user-attachments/assets/63554589-322d-4c28-9aa7-78c21d24ba91)
 
@@ -84,7 +84,7 @@ This benchmark was intended to compare SR ARQ with SCTP on a connections that lo
 
 **Parameters:** netem delay - `50ms 10ms distribution normal`, netem loss - `state 1% 5%`, packet transmission interval - `25 ms`, packets transmitted - `1000`
 ```
-sr.log delays: mean 97.82515084915084 ms, median 53.78 ms, stdev 113.49584950576043, min 22.103 ms, max 654.347 ms
+sr.log delays: mean 97.825 ms, median 53.78 ms, stdev 113.496 ms, min 22.103 ms, max 654.347 ms
 ```
 ![bonus_sr_delay_50_10_normal_loss_1_5_timeout_100_int_25](https://github.com/user-attachments/assets/7c524e98-223a-4643-adcb-3ce59ff80eb0)
 
