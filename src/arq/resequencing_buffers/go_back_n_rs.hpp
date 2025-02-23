@@ -11,6 +11,9 @@
 namespace arq {
 namespace rs {
 
+/* In Go-Back-N ARQ, the resequencing buffer is a sliding window of size one. Fundamentally, it has similar function to
+ * the Stop-and-Wait RS buffer. As compared to Selective Repeat ARQ, whilst this scheme is slightly less effective, it
+ * has the benefit of reducing receiver complexity. */
 class GoBackN : public ResequencingBuffer<GoBackN> {
 public:
     GoBackN(SequenceNumber firstSeqNum = FIRST_SEQUENCE_NUMBER);

@@ -1,5 +1,5 @@
-#ifndef _ARQ_RT_BUFFERS_GO_BACK_N_HPP_
-#define _ARQ_RT_BUFFERS_GO_BACK_N_HPP_
+#ifndef _ARQ_RT_BUFFERS_SELECTIVE_REPEAT_HPP_
+#define _ARQ_RT_BUFFERS_SELECTIVE_REPEAT_HPP_
 
 #include <cstdint>
 #include <optional>
@@ -10,12 +10,11 @@
 namespace arq {
 namespace rt {
 
-/* In Go-Back-N ARQ, the retransmission buffer is a sliding window. */
-class GoBackN : public RetransmissionBuffer<GoBackN> {
+class SelectiveRepeat : public RetransmissionBuffer<SelectiveRepeat> {
 public:
-    GoBackN(const uint16_t windowSize,
-            const std::chrono::microseconds timeout,
-            const SequenceNumber firstSeqNum = FIRST_SEQUENCE_NUMBER);
+    SelectiveRepeat(const uint16_t windowSize,
+                    const std::chrono::microseconds timeout,
+                    const SequenceNumber firstSeqNum = FIRST_SEQUENCE_NUMBER);
 
     // Standard functions required by RetransmissionBuffer CRTP interface
     void do_addPacket(TransmitBufferObject&& packet);
@@ -25,14 +24,20 @@ public:
     void do_acknowledgePacket(const SequenceNumber ackedSeqNum);
 
 private:
+    // WJG: Consider abstracting this functionality to a CircularBuffer class.
+
     // The window defines the maximum number of packets that can be in the RT buffer.
     const uint16_t windowSize_;
+
     // A circular buffer holding the packets for retransmission.
     std::vector<std::optional<TransmitBufferObject>> buffer_;
+
     // The index within the buffer of the earliest packet.
     size_t startIdx_;
+
     // The next SN to acknowledge - this corresponds to the earliest packet in the buffer.
     SequenceNumber nextToAck_;
+
     // The current number of packets in the buffer. By keeping track of this, we can cut down on
     // unneccessary buffer iteration.
     size_t packetsInBuffer_;

@@ -29,6 +29,7 @@ public:
         resequencingBuffer_{std::move(rsBuffer_p)},
         resequencingThread_{[this]() { return this->resequencingThread(); }},
         ackThread_{[this]() { return this->ackThread(); }},
+        ackQueue_{},
         ackedEndOfTx_{false},
         endOfTxSn_{std::nullopt}
     {

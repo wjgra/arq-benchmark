@@ -4,6 +4,7 @@ arq::rt::DummySCTP::DummySCTP() :
     RetransmissionBuffer{std::chrono::milliseconds(0)} /* Timeout is not needed for the dummy RT buffer */
 {
 }
+#include "util/logging.hpp"
 
 void arq::rt::DummySCTP::do_addPacket([[maybe_unused]] TransmitBufferObject&& packet) {}
 

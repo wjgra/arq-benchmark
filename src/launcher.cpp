@@ -18,9 +18,11 @@
 #include "arq/receiver.hpp"
 #include "arq/resequencing_buffers/dummy_sctp_rs.hpp"
 #include "arq/resequencing_buffers/go_back_n_rs.hpp"
+#include "arq/resequencing_buffers/selective_repeat_rs.hpp"
 #include "arq/resequencing_buffers/stop_and_wait_rs.hpp"
 #include "arq/retransmission_buffers/dummy_sctp_rt.hpp"
 #include "arq/retransmission_buffers/go_back_n_rt.hpp"
+#include "arq/retransmission_buffers/selective_repeat_rt.hpp"
 #include "arq/retransmission_buffers/stop_and_wait_rt.hpp"
 #include "arq/transmitter.hpp"
 #include "util/endpoint.hpp"
@@ -64,7 +66,7 @@ auto programOptionData = std::to_array<ProgramOption>({
     {PROG_OPTION_TX_PKT_INTERVAL, uint16_t{10},                                      "ms between transmitted packets"},
     {PROG_OPTION_ARQ_TIMEOUT,     uint16_t{50},                                      "ARQ timeout in ms"},
     {PROG_OPTION_ARQ_PROTOCOL,    arqProtocolToString(arq::ArqProtocol::DUMMY_SCTP), "ARQ protocol to use"},
-    {PROG_OPTION_ARQ_WINDOW_SZ,   uint16_t{100},                                       "window size for GBN and SR ARQ"}
+    {PROG_OPTION_ARQ_WINDOW_SZ,   uint16_t{100},                                     "window size for GBN and SR ARQ"}
 });
 // clang-format on
 
@@ -424,6 +426,23 @@ static void startTransmitter(const arq::config_Launcher& config)
 
         transmitPackets(txerSend, config.server->txPkts.num, config.server->txPkts.msInterval);
     }
+    else if (config.common.arqProtocol == arq::ArqProtocol::SELECTIVE_REPEAT) {
+        auto windowSize = config.common.windowSize;
+        if (!config.common.windowSize.has_value()) {
+            windowSize = 100;
+            util::logWarning("Unspecified window size - using default of {}", windowSize.value());
+        }
+
+        arq::Transmitter txer(convID,
+                              txToClient,
+                              rxFromClient,
+                              std::make_unique<arq::rt::SelectiveRepeat>(
+                                  windowSize.value(), std::chrono::milliseconds(config.server->arqTimeout)));
+
+        auto txerSend = [&txer](arq::DataPacket&& pkt) { txer.sendPacket(std::move(pkt)); };
+
+        transmitPackets(txerSend, config.server->txPkts.num, config.server->txPkts.msInterval);
+    }
     else {
         util::logError("Unsupported ARQ protocol: {}", arqProtocolToString(config.common.arqProtocol));
     }
@@ -482,6 +501,10 @@ static void startReceiver(const arq::config_Launcher& config)
     }
     else if (config.common.arqProtocol == arq::ArqProtocol::GO_BACK_N) {
         arq::Receiver rxer(convID, txToServer, rxFromServer, std::make_unique<arq::rs::GoBackN>());
+    }
+    else if (config.common.arqProtocol == arq::ArqProtocol::SELECTIVE_REPEAT) {
+        // temp add window config
+        arq::Receiver rxer(convID, txToServer, rxFromServer, std::make_unique<arq::rs::SelectiveRepeat>(100));
     }
     else {
         util::logError("Unsupported ARQ protocol: {}", arqProtocolToString(config.common.arqProtocol));
