@@ -27,6 +27,7 @@ public:
         retransmissionBuffer_{std::move(rtBuffer_p)},
         transmitThread_{[this]() { return this->transmitThread(); }},
         ackThread_{[this]() { return this->ackThread(); }},
+        ackQueue_{},
         endOfTxSeqNum_{std::nullopt},
         endOfTxAcked_{false}
     {
@@ -102,6 +103,7 @@ private:
     {
         for (std::optional<SequenceNumber> snToAck;
              !endOfTxAcked_ && ((snToAck = ackQueue_.try_pop()) != std::nullopt);) {
+            assert(snToAck.has_value());
             if (snToAck == endOfTxSeqNum_) {
                 endOfTxAcked_ = true;
             }

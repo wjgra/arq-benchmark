@@ -33,7 +33,7 @@ log_file="arqlog.txt"
 
 remain_on_exit="false"
 
-usage() { echo "Usage: $0 [-d <tc delay arg string>] [-l <tc loss arg string>] [-n <number of pkts to tx>] [-i <interval between tx pkts> ] [-w <logging level>] [-f <log file>] [-t <ARQ timeout>] [-r <remain on exit>] [-h]" 1>&2; }
+usage() { echo "Usage: $0 [-d <tc delay arg string>] [-l <tc loss arg string>] [-n <number of pkts to tx>] [-i <interval between tx pkts> ] [-w <logging level>] [-f <log file>] [-t <ARQ timeout>] [-s <window size>] [-r <remain on exit>] [-h]" 1>&2; }
 
 setup_connections() {
     # Clean up old namespaces
@@ -143,11 +143,11 @@ setup_delays
 common_opts="--logging ${logging_level} --client-addr ${client_addr} --server-addr ${server_addr} --arq-protocol ${arq_protocol} "
 
 # Start server
-tmux new-session -d -s "arq" -n "server" "stdbuf -o0 ip netns exec ${server_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher \
+tmux new-session -d -s "arq" -n "server" "stdbuf -o0 ip netns exec ${server_ns} ${wrap_cmd} ${base_dir}/build/src/launcher \
 --launch-server ${common_opts} --tx-pkt-num ${pkt_num} --tx-pkt-interval ${pkt_interval} --arq-timeout ${arq_timeout} --window-size ${window_size}| tee ${server_log}"
 
 # Start client
-tmux new-window -t "arq" -n "client" "stdbuf -o0 ip netns exec ${client_ns} ${wrap_cmd} ${base_dir}/build/arq-benchmark/launcher \
+tmux new-window -t "arq" -n "client" "stdbuf -o0 ip netns exec ${client_ns} ${wrap_cmd} ${base_dir}/build/src/launcher \
 --launch-client ${common_opts} | tee ${client_log}"
 
 if [[ "${remain_on_exit}" == "true" ]]; then
